@@ -50,7 +50,14 @@ function deploy(){
   console.log('已部署到', target);
 }
 
-const common = {bundle: true, target: 'es2022', logLevel: 'warning', sourcemap: false, legalComments: 'none'};
+// 赞赏码随插件打包，仍只需发布原来的三个文件。
+const wechatQr = {};
+for (const [theme, variant] of [['paper', 'light'], ['night', 'dark']]) {
+  const file = path.join(root, 'docs/media', `wechat-sponsor-${variant}.jpg`);
+  if (fs.existsSync(file)) wechatQr[theme] = 'data:image/jpeg;base64,' + fs.readFileSync(file).toString('base64');
+}
+const common = {bundle: true, target: 'es2022', logLevel: 'warning', sourcemap: false, legalComments: 'none',
+  define: {__TIDELINE_WECHAT_QR__: JSON.stringify(wechatQr)}};
 const pluginOpts = {...common, banner: {js: scriptLicense}, entryPoints: [path.join(root, 'src/main.js')], outfile: path.join(dist, 'main.js'), format: 'cjs', platform: 'node', // node：AI 助手要用 child_process 启动 claude（插件只在电脑上加载）
   external: ['obsidian', 'electron', '@codemirror/*', '@lezer/*'], minify: false};
 // 0.9.4：去掉了 0.2 打包 Claude Agent SDK 时的三处兼容（import.meta.url 换成文件地址、全局 setTimeout / clearTimeout 换成 Node 计时器、

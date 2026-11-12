@@ -615,3 +615,12 @@
 .compass-root .settings-r27 .set-support-btn{display:inline-flex;align-items:center;gap:6px}
 .compass-root .settings-r27 .set-support-btn svg{width:16px;height:16px;flex:none}
 .compass-root .settings-r27 [data-group="support"] .set-row{align-items:flex-start}
+
+.compass-root .tideline-support-qr{box-sizing:border-box;width:min(448px,calc(100% - 32px));margin:auto;padding:24px;border:1px solid var(--background-modifier-border);border-radius:12px;background:var(--paper,var(--background-primary));color:var(--ink,var(--text-normal));text-align:center}
+.compass-root .tideline-support-qr::backdrop{background:rgb(0 0 0 / .28)}
+.compass-root .tideline-support-qr h2{margin:0 0 8px;font-size:1.2em}
+.compass-root .tideline-support-qr p{margin:0 0 16px}
+.compass-root .tideline-support-qr img{display:block;width:min(400px,58vh,100%);height:auto;margin-inline:auto}
+.compass-root[data-theme="night"] .tideline-support-qr img[data-qr-theme="paper"],
+.compass-root:not([data-theme="night"]) .tideline-support-qr img[data-qr-theme="night"]{display:none}
+.compass-root .tideline-support-qr form{margin-top:16px}

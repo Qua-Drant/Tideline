@@ -11,7 +11,7 @@ import {providerName, modelsOf, defaultModelOf} from './ai.js';
 import {SecretComponent} from 'obsidian';
 import {ink, circle, icon, esc} from '../draw/ink.js';
 import {FOLDERS} from '../data/index.js';
-import {SUPPORT} from '../support.js';
+import {supportQr, supportUrl} from '../support.js';
 
 const SVG = (s, w = 20, h = w) => `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${s}</svg>`;
 const PAGES = [['device', '设备'], ['guidance', '指引'], ['notes', '笔记'], ['secret', '日历'], ['data', '数据'], ['about', '关于']];
@@ -151,8 +151,13 @@ export function createSettingsPage({view, plugin}){
       + row('同步冲突副本', `<span class="set-meta">${S.conflicts ? `刚刚检查 · 发现 <b class="${S.conflicts.length ? 'is-bad' : ''}">${S.conflicts.length}</b> 个` : ''}</span><button type="button" class="set-mini hand-pill" data-settings-act="conflicts">${icon('search', 14)}<span>查找</span></button>`)
       + (S.conflicts?.length ? `<ul class="set-conflicts">${S.conflicts.map(x => `<li><button type="button" data-settings-act="openfile|${esc(x)}">${esc(x)}</button></li>`).join('')}</ul><small class="set-note">只能打开，不在这里删除</small>` : '')
       + row('示例航程', ex.length ? `<span class="set-meta">已安装 ${ex.length} 篇示例笔记</span><button type="button" class="set-mini hand-pill" data-settings-act="confirm|clear-examples">清除示例</button>` : '<span class="set-meta">没有安装（可以在首次起航里装）</span>'); }
-  // 0.9.6 支持者计划：付款方式另定，地址只在 src/support.js 一处
-  const support = () => row('支持者计划', `<p class="set-support">潮线免费、开源，没有广告和遥测，也不会把任何功能锁起来。它由作者在业余时间一笔一笔画出来、写出来、维护下去。如果它帮你把今天的推进接上了长远的方向，欢迎成为支持者：你的支持会变成新的风景、更快的页面和更少的问题。</p><div class="set-support-act"><button type="button" class="set-mini hand-pill set-support-btn" data-settings-act="support">${G.heart}<span>${SUPPORT.url ? '成为支持者' : '成为支持者 · 即将开放'}</span></button>${SUPPORT.url ? '' : '<small class="set-note">付款方式还在准备，开放后会写在更新说明里。</small>'}</div>`);
+  const support = () => {
+    const url = supportUrl(plugin.manifest);
+    const action = supportQr.paper || url
+      ? `<button type="button" class="set-mini hand-pill set-support-btn" data-settings-act="support"${supportQr.paper ? ' aria-haspopup="dialog"' : ''}>${G.heart}<span>请近岸喝杯咖啡</span></button><small class="set-note">${supportQr.paper ? '用微信扫码赞赏' : '在浏览器中打开赞赏页'}</small>`
+      : '<small class="set-note">赞赏入口筹备中</small>';
+    return row('自愿赞赏', `<p class="set-support">如果潮线帮你把今天的推进接上了长远的方向，欢迎请近岸喝杯咖啡。你的支持会用来维护插件和打磨纸本界面。潮线的本地功能免费开放。</p><div class="set-support-act">${action}</div>`);
+  };
   const about = () => row('版本', `<span class="set-meta mono">潮线 ${esc(plugin.manifest?.version || '')}</span>`)
     + row('重新起航', `<button type="button" class="set-mini hand-pill" data-settings-act="voyage">${refreshIcon}<span>重新起航</span></button><small class="set-note">再走一遍首次起航</small>`);
   function confirmBox(){
@@ -254,7 +259,33 @@ export function createSettingsPage({view, plugin}){
     else if (act === 'conflicts') findConflicts();
     else if (act === 'advanced') S.advanced = !S.advanced;
     else if (act === 'fold' || act === 'openfile') { plugin.writer.open(a.join('|')); return true; }
-    else if (act === 'support') { if (SUPPORT.url) window.open(SUPPORT.url); else view.frame.feedback('付款方式还在准备，开放后会写在更新说明里。谢谢你愿意支持潮线'); return true; }
+    else if (act === 'support') {
+      if (supportQr.paper) {
+        const dialog = root.createEl('dialog', {cls: 'tideline-support-qr', attr: {'aria-label': '微信扫码赞赏'}});
+        dialog.createEl('h2', {text: '微信扫码赞赏'});
+        dialog.createEl('p', {text: '用手机微信扫一扫，感谢你支持潮线。'});
+        for (const [theme, src] of Object.entries(supportQr)) {
+          dialog.createEl('img', {attr: {src, alt: '潮线微信赞赏码', 'data-qr-theme': theme}});
+        }
+        const actions = dialog.createEl('form', {attr: {method: 'dialog'}});
+        actions.createEl('button', {text: '关闭', attr: {type: 'submit'}});
+        dialog.addEventListener('close', () => {
+          dialog.remove();
+          if (b.isConnected) b.focus({preventScroll: true});
+        }, {once: true});
+        dialog.addEventListener('keydown', e => {
+          if (e.key !== 'Escape') return;
+          e.preventDefault();
+          e.stopPropagation();
+          dialog.close();
+        });
+        dialog.showModal();
+      } else {
+        const url = supportUrl(plugin.manifest);
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      return true;
+    }
     else if (act === 'voyage') { close(false); view.startVoyage?.(); return true; }
     else if (act === 'go') { close(false); view.go(a[0]); return true; }
     refresh(); return true;
@@ -289,6 +320,6 @@ export function createSettingsPage({view, plugin}){
   view.registerDomEvent(root, 'dragover', e => { if (dragged && e.target.closest?.('.settings-view [data-item]')) e.preventDefault(); });
   view.registerDomEvent(root, 'drop', e => { drop(e); }, {capture: true});
   // Esc 关上设置：焦点不一定在插件视图里（点完选项后常在别处），所以挂在整个窗口上，只在设置开着时管
-  view.registerDomEvent(document, 'keydown', e => { if (e.key === 'Escape' && root.isConnected && isOpen() && !e.target.closest?.('input,textarea')) { e.preventDefault(); close(); } });
+  view.registerDomEvent(document, 'keydown', e => { if (e.key === 'Escape' && root.isConnected && isOpen() && !e.target.closest?.('input,textarea,.tideline-support-qr')) { e.preventDefault(); close(); } });
   return {open, close, refresh, isOpen, ask(k){ S.confirm = k; refresh(); }, toggle(){ if (isOpen()) close(); else open(); }};
 }

@@ -1,6 +1,16 @@
-// 支持者计划（0.9.6，使用者 2026-11-12）：潮线免费开源、不锁功能；设置 › 关于 里有“支持潮线”的入口，只在使用者自己点开时出现，不弹窗、不提醒。
-// 付款方式由作者另行设计：定下来以后只改这里的 url（可以是爱发电、GitHub Sponsors 之类的页面）。url 为空时按钮写“即将开放”，点了只给一句说明、不跳转。
-// manifest.json 的 fundingUrl 也要同时填上（社区目录会在插件页显示“支持”链接）。
-export const SUPPORT = {
-  url: '',
+// 由构建脚本嵌入可公开展示的微信赞赏码。
+const bundledQr = typeof __TIDELINE_WECHAT_QR__ === 'undefined' ? {} : __TIDELINE_WECHAT_QR__;
+export const supportQr = {
+  paper: bundledQr.paper || bundledQr.night || '',
+  night: bundledQr.night || bundledQr.paper || '',
 };
+
+// Obsidian 插件详情支持清单里的公开赞赏链接。
+export function supportUrl(manifest){
+  const value = manifest?.fundingUrl;
+  if (typeof value !== 'string') return '';
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : '';
+  } catch { return ''; }
+}

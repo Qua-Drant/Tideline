@@ -6,7 +6,7 @@
 
 一本手绘的航海速写本，住在你的 Obsidian 里。
 
-<a href="../../releases"><img alt="版本" src="https://img.shields.io/badge/版本-0.9.6-1C2A35?style=flat-square"></a>
+<a href="../../releases"><img alt="版本" src="https://img.shields.io/badge/版本-0.9.7-1C2A35?style=flat-square"></a>
 <img alt="Obsidian 桌面端" src="https://img.shields.io/badge/Obsidian-桌面端_1.15.0+-5B6871?style=flat-square">
 <img alt="简体中文" src="https://img.shields.io/badge/界面-简体中文-5B6871?style=flat-square">
 <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/许可-MIT-5B6871?style=flat-square"></a>
@@ -59,7 +59,7 @@
 
 ## 📦 安装
 
-> 0.9.6 试用版需要桌面 Obsidian 1.15.0 或更新版本，界面为简体中文。本次在 Windows 上验证，macOS 和 Linux 待实测。
+> 0.9.7 试用版需要桌面 Obsidian 1.15.0 或更新版本，界面为简体中文。本次在 Windows 上验证，macOS 和 Linux 待实测。
 
 在上架 Obsidian 社区插件目录之前，可以手动安装：
 
@@ -92,16 +92,11 @@
 
 ## ♥ 支持潮线
 
-潮线免费、开源，没有广告和遥测，**也不会把任何功能锁起来**。
+如果潮线帮你把今天的推进接上了长远的方向，欢迎请近岸喝杯咖啡。赞赏是自愿的，用于维护插件、跟进 Obsidian 更新和打磨纸本界面。潮线的本地功能免费开放。
 
-它由作者在业余时间一笔一笔画出来、写出来、维护下去：每一张海图、每一只邮包、每一道墨线，都是手绘和反复打磨的结果。如果潮线帮你把今天的推进接上了长远的方向，欢迎成为支持者——你的支持会变成：
+在插件「设置 › 关于 › 支持潮线」点「请近岸喝杯咖啡」，用手机微信扫一扫。赞赏码会随潮线的纸本或夜航配色切换。你也可以在这里打开 [浅色赞赏码](docs/media/wechat-sponsor-light.jpg) 或 [深色赞赏码](docs/media/wechat-sponsor-dark.jpg)。
 
-- 🎨 **新的风景**：季节、节日和更多海域的画面；
-- ⚡ **更快的页面**：大仓库里也不卡；
-- 🛠 **更少的问题**：更及时的修复与跟进 Obsidian 的更新；
-- 🌏 **更多的人能用上**：英文界面。
-
-**怎么支持**：付款方式正在准备中，开放后会写在这里，也会出现在插件的 设置 › 关于 › 支持潮线 里。在那之前，给仓库点一颗 ⭐、把潮线分享给可能用得上的朋友、在 [Issues](../../issues) 里告诉我们你的用法和想法，都是很大的支持。
+也欢迎给仓库点一颗 ⭐，或在 [Issues](../../issues) 分享使用反馈。
 
 ## 🛠 从源码构建
 

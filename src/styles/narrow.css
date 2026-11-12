@@ -1,0 +1,99 @@
+/* 窄视图（插件自己的设计，原型没有这一档）：插件视图宽度 < 1000px，常见于 Obsidian 开着一侧或两侧侧栏。
+   原型只验收过 ≥1280；窄于 900 的规则是原型没验收过的手机布局，这里整体接管 680–999 这一档。
+   - 纸面改成上下滚动：顶部条（日期、记录、罗盘）和侧栏不动，只有纸在走；风景跟着内容一起滚（view.js 按内容高度画）。
+   - 上方：≥820 仍是聚焦 | 其他任务两栏；<820 上下排，其他任务最多 4 行，余下的照常“还有 N 项”。
+   - 时间轴照旧横贯整张纸。
+   - 下方三栏改两栏三行：航迹 | 习惯、往年今日 | 自问、投入 | 随手记。
+   放在 prototype.css 之后；选择器与原型同级或更高，必要处用 !important 盖过原型的 !important。 */
+
+@container compass (max-width: 999px){
+  .compass-root .page-head{left:96px;right:32px;margin:0}
+  .compass-root .rail{top:20px}
+  .compass-root .feedback{left:96px}
+  .compass-root .date-copy{white-space:nowrap;max-width:none;font-size:14px}
+  .compass-root .day{font-size:52px}
+  .compass-root .head-actions{gap:14px}
+
+  .compass-root .sheet{position:absolute;top:128px;bottom:0;left:96px;right:0;margin:0;padding-right:32px;min-height:0;
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--tick) transparent;
+    /* 滚上去的内容在顶部条下方淡出，不是一刀切 */
+    -webkit-mask-image:linear-gradient(transparent,#000 18px);mask-image:linear-gradient(transparent,#000 18px)}
+  .compass-root .scenery{inset:0 auto auto 0}
+  .compass-root .today{padding-top:20px;padding-bottom:48px}
+
+  .compass-root #today .above{grid-template-columns:3fr 2fr;gap:28px;height:auto!important;min-height:200px!important;max-height:none!important;overflow:visible!important;padding-right:0}
+  /* 其他任务不撑高这一排：高度跟聚焦栏走（至少 200），多出的照常在栏里滚动、“还有 N 项” */
+  .compass-root .other-tasks{margin-top:0;height:0;min-height:100%}
+  .compass-root .focus-name{font-size:30px}
+  /* 栏变窄后任务名与所属项目分行时，项目名整个换到下一行，不在字中间断开 */
+  .compass-root #today .task-title{flex-wrap:wrap;column-gap:10px;row-gap:0}
+  .compass-root #today .task-project{white-space:nowrap}
+  .compass-root .today .timeline{margin-top:18px;height:140px}
+
+  .compass-root #today .below{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto auto;column-gap:32px;row-gap:30px!important;
+    height:auto!important;min-height:0;padding-bottom:0;margin-top:6px}
+  .compass-root #today .below > div{display:contents!important}
+  .compass-root #today .below .today-subsection{display:flex;flex-direction:column;min-width:0}
+  .compass-root #today .below [data-today-group="trail"]{grid-area:1/1}
+  .compass-root #today .below [data-today-group="habits"]{grid-area:1/2}
+  .compass-root #today .below [data-today-group="past"]{grid-area:2/1}
+  .compass-root #today .below [data-today-group="questions"]{grid-area:2/2}
+  .compass-root #today .below [data-today-group="investments"]{grid-area:3/1}
+  .compass-root #today .below [data-today-group="journal"]{grid-area:3/2}
+  .compass-root #today .today-subsection > .today-section-mark{margin-bottom:6px;font-size:12px}
+  .compass-root .trail{max-height:none}
+  .compass-root .journal{max-height:186px}
+  .compass-root .questions{gap:12px}
+  /* 0.3：上方一栏高度固定，点开任务详情时下面的时间轴和三栏不跟着跳；详情在栏里滚动 */
+  .compass-root #today .above{height:310px!important;min-height:0!important}
+  .compass-root #today .focus-section{min-height:0;overflow-y:auto;overflow-x:hidden}
+  /* 习惯、自问、航迹多了在块里滚动，不把下面的块推得很远 */
+  .compass-root #today .below .today-subsection{overflow:visible}
+  .compass-root #today .below #habits{max-height:236px}
+  .compass-root #today .below #questions{max-height:340px}
+  .compass-root #today .below #trail{height:104px;max-height:none}
+}
+
+/* 矮视图（宽 ≥ 1000 但高度不够：原型验收到 1366×768 / 1280×800）：保持三栏版式，纸改成上下滚动，
+   下方不再按“剩余高度”压缩，按内容排开。 */
+@container compass (min-width: 1000px) and (max-width: 1320px) and (max-height: 779px){
+  .compass-root .sheet{left:112px;padding-right:48px}
+}
+@container compass (min-width: 1321px) and (max-height: 759px){
+  .compass-root .sheet{left:128px;padding-right:64px}
+}
+@container compass (min-width: 1000px) and (max-width: 1320px) and (max-height: 779px), (min-width: 1321px) and (max-height: 759px){
+  .compass-root .sheet{position:absolute;top:128px;bottom:0;right:0;margin:0;min-height:0;
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--tick) transparent;
+    -webkit-mask-image:linear-gradient(transparent,#000 18px);mask-image:linear-gradient(transparent,#000 18px)}
+  .compass-root .scenery{inset:0 auto auto 0}
+  .compass-root .today{padding-bottom:48px}
+  .compass-root #today .below{height:auto!important;min-height:0;grid-template-rows:auto auto}
+  .compass-root .journal{max-height:186px}
+}
+
+/* 复盘页的 R39 切换条伸到纸顶外。纸面可滚动时，把它放进裁切范围。 */
+@container compass (max-width: 999px), (min-width: 1000px) and (max-width: 1320px) and (max-height: 779px), (min-width: 1321px) and (max-height: 759px){
+  .compass-root #review .review-switch{top:8px}
+}
+
+/* 更窄：上方上下排 */
+@container compass (max-width: 819px){
+  .compass-root #today .above{grid-template-columns:minmax(0,1fr);gap:22px}
+  .compass-root .other-tasks{height:auto;min-height:0}
+  .compass-root .other-task-items{max-height:160px}
+  /* 0.3：上下排时整排不固定高度；聚焦栏自己固定高度，点开详情在栏里滚动，下面的不跟着跳 */
+  .compass-root #today .above{height:auto!important}
+  .compass-root #today .focus-section{height:250px}
+  .compass-root #today .other-tasks{height:170px}
+  .compass-root .focus-name{font-size:28px}
+}
+
+/* 再窄（< 640）：日期栏分两行，不在中间断开 */
+@container compass (max-width: 639px){
+  .compass-root .date-copy{white-space:normal;max-width:9em}
+}
+/* 0.9.3（评审 P2-3）：较窄时 设置 › 笔记 的三张清单卡改成两列（第三张另起一行），标题不折行 */
+@container compass (max-width: 1100px){.compass-root .settings-r27 .set-lists{grid-template-columns:repeat(2,minmax(0,1fr))} .compass-root .settings-r27 .set-list header b{white-space:nowrap}}
+/* 0.9.3（评审 P2-5）：较窄时大脑节点收紧留白、图标和字号，名字能折成两行放下（如“论文/修改”）；人物头像字不小于 11px */
+@container compass (max-width: 1100px){.compass-root #brain .graph-node.brain-node{padding:0 6px;gap:4px} .compass-root #brain .brain-node > svg{width:14px!important;height:14px!important} .compass-root #brain .brain-node .node-name{font-size:12px}}

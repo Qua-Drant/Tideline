@@ -1,0 +1,76 @@
+import {extendData} from './phase2-data.js';
+// All content, interaction state, and render caches live in this one object.
+export const data={
+ clock:{date:'2026-10-29',time:'13:29'},
+ ui:{page:'today',lamp:true,week:44,idea:'idea-error',ideaDate:'2026-10-29',ideaTag:null,draftTags:[],tagPicker:false,tagNewName:'',tagError:'',eventHover:null,eventHoverMode:null,eventDismissed:null,prompt:'read-paper',query:'',detail:null,help:false,capture:false,captureType:'task',map:false,settings:false,source:null,menu:null,paused:false,seek:0,drawn:{},copy:null,undo:null},
+ tasks:[
+  {id:'focus-method',title:'整理论文方法部分',project:'论文修改',description:'把三条关键假设写清楚，再核对符号和适用范围。',date:'2026-10-29',focus:1,status:'in_progress'},
+  {id:'focus-results',title:'核对实验对照结果',project:'建筑轮廓对齐',description:'复查两组差异，回到原始记录核对原因。',date:'2026-10-29',focus:2,status:'open'},
+  {id:'focus-run',title:'傍晚跑步 30 分钟',project:'身体健康',date:'2026-10-29',focus:3,status:'open'},
+  {id:'figures',title:'统一图 3 和图 4 的标注',project:'论文修改',date:'2026-10-28',status:'open'},
+  {id:'meeting-questions',title:'整理组会要讨论的问题',project:'建筑轮廓对齐',date:'2026-10-29',status:'open'},
+  {id:'backup',title:'备份本周实验记录',project:'建筑轮廓对齐',date:'2026-10-29',status:'open'},
+  {id:'book',title:'归还图书馆的书',date:'2026-10-29',status:'open'},
+  {id:'review',title:'写几句今日回顾',date:'2026-10-29',status:'open'},
+  {id:'done-paper',title:'读完一篇相关文献',project:'论文修改',date:'2026-10-29',status:'done'},
+  {id:'done-mail',title:'回复合作同学的邮件',date:'2026-10-29',status:'done'},
+  {id:'mon',title:'复查轮廓误差定义',project:'建筑轮廓对齐',date:'2026-10-26',status:'done'},
+  {id:'tue',title:'补记失败样本的原因',project:'建筑轮廓对齐',date:'2026-10-27',status:'done'},
+  {id:'wed',title:'重画方法流程图',project:'论文修改',date:'2026-10-28',status:'done'},
+  {id:'fri',title:'和导师讨论方法边界',project:'论文修改',date:'2026-10-30',status:'open'},
+  {id:'fri2',title:'复跑缺失建筑的对照',project:'建筑轮廓对齐',date:'2026-10-30',status:'open'},
+  {id:'sat',title:'整理读书笔记',date:'2026-10-31',status:'open'},
+  {id:'sun',title:'回看这一周的投入',date:'2026-11-01',status:'open'},
+  {id:'unscheduled',title:'试一版更简单的置信度',project:'建筑轮廓对齐',date:null,status:'open'},
+  {id:'unscheduled2',title:'找一篇失败分析的综述',date:null,status:'open'}
+ ],
+ events:[{id:'group',time:'14:00',title:'组会',description:'带上方法草稿和失败样本。'},{id:'call',time:'19:00',title:'和家人通话',description:'聊聊这一周，也问问家里的近况。'}],
+ journal:[{id:'n1',time:'09:12',text:'方法部分先把假设写清楚，再补实验细节。'},{id:'n2',time:'12:36',text:'那几处错位，可能来自屋檐而不是边界。'}],
+ habits:[{id:'water',name:'喝够水',value:true,history:[1,1,0,1,1,1,1]},{id:'stretch',name:'起身活动',value:false,history:[1,0,1,1,0,1,0]},{id:'read',name:'读书 20 分钟',value:null,history:[1,1,1,0,1,1,null]},{id:'sleep',name:'按时休息',value:null,history:[0,1,1,0,1,1,null]}],
+ questions:[{id:'important',title:'有认真推进重要的事吗？',value:7},{id:'care',title:'有照顾好自己吗？',value:null}],
+ investments:[{id:'paper',title:'论文修改',hours:1.5},{id:'reading',title:'阅读与整理',hours:0.75}],
+ investmentScaleHours:2,
+ past:{text:'先把眼前这一小步做清楚，今天就没有白过。',year:'2025'},
+ goals:[{id:'goal-paper',title:'完成方法与实验初稿',planned:8,spent:5.5},{id:'goal-body',title:'找回稳定的身体节律',planned:4,spent:2.25},{id:'goal-review',title:'重读研究方法',planned:3,spent:0,resume:'11月9日'}],
+ ideaTags:['方法','写作','生活'],
+ ideas:[
+  {id:'idea-assumption',title:'先写假设，再讲方法',body:'方法章节也许不该从流程图开始。\n\n先写清楚：我们相信输入里哪些部分、在哪些条件下可能失效，再让每一步处理回应一个明确的问题。\n\n这比补一张更复杂的图更值得先做。',stage:'growing',review:true,tag:'写作',source:'论文修改',created:'2026-10-27'},
+  {id:'idea-error',title:'把失败样本排成一页',body:'按错位来源归组，而不是按误差大小排序。把几张不符合预期的结果并排，可能更容易看出假设的边界。',stage:'ready',review:true,tag:'方法',source:'建筑轮廓对齐',created:'2026-10-28'},
+  {id:'idea-confidence',title:'让置信度解释自己',body:'给每个低置信度判断留下一条可以追溯的原因：遮挡、边界不清，还是不同来源之间不一致。',stage:'growing',review:false,tag:'方法',source:'建筑轮廓对齐',created:'2026-10-28'},
+  {id:'idea-walk',title:'散步时只带一个问题',body:'不急着找答案，把今天最难讲清楚的那个问题带出去。回来只记下想法发生变化的地方。',stage:'seed',review:false,tag:'生活',created:'2026-10-26'},
+  {id:'idea-week',title:'周记从投入而不是待办开始',body:'先看这一周把注意力放在了哪里，再决定下周需要保护什么。',stage:'ready',review:false,tag:'生活',created:'2026-10-25'},
+  {id:'idea-h01',title:'把屋檐误差单独列一列',body:'轮廓不一致不一定来自方法本身，先分清楚参考线画在了哪里。',stage:'seed',review:false,tag:'方法',created:'2026-08-13'},
+  {id:'idea-h02',title:'先选能推翻假设的样本',body:'不要只收集漂亮结果。先找最难解释的那个例子。',stage:'growing',review:false,tag:'方法',created:'2026-08-25'},
+  {id:'idea-h03',title:'图例也应该回应问题',body:'如果一张图里的颜色不能帮助判断，就试着删掉一种。',stage:'seed',review:false,tag:'写作',created:'2026-08-25'},
+  {id:'idea-h04',title:'把阅读问题放在第一页',body:'开始读之前，先写下这次想弄清楚什么。',stage:'growing',review:false,tag:'写作',created:'2026-09-03'},
+  {id:'idea-h05',title:'失败也留一个可检索的名字',body:'以后要能从原因找到记录，而不是重新翻遍文件夹。',stage:'ready',review:false,tag:'方法',created:'2026-09-08'},
+  {id:'idea-h06',title:'实验日志保留判断过程',body:'不只写改了参数，还写为什么决定改它。',stage:'growing',review:false,tag:'方法',created:'2026-09-14'},
+  {id:'idea-h07',title:'写作前先讲给自己听',body:'讲不顺的地方，往往也是论证还没有连起来的地方。',stage:'seed',review:false,tag:'写作',created:'2026-09-14'},
+  {id:'idea-h08',title:'周末留一段没有清单的时间',body:'给注意力一点不需要交付结果的空隙。',stage:'seed',review:false,tag:'生活',created:'2026-09-20'},
+  {id:'idea-h09',title:'一个问题配一张对照图',body:'先确定图需要回答什么，再决定排几列。',stage:'ready',review:false,tag:'写作',created:'2026-09-23'},
+  {id:'idea-h10',title:'把方法的边界画出来',body:'让读者在流程之外，也能看到哪些输入没有被承诺。',stage:'growing',review:false,tag:'方法',created:'2026-10-01'},
+  {id:'idea-h11',title:'给结论留一条证据路径',body:'每一个重要判断，都能回到原始记录中的一个位置。',stage:'ready',review:false,tag:'写作',created:'2026-10-05'},
+  {id:'idea-h12',title:'保留一次没有改好的结果',body:'它也许更能说明为什么最后选择了另一条路。',stage:'seed',review:false,tag:'方法',created:'2026-10-05'},
+  {id:'idea-h13',title:'讨论时先说不确定的部分',body:'把最需要帮助判断的地方摆在前面。',stage:'growing',review:false,tag:'方法',created:'2026-10-05'},
+  {id:'idea-h14',title:'一段只承担一个论点',body:'删掉旁枝之后，看看证据是不是仍然足够。',stage:'growing',review:false,tag:'写作',created:'2026-10-05'},
+  {id:'idea-h15',title:'让散步成为一段真正的空白',body:'今天先不补听课程，看看思绪会自己走到哪里。',stage:'seed',review:false,tag:'生活',created:'2026-10-12'},
+  {id:'idea-h16',title:'把验证和解释分开写',body:'先交代看到了什么，再讨论可能为什么。',stage:'ready',review:false,tag:'写作',created:'2026-10-15'},
+  {id:'idea-h17',title:'最小的复现实验是什么',body:'试着只保留产生那个差异所必需的一步。',stage:'growing',review:false,tag:'方法',created:'2026-10-20'},
+  {id:'idea-h18',title:'先查坐标，再改算法',body:'在调整方法之前，把输入的空间关系核对一遍。',stage:'ready',review:false,tag:'方法',created:'2026-10-20'},
+  {id:'idea-h19',title:'把下一步缩到一小时以内',body:'不急着完成整个章节，先把今天最难的一段写清楚。',stage:'seed',review:false,tag:'生活',created:'2026-10-20'},
+  {id:'idea-h20',title:'给每张结果图留一句观察',body:'只写实际看见的变化，暂时不解释它。',stage:'growing',review:false,tag:'方法',created:'2026-10-23'}
+ ],
+ prompts:[
+  {id:'read-paper',title:'带着问题读一篇文献',risk:0,scope:[1,0,0,0],body:'先读当前文献的摘要、方法和局限。\n找出它试图回答的问题、成立的假设，以及最需要核对的证据。\n引用原文位置，分清作者的结论与你的推断。\n只在对话中回答。'},
+  {id:'week-review',title:'回看这一周的投入',risk:1,scope:[1,1,0,0],body:'读取本周的每日投入与日记原文。概括注意力流向，引用我自己的话，给出一段可追加到周记的回顾草稿。先展示草稿，等我确认。'},
+  {id:'method',title:'检查方法章节的论证',risk:2,scope:[1,0,1,0],body:'逐段检查问题、假设、方法与证据能否对应。标出缺失的推导和过强的结论，提出精确替换文字。先呈现对照，确认后再改。'},
+  {id:'clean',title:'核对重复的阅读摘录',risk:3,scope:[1,0,0,1],body:'只列出可能重复的摘录及其来源位置。不直接删除，保留原文上下文，逐条等待确认。'}
+ ],
+ ai:{connected:false,agent:'科研助手',attach:false,accept:false},
+ summary:{inbox:2,projects:2,doneWeek:5,literature:7},
+ weekly:'这周先把方法的适用条件讲清楚。实验只补能回应问题的部分，给写作留出连续的上午。',
+ cache:{assets:{},brush:null},serial:1
+};
+extendData(data);
+export const nav=[['thought','思索','star'],['ai','指引','flag'],['today','今日','sunrise'],['tasks','任务','box'],['projects','项目','route'],['review','复盘','book'],['library','知识库','lead'],['brain','大脑','nodes']];
+export const activePages=nav.map(item=>item[0]);

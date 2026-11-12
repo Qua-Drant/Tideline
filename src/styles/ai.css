@@ -1,0 +1,82 @@
+/* 指引页对话（src/ai/controller.js）：原型的对话区只有“我 / 回答”两种消息，这里补上流式回答、工具小字、确认卡片、@ 菜单。
+   画法沿用原型：纸上不加框，用细线与留白；等你决定的卡片左边一道品红（全站“选中 / 待定”的颜色）。 */
+.compass-root .native-thread{height:100%;overflow-y:auto;overflow-x:hidden;padding-right:10px;scrollbar-width:thin;scrollbar-color:var(--tick) transparent}
+.compass-root .native-message.ai-answer .ai-md{font-size:15px;line-height:1.85;color:var(--ink)}
+.compass-root .ai-md :is(p,ul,ol,pre,blockquote,table){margin:.35em 0 .6em}
+.compass-root .ai-md :is(ul,ol){padding-left:1.4em}
+.compass-root .ai-md code{font:13px/1.6 var(--mono);background:color-mix(in srgb,var(--line) 45%,transparent);padding:0 .3em;border-radius:3px}
+.compass-root .ai-md pre{font:13px/1.6 var(--mono);white-space:pre-wrap;padding:8px 10px;border-left:2px solid var(--line)}
+.compass-root .ai-md pre code{background:none;padding:0}
+.compass-root .ai-md table{border-collapse:collapse;font-size:13px}
+.compass-root .ai-md :is(th,td){border-bottom:1px solid var(--line);padding:3px 10px 3px 0;text-align:left}
+.compass-root .ai-md h1,.compass-root .ai-md h2,.compass-root .ai-md h3{font-size:15px;font-weight:600;margin:.8em 0 .3em}
+.compass-root .ai-mentions,.compass-root .ai-meta{display:block;margin-top:4px;font:11px/1.6 var(--mono);color:var(--secondary)}
+.compass-root .ai-tools{list-style:none;margin:6px 0 4px;padding:0;display:flex;flex-direction:column;gap:2px}
+.compass-root .ai-tools li{font:12px/1.6 var(--mono);color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:14px;position:relative}
+.compass-root .ai-tools li::before{content:'';position:absolute;left:2px;top:.62em;width:6px;height:6px;border-radius:50%;border:1px solid currentColor}
+.compass-root .ai-tools li.done::before{background:currentColor}
+.compass-root .ai-tools li.running::before{animation:compass-ai-pulse 1.1s ease-in-out infinite}
+.compass-root .ai-tools li.failed{text-decoration:line-through;opacity:.7}
+@keyframes compass-ai-pulse{50%{opacity:.25}}
+.compass-root .ai-busy{display:flex;align-items:center;gap:14px;margin:4px 0 18px}
+.compass-root .ai-busy-label{color:var(--secondary);font-size:12px}
+.compass-root .ai-dots{display:inline-flex;gap:4px}
+.compass-root .ai-dots i{width:5px;height:5px;border-radius:50%;background:var(--secondary);animation:compass-ai-pulse 1.2s ease-in-out infinite}
+.compass-root .ai-dots i:nth-child(2){animation-delay:.2s}
+.compass-root .ai-dots i:nth-child(3){animation-delay:.4s}
+.compass-root[data-motion="off"] .ai-dots i,.compass-root[data-motion="off"] .ai-tools li.running::before{animation:none}
+@media (prefers-reduced-motion: reduce){
+  .compass-root .ai-dots i,.compass-root .ai-tools li.running::before{animation:none}
+}
+.compass-root .ai-card{margin:0 0 22px;padding:10px 0 12px 14px;border-left:2px solid #C8206A}
+.compass-root .ai-card.done{border-left-color:var(--line);padding:2px 0 2px 14px;font-size:12px;color:var(--secondary)}
+.compass-root .ai-card-head{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.compass-root .ai-card-head strong{font-size:14px;font-weight:600;color:var(--ink);word-break:break-all}
+.compass-root .ai-card-head small{font-size:12px;color:var(--secondary)}
+.compass-root .ai-card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:10px}
+.compass-root .ai-card-actions .outline{font-size:13px}
+.compass-root .ai-paths{list-style:none;margin:0;padding:0;font:12.5px/1.7 var(--mono);color:var(--ink)}
+.compass-root .ai-command{margin:0;font:12.5px/1.6 var(--mono);white-space:pre-wrap;word-break:break-all;color:var(--ink)}
+.compass-root .ai-diff{max-height:280px;overflow:auto;font:12.5px/1.65 var(--mono);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 0;scrollbar-width:thin}
+.compass-root .ai-diff-row{display:flex;gap:8px;white-space:pre-wrap;word-break:break-all}
+.compass-root .ai-diff-row i{flex:0 0 12px;font-style:normal;color:var(--secondary);text-align:center}
+.compass-root .ai-diff-row.add{background:color-mix(in srgb,#3E8E6B 12%,transparent)}
+.compass-root .ai-diff-row.add i{color:#3E8E6B}
+.compass-root .ai-diff-row.del{background:color-mix(in srgb,#C8206A 9%,transparent);text-decoration:line-through;text-decoration-color:color-mix(in srgb,#C8206A 50%,transparent)}
+.compass-root .ai-diff-row.del i{color:#C8206A}
+.compass-root .ai-diff-row.gap{color:var(--secondary)}
+.compass-root .ai-card > small{display:block;margin-top:4px;font-size:11.5px;color:var(--secondary)}
+.compass-root .ai-error{margin:0 0 20px;padding:8px 0 8px 14px;border-left:2px solid var(--secondary);font-size:13px;color:var(--ink)}
+.compass-root .ai-error p{margin:0 0 4px}
+.compass-root .ai-error code{font:12.5px var(--mono);margin-right:10px}
+.compass-root #handoff-form{position:relative}
+.compass-root .ai-mention-menu{position:absolute;left:12px;bottom:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;min-width:240px;max-width:420px;padding:6px 4px;background:var(--paper)}
+.compass-root .ai-mention-menu button{display:flex;align-items:baseline;gap:10px;padding:4px 10px;text-align:left;font-size:13px;color:var(--ink);background:none;border:0;cursor:pointer}
+.compass-root .ai-mention-menu button small{font-size:11px;color:var(--secondary)}
+.compass-root .ai-mention-menu button[aria-selected="true"]{box-shadow:inset 2px 0 0 #C8206A}
+.compass-root .native-message.ai-answer:has(+ .ai-card),.compass-root .native-message.ai-answer:has(+ .ai-busy){border-bottom:0;margin-bottom:10px;padding-bottom:0}
+.compass-root .native-message.ai-answer.cont{border-bottom:0;margin-bottom:10px;padding-bottom:0}
+.compass-root .native-message.ai-answer.cont:last-of-type{border-bottom:1px solid #b6c0c555;padding-bottom:22px;margin-bottom:22px}
+
+/* 第二步：顶部按钮、对话列表、回退、就地切换 */
+.compass-root .ai-head-btn{white-space:nowrap;border:0;background:none;cursor:pointer;font-size:13px;color:var(--secondary);padding:0 6px;margin-right:6px}
+.compass-root .ai-head-btn:hover{color:var(--ink)}
+.compass-root .ai-head-btn[aria-expanded="true"]{color:var(--ink);box-shadow:inset 0 -1px 0 #C8206A}
+.compass-root .ai-switches{display:inline-flex;gap:18px;margin-left:18px}
+.compass-root .ai-switch{cursor:pointer}
+.compass-root .ai-window{position:relative}
+.compass-root .ai-list-panel{position:absolute;right:0;top:44px;z-index:40;width:min(360px,90%);max-height:min(460px,70%);overflow:auto;padding:12px 14px;background:var(--paper);scrollbar-width:thin}
+.compass-root .ai-list-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.compass-root .ai-list-head strong{font-size:14px;font-weight:600}
+.compass-root .ai-list-head small,.compass-root .ai-list-mcp,.compass-root .ai-list-empty{font-size:11.5px;color:var(--secondary)}
+.compass-root .ai-list-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid #b6c0c544;background:none;text-align:left;cursor:pointer;color:var(--ink);font-size:13.5px}
+.compass-root .ai-list-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compass-root .ai-list-row small{flex:none;font:11px var(--mono);color:var(--secondary)}
+.compass-root .ai-list-row[aria-current="true"]{box-shadow:inset 2px 0 0 #C8206A}
+.compass-root .ai-list-archive{margin-top:8px;font-size:12px;color:var(--secondary)}
+.compass-root .ai-list-archive summary{cursor:pointer;padding:4px 0}
+.compass-root .ai-list-mcp{margin:10px 0 0;line-height:1.6}
+.compass-root .ai-user > span{display:flex;align-items:baseline;gap:10px}
+.compass-root .ai-rewind{border:0;background:none;padding:0;font-size:11.5px;color:var(--secondary);cursor:pointer;opacity:0;transition:opacity .15s}
+.compass-root .ai-user:hover .ai-rewind,.compass-root .ai-rewind:focus-visible{opacity:1}
+.compass-root .ai-rewind:hover{color:#C8206A}

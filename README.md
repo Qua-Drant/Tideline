@@ -93,13 +93,14 @@
 ## ♥ 支持潮线
 
 如果潮线帮你把今天的推进接上了长远的方向，欢迎请我喝杯咖啡。
+
 赞赏是自愿的，用于维护插件、跟进 Obsidian 更新和打磨纸本界面。
+
 **潮线的本地功能免费开放**。
 
 点击下方按钮打开赞赏码，用手机微信扫一扫。
 
-[![打开浅色微信赞赏码](https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E8%B5%9E%E8%B5%8F-%E6%B5%85%E8%89%B2-DDB547?style=for-the-badge&logo=wechat&logoColor=1C2A35)](docs/media/wechat-sponsor-light.jpg)
-[![打开深色微信赞赏码](https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E8%B5%9E%E8%B5%8F-%E6%B7%B1%E8%89%B2-1C2A35?style=for-the-badge&logo=wechat&logoColor=FFFFFF)](docs/media/wechat-sponsor-dark.jpg)
+[![打开赞赏码](https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E8%B5%9E%E8%B5%8F-%E6%B5%85%E8%89%B2-DDB547?style=for-the-badge&logo=wechat&logoColor=1C2A35)](docs/media/wechat-sponsor-light.jpg)
 
 在潮线里，也可以从「设置 › 关于 › 支持潮线」点「请近岸喝杯咖啡」，赞赏码会随纸本或夜航配色切换。
 
@@ -117,12 +118,11 @@ node tools/build.mjs --deploy sandbox-vault
 
 上面的命令生成带虚构数据的 `sandbox-vault/`，构建到 `dist/`，并安装到沙盒。用 Obsidian 将 `sandbox-vault/` 作为仓库打开，启用 Tideline，运行「打开潮线」。只需要生成发行文件时，运行 `npm run build`。
 
-`src/draw/proto/` 下的文件由作者的纸本设计原型生成（原型不在本仓库），请直接在这里修改，或在 issue 里提出。
-
 ## 🙏 致谢与许可
 
 - 笔压线条用 [perfect-freehand](https://github.com/steveruizok/perfect-freehand)，AI 回复的 Markdown 用 [marked](https://github.com/markedjs/marked) 渲染，数字用 [IBM Plex Mono](https://github.com/IBM/plex)，手写字的骨架取自 [Noto Sans SC](https://github.com/notofonts/noto-cjk)。完整清单与许可原文见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 - 宣传片由插件界面与同一画风的手绘动画制作，配乐为程序合成。
+- 本仓库由Claude by Anthropic与Codex by OpenAI辅助开发。
 - 代码以 [MIT 许可](LICENSE) 发布。
 
 <div align="center">

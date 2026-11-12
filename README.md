@@ -94,7 +94,12 @@
 
 如果潮线帮你把今天的推进接上了长远的方向，欢迎请近岸喝杯咖啡。赞赏是自愿的，用于维护插件、跟进 Obsidian 更新和打磨纸本界面。潮线的本地功能免费开放。
 
-在插件「设置 › 关于 › 支持潮线」点「请近岸喝杯咖啡」，用手机微信扫一扫。赞赏码会随潮线的纸本或夜航配色切换。你也可以在这里打开 [浅色赞赏码](docs/media/wechat-sponsor-light.jpg) 或 [深色赞赏码](docs/media/wechat-sponsor-dark.jpg)。
+点击下方按钮打开赞赏码，用手机微信扫一扫。
+
+[![打开浅色微信赞赏码](https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E8%B5%9E%E8%B5%8F-%E6%B5%85%E8%89%B2-DDB547?style=for-the-badge&logo=wechat&logoColor=1C2A35)](docs/media/wechat-sponsor-light.jpg)
+[![打开深色微信赞赏码](https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E8%B5%9E%E8%B5%8F-%E6%B7%B1%E8%89%B2-1C2A35?style=for-the-badge&logo=wechat&logoColor=FFFFFF)](docs/media/wechat-sponsor-dark.jpg)
+
+在潮线里，也可以从「设置 › 关于 › 支持潮线」点「请近岸喝杯咖啡」，赞赏码会随纸本或夜航配色切换。
 
 也欢迎给仓库点一颗 ⭐，或在 [Issues](../../issues) 分享使用反馈。
 

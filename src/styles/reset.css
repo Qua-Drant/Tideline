@@ -1,0 +1,7 @@
+/* 放在 prototype.css 之前。原型是在浏览器默认样式上写的；Obsidian 给按钮、输入框、标题、列表都加了自己的外观（背景、阴影、内边距、圆角）。
+   插件根里把这些元素还原成浏览器默认，原型的规则（都带 .compass-root 前缀、写在后面）再在其上生效。
+   all:revert 也会还原 box-sizing，所以紧接着补回原型的 *{box-sizing:border-box}。 */
+.compass-root :is(button,input,textarea,select,h1,h2,h3,h4,h5,p,ul,ol,li,a,kbd,code,pre,small,time,cite){all:revert;box-sizing:border-box}
+/* all:revert 会重置按钮由 draggable 属性提供的 Chromium 拖拽样式。 */
+.compass-root [draggable="true"]{-webkit-user-drag:element}
+.compass-root :is(button,input,textarea,select){font:inherit;color:inherit}

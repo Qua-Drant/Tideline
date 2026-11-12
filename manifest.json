@@ -1,0 +1,9 @@
+{
+  "id": "tideline",
+  "name": "Tideline",
+  "version": "0.9.6",
+  "minAppVersion": "1.15.0",
+  "description": "A hand-drawn nautical sketchbook for planning your days, tasks, projects, reviews, reading and ideas.",
+  "author": "潮线",
+  "isDesktopOnly": true
+}

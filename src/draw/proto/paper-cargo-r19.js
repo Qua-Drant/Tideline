@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R19: the hold ceiling is drawn by hand in code (as R16 was) on the reference layout measured in R17 — a
 // 1491 × 188 band scaled with the page width. Long clean strokes in three weights; no traced or vectorised data.
 // The narrow ladder of R14–R17 returns. It passes behind the deck-edge plank into the hatch coaming, so the

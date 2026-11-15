@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R20: one coordinate system for the whole ceiling. Beam, rope stations, sacks (with their initials), lantern,
 // rail, hatch and the narrow ladder are all drawn into the scenery SVG from the same width-derived scale, so they
 // cannot drift apart when the window changes size. The sack buttons are transparent hit areas placed from the same

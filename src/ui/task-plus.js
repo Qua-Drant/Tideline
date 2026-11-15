@@ -7,8 +7,8 @@
 // 原型模块（src/draw/proto/paper-tasks.js）只留 HOST.task* 钩子（tools/sync-proto.mjs 的改写表），没有这个模块时与 R39 一样。
 // 事件都在插件根的捕获阶段处理：原型的监听器挂在冒泡阶段，所以这里先拿到，需要时拦下。
 import {Notice} from 'obsidian';
-import {HOST} from '../host.js';
-import {esc, ink, circle, icon} from '../draw/ink.js';
+import {HOST} from '../host.ts';
+import {esc, ink, circle, icon} from '../draw/ink.ts';
 import {parseTask, nextRepeat, repeatDays, activeToken, suggestions, PRIORITIES, REMINDERS, REPEATS, addDays, addMonths} from './task-parse.js';
 import {sheetHtml, splitChecklist, joinChecklist, SLASH, SG} from './task-sheet.js';
 import {completeTask, reopenTask} from '../data/complete.ts';

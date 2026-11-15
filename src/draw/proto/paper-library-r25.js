@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R25 (copied from paper-library-r24.js, which stays as it was): every rounded box in the deep-sea view — search,
 // chips, the view toggle, keywords and the “打开我的知识库” card — is outlined by hand (hand-pill / hand-panel).
 // R24 library (paper-library.js stays as it was): two views of the same records.

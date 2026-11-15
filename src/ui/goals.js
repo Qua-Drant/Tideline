@@ -5,8 +5,8 @@
 //   项目页 › 项目详情 › 关联目标：标签后面有 ×，末尾 + 打开可搜索的目标纸条（没有同名的就“新建目标”）。
 //   项目页点目标：回到规划并打开它的详情纸，那一格闪一下。
 // 关联只写在项目笔记的 goals 里（目标笔记不存项目），改动都在 d 上，由 persist.js 写回。
-import {esc, icon, ink, smearProgress, circle, TICK} from '../draw/ink.js';
-import {HOST} from '../host.js';
+import {esc, icon, ink, smearProgress, circle, TICK} from '../draw/ink.ts';
+import {HOST} from '../host.ts';
 import {markDeleted, restoreDeleted} from '../data/trash.ts';
 
 const PER = 3, STEP = .5, MAX = 80;

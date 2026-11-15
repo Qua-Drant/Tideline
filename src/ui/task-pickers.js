@@ -1,5 +1,5 @@
-import {esc, icon, ink} from '../draw/ink.js';
-import {HOST} from '../host.js';
+import {esc, icon, ink} from '../draw/ink.ts';
+import {HOST} from '../host.ts';
 
 const chevron = `<svg viewBox="0 0 18 18" aria-hidden="true">${ink([[4, 6], [9, 11], [14, 6]], 1.2)}</svg>`;
 const pad = number => String(number).padStart(2, '0');

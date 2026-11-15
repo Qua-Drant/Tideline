@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {maritimeArt} from './paper-maritime-r14.js';
 export function reviewPage(a){
  const {d,$,ink,circle,icon,esc,svg,button:B,glyph:G,fmt,stateMark}=a,m=maritimeArt(a);

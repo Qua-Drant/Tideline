@@ -3,7 +3,7 @@
 //   - 链接只保留 http(s):、mailto:、# 开头的，其它（javascript:、data:、file:、obsidian:、相对路径……）只留文字；
 //   - 图片不自动加载：http(s) 图片换成可点的“[图片：说明]”链接，别的只留“[图片：说明]”文字。
 import {marked, Renderer} from '../draw/proto/vendor/marked.mjs';
-import {esc} from '../draw/ink.js';
+import {esc} from '../draw/ink.ts';
 
 /** marked 交给渲染函数的记号里我们用到的几项（marked 是原样打包的第三方代码，没有类型声明） */
 interface HtmlToken { text: string }

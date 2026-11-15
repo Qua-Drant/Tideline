@@ -1,7 +1,7 @@
 // 潮线：Obsidian 插件入口。注册视图、侧边栏按钮和命令；建索引（启动时一次，之后增量）。
 import {MarkdownView, Plugin} from 'obsidian';
 import type {TFile, WorkspaceLeaf} from 'obsidian';
-import {CompassView, VIEW_TYPE} from './view.js';
+import {CompassView, VIEW_TYPE} from './view.ts';
 import {Index} from './data/index.ts';
 import {obsidianSource, obsidianWriter} from './data/source-obsidian.ts';
 import {CompassSettingTab, DEFAULT_AI, DEFAULT_DEVICE} from './settings.ts';

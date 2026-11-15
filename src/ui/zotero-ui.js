@@ -1,7 +1,7 @@
 // 知识库页的“Zotero”按钮（0.7，见 data/zotero.js）：装了 Zotero Integration 才出现，放在搜索框和“知识库”之间。
 // 点了调它的导入命令（只有一条就直接调；几种导出格式就先给一张手绘小纸条选），弹出 Zotero 的选择框；
 // 导进来的笔记落在它的导入文件夹里，索引按文件变化自己更新，知识库页随之出现新文献。
-import {esc} from '../draw/ink.js';
+import {esc} from '../draw/ink.ts';
 
 const GLYPH = '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4.2 4.6 C8 4.3 12 4.4 15.6 4.5 L5 15.4 C8.8 15.6 12.4 15.5 15.9 15.3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 

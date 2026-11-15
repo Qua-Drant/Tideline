@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R28 guidance (copied from paper-guidance-r12.js, which stays as it was): the R26 look — category flags, the model
 // menu, the prompt library with its preview, the composer — with the R27 configuration underneath:
 // · settings › 指引 decides whether the assistant is on. Off: only the library and “复制”; the composer, model menu and

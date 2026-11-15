@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R31 (copied from paper-brain-r25.js, which stays as it was): pill widths follow the font size set in 设置 (they were
 // sized for 13px text, so at 特大 even “林老师” lost its last two characters), and a pill that still cannot hold its
 // name in one line wraps to two lines (class is-two, centred on the same row) instead of ending in an ellipsis.

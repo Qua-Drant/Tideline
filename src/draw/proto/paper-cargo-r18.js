@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {strokes} from './paper-strokes-r18.js';
 import {penLayer} from './paper-guidance-art-r18.js';
 // R18: the hold is redrawn in code. The ceiling band keeps the reference proportions (1491 × 188) and goes through

@@ -8,10 +8,10 @@
 //   - 回退：回到某句话之前，撤销那之后 AI 改过的文件（开发包的文件留底；用命令改的文件不在其中）
 //   - 存成笔记
 import {renderAnswer} from './markdown.ts';
-import {esc} from '../draw/ink.js';
+import {esc} from '../draw/ink.ts';
 import {lineDiff} from './diff.ts';
 import {relPath, DEFAULT_LISTS} from './policy.ts';
-import {HOST} from '../host.js';
+import {HOST} from '../host.ts';
 
 const TOOL_LABEL = {Read: '读', Write: '写', Edit: '改', MultiEdit: '改', NotebookEdit: '改', Glob: '找文件', Grep: '搜索', LS: '列出', Bash: '运行', PowerShell: '运行',
   WebSearch: '搜索网页', WebFetch: '打开网页', Task: '分派子任务', Agent: '分派子任务', TodoWrite: '列待办', Skill: '用技能'};

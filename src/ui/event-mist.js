@@ -3,7 +3,7 @@
 // 向上移 12px、由淡到清晰。位置避开上方任务的文字、也不挡浮标本身。可以把鼠标移进详情继续读；
 // 离开浮标与详情（220ms 后）、失去焦点或按 Esc 就散去。Esc 关掉后，鼠标离开再进来之前不会自己再出现。点浮标不改布局。
 // 日程来自 潮线/日程.md 的 events（time、title、description）；接上日历订阅以后同样显示。
-import {esc, ink} from '../draw/ink.js';
+import {esc, ink} from '../draw/ink.ts';
 
 export function createEventMist({view}){
   const root = view.root, $ = s => root.querySelector(s), $$ = s => [...root.querySelectorAll(s)];

@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {taskPage} from './paper-tasks.js';
 import {projectPage} from './paper-projects.js';
 import {reviewPage} from './paper-review.js';

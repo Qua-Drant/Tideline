@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R16: engraved hold timber, laid rope, drawstring sacks, framed plank crates and a hinged archive crate.
 export function cargoR16(a,prev){
  const {d,ink:L,curve:C,INK:I,SECONDARY:M,TICK:T,PAPER:P}=a;

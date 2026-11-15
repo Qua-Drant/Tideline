@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {maritimeArt} from './paper-maritime-r14.js';
 import {createGuidanceArt,GUIDANCE_W,GUIDANCE_H,GUIDANCE_HORIZON,GUIDANCE_FLAGS,GUIDANCE_CENTER,GUIDANCE_SPAN} from './paper-guidance-art-r19.js';
 export function createR12Art(a){

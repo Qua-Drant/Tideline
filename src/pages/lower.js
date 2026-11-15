@@ -3,7 +3,7 @@
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
 import {createPhase2} from '../draw/proto/phase2.js';
 import {assets, assetBoxes} from '../draw/proto/assets.js';
-import {ink, circle, icon, star, esc, smooth} from '../draw/ink.js';
+import {ink, circle, icon, star, esc, smooth} from '../draw/ink.ts';
 import {createR12Art} from '../draw/proto/paper-r12-art.js';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.js';
 import {createThought} from './thought.js';
@@ -13,7 +13,7 @@ import {createPersist} from '../data/persist.ts';
 import {FOLDERS} from '../data/index.ts';
 import {completeTask, reopenTask} from '../data/complete.ts';
 import {dropTasks} from '../data/trash.ts';
-import {HOST} from '../host.js';
+import {HOST} from '../host.ts';
 // 原型模块（paper-tasks.js 撤销“加任务”）经它拿掉任务并登记删除（P2-10，sync-proto 的改写表）
 HOST.dropTasks = dropTasks;
 

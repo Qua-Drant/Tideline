@@ -4,6 +4,7 @@
 import type {View, WorkspaceLeaf} from 'obsidian';
 import type {CalendarSub} from './data/types.ts';
 import type {PermissionMode, ProviderConf} from './ai/types.ts';
+import type {CompassView} from './view.ts';
 
 /** 这台设备的偏好（设置 › 这台设备） */
 export interface DeviceSettings {
@@ -72,13 +73,11 @@ export interface PluginSettings {
 /** 升级纸条的一项：[版本号, 这个版本的变化] */
 export type ChangeEntry = [version: string, items: string[]];
 
-/** 潮线视图（view.js，还是 JS）对插件开放的几个方法；视图可能还没准备好，所以都是可选的 */
-export type CompassViewLike = View & {
-  noteCreated?(path: string): void;
-  applyDevice?(): void;
-  openSettings?(page?: string): void;
-  refreshAI?(): void;
-};
+/**
+ * 插件经 getLeavesOfType(VIEW_TYPE) 拿到的视图：签名取自 CompassView（view.ts）对插件开放的四个方法。
+ * 仍是可选的：Obsidian 启动时标签页里的视图可能还是延迟加载的占位视图（DeferredView），没有这些方法。
+ */
+export type CompassViewLike = View & Partial<Pick<CompassView, 'noteCreated' | 'applyDevice' | 'openSettings' | 'refreshAI'>>;
 
 /** 放着潮线视图的标签页 */
 export type CompassLeaf = WorkspaceLeaf & {view: CompassViewLike};

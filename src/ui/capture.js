@@ -7,8 +7,8 @@
 //   项目 → 项目/标题.md（计划中）
 // 记下后底部出现提示，可以撤销（新建的笔记进回收站；日记里加的那一行删掉）。
 import {esc, icon} from '../draw/ink.js';
-import {FOLDERS, linkName} from '../data/index.js';
-import {keepEol} from '../data/frontmatter.js';
+import {FOLDERS, linkName} from '../data/index.ts';
+import {keepEol} from '../data/frontmatter.ts';
 import {parseTask} from './task-parse.js';
 import {dayText} from './day-text.js';
 

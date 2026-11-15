@@ -5,7 +5,7 @@ import {createGuidance} from '../draw/proto/paper-guidance-r28.js';
 import {createAIController} from '../ai/controller.js';
 import {HOST} from '../host.js';
 import {icon, esc} from '../draw/ink.js';
-import {PRESETS, PROVIDERS} from '../ai/acp.js';
+import {PRESETS, PROVIDERS} from '../ai/acp.ts';
 
 export const AI_HTML = `<section id="ai" class="page ai" aria-label="指引" hidden><div class="mast-scene"><div id="flags" class="flags"></div></div><div class="ai-window"><div id="connection"></div><div id="privacy"></div><div class="native-workspace"><div class="native-library"><form class="line-form prompt-search" role="search"><span id="search-icon"></span><input id="prompt-query" aria-label="搜索提示词" placeholder="搜索提示词…" autocomplete="off"></form><div id="prompts"></div></div><div id="native-content"></div></div><form id="handoff-form" class="line-form handoff"><svg id="handoff-outline" viewBox="0 0 601 83" preserveAspectRatio="none" aria-hidden="true"></svg><textarea id="handoff-input" placeholder="写下问题，或补充你的思路…（@ 提到笔记）" aria-label="对话草稿" rows="2"></textarea><button id="native-send" type="submit" aria-label="发送对话草稿"></button></form><div id="native-error" role="status" hidden></div></div></section>`;
 

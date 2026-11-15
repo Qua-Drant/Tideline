@@ -7,9 +7,9 @@
 //   5 起航：导览——从思索一路切到大脑（每页停 2.5 秒），再逐页介绍，最后一张完成卡列出这次写入了什么
 // 每页都能“跳过”；跳过就什么都不写（已经确认创建的配置笔记、装好的示例除外）。只在第一次打开时出现（记在本机），设置 › 数据 › 关于 里可以重新起航。
 import {createVoyageArt} from '../draw/proto/paper-onboarding-art-r31.js';
-import {FOLDERS} from '../data/index.js';
-import {EXAMPLES, EXAMPLE_DATE} from '../data/examples.js';
-import {PROVIDERS} from '../ai/acp.js';
+import {FOLDERS} from '../data/index.ts';
+import {EXAMPLES, EXAMPLE_DATE} from '../data/examples.ts';
+import {PROVIDERS} from '../ai/acp.ts';
 import {modelsOf, defaultModelOf} from './ai.js';
  export function createOnboarding({view, plugin, ink, circle, icon, esc, hand}){
  const root = view.root, navigate = p => view.go(p), announce = m => view.frame.feedback(m), onFrames = () => view.frames(), showHelp = () => view.toggleHelp(true);

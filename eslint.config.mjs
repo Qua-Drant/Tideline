@@ -4,7 +4,7 @@ import {defineConfig, globalIgnores} from 'eslint/config';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 
 export default defineConfig([
-  globalIgnores(['node_modules', 'dist', 'dev', 'sandbox-vault', 'tools', 'docs']),
+  globalIgnores(['node_modules', 'dist', 'dev', 'sandbox-vault', 'tools', 'docs', 'src/draw/proto/vendor']),
   ...obsidianmd.configs.recommended,
   {
     files: ['**/*.ts'],

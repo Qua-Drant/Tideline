@@ -1,9 +1,11 @@
 // 索引的来源：Obsidian。属性用 metadataCache（Obsidian 已经解析好、缓存好），正文用 vault.cachedRead。
 // 改动来自 metadataCache 的 changed（文件内容与属性都已重新解析之后才触发）和 vault 的 delete / rename。
 import {TFile} from 'obsidian';
+import type {App, Component} from 'obsidian';
+import type {IndexSource, Writer} from './types.ts';
 
-export function obsidianSource(app, plugin){
-  const file = path => { const f = app.vault.getAbstractFileByPath(path); return f instanceof TFile ? f : null; };
+export function obsidianSource(app: App, plugin: Pick<Component, 'registerEvent'>): IndexSource{
+  const file = (path: string) => { const f = app.vault.getAbstractFileByPath(path); return f instanceof TFile ? f : null; };
   return {
     get configDir(){ return app.vault.configDir; },
     files: () => app.vault.getMarkdownFiles().map(f => ({path: f.path})),
@@ -19,10 +21,11 @@ export function obsidianSource(app, plugin){
 }
 
 // 写入：只通过 Obsidian 的接口改文件（processFrontMatter 改属性、vault.process 改正文），改完由 metadataCache 的 changed 回到索引。
-export function obsidianWriter(app){
-  const get = path => app.vault.getAbstractFileByPath(path);
-  const folder = async path => { const dir = path.split('/').slice(0, -1).join('/'); if (dir && !get(dir)) await app.vault.createFolder(dir).catch(() => {}); };
-  const ensure = async (path, init) => get(path) || (await folder(path), app.vault.create(path, init));
+export function obsidianWriter(app: App): Required<Writer>{
+  const get = (path: string) => app.vault.getAbstractFileByPath(path);
+  const folder = async (path: string) => { const dir = path.split('/').slice(0, -1).join('/'); if (dir && !get(dir)) await app.vault.createFolder(dir).catch(() => {}); };
+  // 已经有就用它（ensure 只给 Markdown 笔记用：路径上是文件夹时不在这里处理，交给后面的 Obsidian 接口报错）
+  const ensure = async (path: string, init: string) => (get(path) || (await folder(path), app.vault.create(path, init))) as TFile;
   return {
     exists: path => !!get(path),
     async create(path, text){ return ensure(path, text); },
@@ -31,7 +34,7 @@ export function obsidianWriter(app){
     async trash(path){ const f = get(path); if (f) await app.fileManager.trashFile(f); },
     async frontmatter(path, fn, init = '---\n---\n'){ const f = await ensure(path, init); await app.fileManager.processFrontMatter(f, fn); },
     async body(path, fn, init = ''){ const f = await ensure(path, init); await app.vault.process(f, fn); },
-    open(path){ const f = get(path); if (f) app.workspace.getLeaf('tab').openFile(f); },
+    open(path){ const f = get(path); if (f) app.workspace.getLeaf('tab').openFile(f as TFile); },
     openPDF(path){
       const note = get(path);
       if (!(note instanceof TFile)) return false;

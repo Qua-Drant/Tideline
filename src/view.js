@@ -4,9 +4,9 @@
 import {ItemView} from 'obsidian';
 import {buildFrame} from './frame.js';
 import {createToday} from './pages/today.js';
-import {dayView} from './data/day.js';
-import {todayActions} from './data/write.js';
-import {completeTask, reopenTask} from './data/complete.js';
+import {dayView} from './data/day.ts';
+import {todayActions} from './data/write.ts';
+import {completeTask, reopenTask} from './data/complete.ts';
 import {ink, circle, icon, esc, buttonFrame, popupFrame, pillFrame} from './draw/ink.js';
 import {createR12Art} from './draw/proto/paper-r12-art.js';
 import {createHandFont} from './draw/proto/paper-handfont-r28.js';
@@ -27,8 +27,8 @@ import {createPeople} from './ui/people.js';
 import {createZoteroUi} from './ui/zotero-ui.js';
 import {createTooltipPreference} from './ui/tooltip-preference.js';
 import {createTodayReward} from './ui/today-reward.js';
-import {FOLDERS} from './data/index.js';
-import {changesSince} from './changes.js';
+import {FOLDERS} from './data/index.ts';
+import {changesSince} from './changes.ts';
 import './draw/proto/paper-transition-r37.js';
 import {wrapAmbient} from './ui/ambient.js';
 import './draw/proto/paper-help-r39.js'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37，见 docs/HANDOFF.md 关键决定 9）：装上 HOST.transition

@@ -11,8 +11,8 @@
 import {esc, icon, ink, circle, TICK} from '../draw/ink.js';
 import {dayText} from './day-text.js';
 import {HOST} from '../host.js';
-import {markDeleted, restoreDeleted, dropTasks} from '../data/trash.js';
-import {completeTask} from '../data/complete.js';
+import {markDeleted, restoreDeleted, dropTasks} from '../data/trash.ts';
+import {completeTask} from '../data/complete.ts';
 
 export const CADENCE = [[0, '不提醒'], [7, '每周'], [14, '每两周'], [30, '每月'], [90, '每季度']];
 const CHOICES = [['talked', '谈过了'], ['done', '做完了'], ['later', '下次再说']];

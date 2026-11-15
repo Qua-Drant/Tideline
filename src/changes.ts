@@ -1,6 +1,8 @@
 // 每个版本的变化（设计说明 22.1：插件升级后只弹一张小纸条，列出这次的变化，可以关掉，不再走整套引导）。
 // 发新版本时在最前面加一项；纸条列出“上次用的版本”之后到现在的所有变化。
-export const CHANGES = [
+import type {ChangeEntry} from './plugin-types.ts';
+
+export const CHANGES: ChangeEntry[] = [
   ['0.9.7', [
     '设置 › 关于 › 支持潮线：点“请近岸喝杯咖啡”可用微信扫码赞赏，赞赏码会随纸本和夜航配色切换',
   ]],
@@ -129,6 +131,6 @@ export const CHANGES = [
   ]],
   ['0.1.0', ['第一版']],
 ];
-const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
+const cmp = (a: string, b: string) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
 // from 之后（不含）到 to（含）的变化
-export const changesSince = (from, to) => CHANGES.filter(([v]) => cmp(v, from) > 0 && cmp(v, to) <= 0);
+export const changesSince = (from: string, to: string): ChangeEntry[] => CHANGES.filter(([v]) => cmp(v, from) > 0 && cmp(v, to) <= 0);

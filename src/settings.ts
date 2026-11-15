@@ -1,12 +1,17 @@
 // 插件设置的默认值，以及 Obsidian 自带设置页里的那一小块。
 import {PluginSettingTab, Setting} from 'obsidian';
+import type {App} from 'obsidian';
+import type CompassPlugin from './main.ts';
+import type {AISettings, DeviceSettings} from './plugin-types.ts';
 
-export const DEFAULT_DEVICE = {font: '1', theme: 'obsidian', motion: 'brief', start: 'last', week: true, tooltips: false};
-export const DEFAULT_AI = {enabled: true, provider: 'claude', providers: null, model: 'sonnet', effort: 'high', permission: 'confirm', send: 'enter', notice: false, archiveDays: 30, saveFolder: '收件箱/'};
+export const DEFAULT_DEVICE: DeviceSettings = {font: '1', theme: 'obsidian', motion: 'brief', start: 'last', week: true, tooltips: false};
+// providers 在 onload 里按 PROVIDERS 补齐
+export const DEFAULT_AI: Omit<AISettings, 'providers'> & {providers: null} = {enabled: true, provider: 'claude', providers: null, model: 'sonnet', effort: 'high', permission: 'confirm', send: 'enter', notice: false, archiveDays: 30, saveFolder: '收件箱/'};
 
 // Obsidian 自带的“设置 → 第三方插件 → 潮线”只放三样（设计说明 21.5）：版本、打开潮线设置、配色与过场。完整的设置在潮线自己的设置页里。
 export class CompassSettingTab extends PluginSettingTab {
-  constructor(app, plugin){ super(app, plugin); this.plugin = plugin; }
+  declare plugin: CompassPlugin;
+  constructor(app: App, plugin: CompassPlugin){ super(app, plugin); this.plugin = plugin; }
   display(){
     const {containerEl: el} = this, p = this.plugin, D = p.local.device, save = async () => { await p.saveSettings(); p.applyDevice(); };
     el.empty();

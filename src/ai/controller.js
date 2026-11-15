@@ -7,10 +7,10 @@
 //   - 对话列表：只存在这台设备上（Obsidian 的本机存储，不写进仓库），旧对话按设置自动归档；点一段接着聊（Claude Code 自己存着会话记录）
 //   - 回退：回到某句话之前，撤销那之后 AI 改过的文件（开发包的文件留底；用命令改的文件不在其中）
 //   - 存成笔记
-import {renderAnswer} from './markdown.js';
+import {renderAnswer} from './markdown.ts';
 import {esc} from '../draw/ink.js';
-import {lineDiff} from './diff.js';
-import {relPath, DEFAULT_LISTS} from './policy.js';
+import {lineDiff} from './diff.ts';
+import {relPath, DEFAULT_LISTS} from './policy.ts';
 import {HOST} from '../host.js';
 
 const TOOL_LABEL = {Read: '读', Write: '写', Edit: '改', MultiEdit: '改', NotebookEdit: '改', Glob: '找文件', Grep: '搜索', LS: '列出', Bash: '运行', PowerShell: '运行',

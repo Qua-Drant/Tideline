@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R37 全站过场（复制自 paper-transition-r36.js；paper.js 改为 import 这个文件，r36 保留不动）。
 // R37 修（二）：新页的淡入、纸的平移、指针、描线走完就撤（fill:backwards），不再挂到 700ms 结束；挂着的动画让文字和线在合成层里用灰阶抗锯齿，
 //   结束一撤换回普通渲染，字和海平线的边缘会闪一下。衔接元素的真身在最后 100ms 淡入盖住变形线，变形线随即隐去，不再两层叠着。

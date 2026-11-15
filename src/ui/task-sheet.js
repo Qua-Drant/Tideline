@@ -4,7 +4,7 @@
 //         （打 / 弹出插入菜单）；有子任务、评论时接在下面
 //   底部：所在清单（点开可搜索、切换清单或项目）………… 文本样式 A、评论、更多 ⋯
 // 这里只拼 HTML；按钮的行为在 task-plus.js（data-tp / data-ts / data-tf），正文编辑器在 task-md-editor.js。
-import {esc, ink, circle} from '../draw/ink.js';
+import {esc, ink, circle} from '../draw/ink.ts';
 import {PRIORITIES, REMINDERS} from './task-parse.js';
 
 const svg = (body, w = 18, h = w) => `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${body}</svg>`;

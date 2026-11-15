@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {chartLayoutR22,NOW} from './paper-chart-art-r22.js';
 import {chartArtR23} from './paper-chart-art-r23.js';
 export function projectPage(a){

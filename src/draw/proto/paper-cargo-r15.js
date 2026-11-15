@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // R15: continuous timber, physical rope attachments and a projected archive drawer.
 export function cargoR15(a,old){
  const {d,ink:L,curve:C,circle:E,INK:I,SECONDARY:M,TICK:T,PAPER:P}=a;

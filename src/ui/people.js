@@ -8,9 +8,9 @@
 //   项目页 › 相关人员：标签后面有 ×，末尾 + 打开可搜索的人物纸条（没有就新建）；点人名去任务页打开人物纸。
 //   任务详情的人名标签有 ×；右键“待沟通”可以勾掉；货单输入 @新名字 时补全纸条里能直接新建人物。
 // 上次联系不另存：取 ## 记录 里最晚的日期。联系频率写在人物笔记的 cadence（天数）。
-import {esc, icon, ink, circle, TICK} from '../draw/ink.js';
+import {esc, icon, ink, circle, TICK} from '../draw/ink.ts';
 import {dayText} from './day-text.js';
-import {HOST} from '../host.js';
+import {HOST} from '../host.ts';
 import {markDeleted, restoreDeleted, dropTasks} from '../data/trash.ts';
 import {completeTask} from '../data/complete.ts';
 

@@ -1,7 +1,7 @@
 // 今日页（设计说明第 8 节；画面以纸本原型最终版为准）。
 // 和原型的区别只在“怎么更新”：原型每次操作都整页重写；这里每块区域记下自己上次的输入，没变就不动（DOM 与风景都是）。
 // 风景按“尺寸 + 版式位置 + 时刻 + 随手记时刻 + 是否全部完成”缓存，切回这一页、或改了与风景无关的东西时直接复用。
-import {ink, circle, icon, buoy, smearProgress, smooth, esc, INK, PAPER, SECONDARY, TICK} from '../draw/ink.js';
+import {ink, circle, icon, buoy, smearProgress, smooth, esc, INK, PAPER, SECONDARY, TICK} from '../draw/ink.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.js';
 import {walkVisible} from '../ui/visible.js';
 

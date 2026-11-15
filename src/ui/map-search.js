@@ -3,9 +3,9 @@
 //          项目=进行中的项目、复盘=本周完成的任务、知识库=待读的文献；点一行去那一层。Alt + ↑ / ↓ 去上一层、下一层。
 //   搜索：按 /（或小地图里没有的时候直接按），按标题找想法、提示词、任务、项目、人物、文献、书籍；点一条（或回车选第一条）
 //          跳到它所在的页并打开它。在大脑页输入时，同时筛选大脑里的节点。Esc 关上。
-import {esc, icon} from '../draw/ink.js';
-import {NAV} from '../frame.js';
-import {HOST} from '../host.js';
+import {esc, icon} from '../draw/ink.ts';
+import {NAV} from '../frame.ts';
+import {HOST} from '../host.ts';
 
 export const MAP_HTML = '<div id="map" class="map paper-strip" hidden></div>';
 export const SEARCH_HTML = '<div id="search" class="global-search paper-strip hand-popup" hidden><form class="line-form" role="search"><input id="global-query" aria-label="搜索任务、想法和提示词" autocomplete="off"><button class="icon-button" data-action="close-search" type="button" aria-label="关闭搜索">×</button></form><div id="search-results"></div></div>';

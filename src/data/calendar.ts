@@ -11,7 +11,7 @@
 import {requestUrl} from 'obsidian';
 import type {App, RequestUrlResponse} from 'obsidian';
 import {parseICS, occurrences} from './ical.ts';
-import {HOST} from '../host.js';
+import {HOST} from '../host.ts';
 import type {CalendarFetchError, CalendarSub, Clock, FetchedCalendar, IcalEvent, IndexEvent, Occurrence} from './types.ts';
 
 /** 日历要用到的插件部分（main.ts 的 CompassPlugin；测试工具里是替身） */

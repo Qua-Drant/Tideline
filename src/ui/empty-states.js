@@ -4,7 +4,7 @@
 //   项目：一个项目都没有 → 港口里的虚线小船下写“新建项目”
 //   知识库：两根测深绳旁各写一句去哪里新建（装了 Zotero Integration 时提一句导入）
 //   思索规划：空的那天不写“空”，画一个虚线“+”，点了在那天记一件任务（见 thought.js 与这里的点击）
-import {esc} from '../draw/ink.js';
+import {esc} from '../draw/ink.ts';
 import {FOLDERS} from '../data/index.ts';
 
 export function createEmptyStates({view, plugin}){

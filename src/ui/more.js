@@ -5,7 +5,7 @@
 //   下面还有：三角朝下（列表在栏外写“还有 N 项”，其余滚动区画在下边缘里）；上面还有：三角朝上，画在上边缘里。
 //   点三角滚动大半屏。设置、首次起航、纸条等浮层里的滚动区也画（不写条数）；窄视图里整张纸滚动时同样提示。
 import {walkVisible} from './visible.js';
-import {ink} from '../draw/ink.js';
+import {ink} from '../draw/ink.ts';
 const SKIP = '#journal,textarea,input,select,[hidden] *';
 const ITEM = ':is(li,.cargo-row,.cargo-group,.plan-task,.day-event,.task-row,.log-year,.log-page-head,.investment,.other-task-items>div,#trail>div)';
 const COUNT = ':is(li,.cargo-row,.plan-task,.day-event,.task-row,.log-year,.investment,.other-task-items>div,#trail>div)';

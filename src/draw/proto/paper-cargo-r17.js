@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {trace,TRACE_SCALE} from './paper-trace-r17.js';
 // R17: the hold ceiling, hatch, rail and rope run are the user's reference traced into two ink tones (design §10.2).
 // The band keeps the reference proportions (1491 × 188) and scales with the page width; sacks and the lantern

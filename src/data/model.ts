@@ -2,7 +2,7 @@
 // 每次索引有变化时重建实体；界面状态（d.ui）、缓存（d.cache）、会面准备这类不进笔记的东西沿用上一份。
 // id 一律用笔记路径（清单用名称），页面里所有“打开/关联”都按 id 找。写回笔记见 persist.ts。
 import {dayView} from './day.ts';
-import {HOST} from '../host.js';
+import {HOST} from '../host.ts';
 import type {
   Clock, ConfigViewFilter, Frontmatter, IndexDay, IndexLibraryItem, IndexLike, IndexQuarter, Model, ModelTask, ReviewDay, UIState,
 } from './types.ts';

@@ -3,8 +3,8 @@
 // 这里逐个搬过来，只做两类改动：document → 插件根元素（HOST）；写死的日期（2026-08-03 起的热力图、第 40–52 周、2026-10-26 那一周）改成按时钟算。
 // 数据是下方五页共用的那份 d（model.js），改动由 persist.js 写回笔记。
 import {getStroke} from 'perfect-freehand';
-import {HOST} from '../host.js';
-import {ink, circle, icon, star, esc, randomFor, smearProgress, INK, TICK} from '../draw/ink.js';
+import {HOST} from '../host.ts';
+import {ink, circle, icon, star, esc, randomFor, smearProgress, INK, TICK} from '../draw/ink.ts';
 import {Lexer} from '../draw/proto/vendor/marked.mjs';
 import {createGoals} from '../ui/goals.js';
 

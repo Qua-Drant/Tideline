@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 export function cargoArt(a){
  const {d,ink,circle,PAPER,INK,SECONDARY,TICK}=a;
  const E=(x,y,rx,ry,size=1,color=INK)=>ink(Array.from({length:49},(_,i)=>[x+Math.cos(i*Math.PI/24)*rx,y+Math.sin(i*Math.PI/24)*ry]),size,color);

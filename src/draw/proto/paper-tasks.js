@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 import {cargoR15} from './paper-cargo-r15.js';
 import {cargoR16} from './paper-cargo-r16.js';
 import {cargoR17} from './paper-cargo-r17.js';

@@ -24,6 +24,14 @@ declare module 'obsidian' {
     basePath?: string;
     getBasePath?(): string;
   }
+  interface Component {
+    /**
+     * registerDomEvent 做的只是 el.addEventListener，并在卸载时 removeEventListener，任何 EventTarget 都能用；
+     * 类型包只写了 Window / Document / HTMLElement 三种。潮线视图还用在这两处：减弱动态的系统偏好（MediaQueryList）、字体到达（FontFaceSet）。
+     */
+    registerDomEvent(el: MediaQueryList, type: 'change', callback: (ev: MediaQueryListEvent) => unknown, options?: boolean | AddEventListenerOptions): void;
+    registerDomEvent(el: FontFaceSet, type: 'loadingdone', callback: (ev: FontFaceSetLoadEvent) => unknown, options?: boolean | AddEventListenerOptions): void;
+  }
   interface PluginManifest {
     /** manifest.json 里的赞赏链接（Obsidian 支持，类型包里没写）：一个地址，或 名称 → 地址 */
     fundingUrl?: string | Record<string, string>;

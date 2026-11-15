@@ -9,7 +9,7 @@
 import {PRESETS, PROVIDERS} from '../ai/acp.ts';
 import {providerName, modelsOf, defaultModelOf} from './ai.js';
 import {SecretComponent} from 'obsidian';
-import {ink, circle, icon, esc} from '../draw/ink.js';
+import {ink, circle, icon, esc} from '../draw/ink.ts';
 import {FOLDERS} from '../data/index.ts';
 import {supportQr, supportUrl} from '../support.ts';
 

@@ -1,4 +1,4 @@
-import {HOST} from '../../host.js';
+import {HOST} from '../../host.ts';
 // Rendered Markdown remains editable in place; drafts live in the shared data object.
 export function inlineTaskEditor(a,renderMarkdown){
  const{d,esc,button:B,glyph:G}=a;

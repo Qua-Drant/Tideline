@@ -2,7 +2,9 @@
 //   node tools/build.mjs              插件 → dist/（main.js、styles.css、manifest.json）
 //   node tools/build.mjs --watch      同上，改动后重建
 //   node tools/build.mjs --deploy <仓库路径>   构建后拷进该仓库的 .obsidian/plugins/tideline/（只用于沙盒仓库）
-// 同时构建测试工具包 harness/build/harness.js：把 'obsidian' 换成 harness/obsidian-shim.js，在普通浏览器里挂插件视图，供截图比对与性能测量。
+// 有私有测试目录 dev/harness/ 时，同时构建测试工具包 dev/harness/build/harness.js：把 'obsidian' 换成 dev/harness/obsidian-shim.js，
+// 在普通浏览器里挂插件视图，供截图比对与性能测量。公开仓库没有 dev/，跳过。
+// 插件入口：src/main.ts 存在就用它，否则 src/main.js（逐步转 TypeScript 期间）。
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +15,9 @@ const dist = path.join(root, 'dist');
 const watch = process.argv.includes('--watch');
 const deployAt = process.argv.indexOf('--deploy');
 const deployTo = deployAt > 0 ? process.argv[deployAt + 1] : null;
+const harness = path.join(root, 'dev/harness');
+const hasHarness = () => fs.existsSync(path.join(harness, 'entry.js'));
+const pluginEntry = fs.existsSync(path.join(root, 'src/main.ts')) ? path.join(root, 'src/main.ts') : path.join(root, 'src/main.js');
 
 const STYLE_FILES = ['fonts.css', 'reset.css', 'prototype.css', 'container.css', 'narrow.css', 'ai.css'];
 
@@ -31,9 +36,9 @@ function writeStyles(){
     return fs.existsSync(p) ? `/* ===== ${f} ===== */\n` + fs.readFileSync(p, 'utf8') : '';
   }).join('\n');
   fs.writeFileSync(path.join(dist, 'styles.css'), styleLicense + '\n' + css);
-  if (!fs.existsSync(path.join(root, 'harness/entry.js'))) return; // 发布仓库不带测试工具包
-  fs.mkdirSync(path.join(root, 'harness/build'), {recursive: true});
-  fs.writeFileSync(path.join(root, 'harness/build/styles.css'), css);
+  if (!hasHarness()) return; // 公开仓库不带测试工具包
+  fs.mkdirSync(path.join(harness, 'build'), {recursive: true});
+  fs.writeFileSync(path.join(harness, 'build/styles.css'), css);
 }
 function copyStatic(){
   fs.mkdirSync(dist, {recursive: true});
@@ -56,26 +61,28 @@ for (const [theme, variant] of [['paper', 'light'], ['night', 'dark']]) {
   const file = path.join(root, 'docs/media', `wechat-sponsor-${variant}.jpg`);
   if (fs.existsSync(file)) wechatQr[theme] = 'data:image/jpeg;base64,' + fs.readFileSync(file).toString('base64');
 }
-const common = {bundle: true, target: 'es2022', logLevel: 'warning', sourcemap: false, legalComments: 'none',
+// tsconfig.json 只给 tsc / ESLint 做类型检查用。esbuild 会自动读它（strict 会让产物开头多一行 "use strict"），
+// 这里给一份空配置，让打包结果不受它影响。
+const common = {bundle: true, target: 'es2022', logLevel: 'warning', sourcemap: false, legalComments: 'none', tsconfigRaw: '{}',
   define: {__TIDELINE_WECHAT_QR__: JSON.stringify(wechatQr)}};
-const pluginOpts = {...common, banner: {js: scriptLicense}, entryPoints: [path.join(root, 'src/main.js')], outfile: path.join(dist, 'main.js'), format: 'cjs', platform: 'node', // node：AI 助手要用 child_process 启动 claude（插件只在电脑上加载）
+const pluginOpts = {...common, banner: {js: scriptLicense}, entryPoints: [pluginEntry], outfile: path.join(dist, 'main.js'), format: 'cjs', platform: 'node', // node：AI 助手要用 child_process 启动 claude（插件只在电脑上加载）
   external: ['obsidian', 'electron', '@codemirror/*', '@lezer/*'], minify: false};
 // 0.9.4：去掉了 0.2 打包 Claude Agent SDK 时的三处兼容（import.meta.url 换成文件地址、全局 setTimeout / clearTimeout 换成 Node 计时器、
 // 改写 events.setMaxListeners）。0.3 起不再打包 SDK，src/ 里没有代码用 import.meta、.unref() 或 setMaxListeners；计时器回到浏览器的。
-const harnessOpts = {...common, entryPoints: [path.join(root, 'harness/entry.js')], outfile: path.join(root, 'harness/build/harness.js'), format: 'esm', platform: 'browser',
-  alias: {obsidian: path.join(root, 'harness/obsidian-shim.js')}};
+const harnessOpts = {...common, entryPoints: [path.join(harness, 'entry.js')], outfile: path.join(harness, 'build/harness.js'), format: 'esm', platform: 'browser',
+  alias: {obsidian: path.join(harness, 'obsidian-shim.js')}};
 
 const after = {name: 'after', setup(b){ b.onEnd(r => { if(!r.errors.length){ copyStatic(); try{ deploy(); }catch(e){ console.error(e.message); } console.log(new Date().toLocaleTimeString(), '构建完成'); } }); }};
 
 if(watch){
   const a = await esbuild.context({...pluginOpts, plugins: [after]});
-  const b = fs.existsSync(path.join(root, 'harness/entry.js')) ? await esbuild.context(harnessOpts) : null;
+  const b = hasHarness() ? await esbuild.context(harnessOpts) : null;
   await a.watch(); await b?.watch();
   console.log('监听中…');
 }else{
   copyStatic();
   await esbuild.build(pluginOpts);
-  if(fs.existsSync(path.join(root, 'harness/entry.js'))) await esbuild.build(harnessOpts);
+  if(hasHarness()) await esbuild.build(harnessOpts);
   copyStatic(); deploy();
   console.log('构建完成：', fs.statSync(path.join(dist, 'main.js')).size, 'bytes main.js,', fs.statSync(path.join(dist, 'styles.css')).size, 'bytes styles.css');
 }

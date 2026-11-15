@@ -8,10 +8,18 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "watch": "node tools/build.mjs --watch",
-    "sandbox": "node tools/make-sandbox.mjs"
+    "sandbox": "node tools/make-sandbox.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node tools/test.mjs"
   },
   "devDependencies": {
     "esbuild": "0.24.2",
-    "perfect-freehand": "1.2.2"
+    "eslint": "9.39.5",
+    "eslint-plugin-obsidianmd": "0.6.0",
+    "obsidian": "1.14.4",
+    "perfect-freehand": "1.2.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.2"
   }
 }

@@ -3,3 +3,5 @@ dist/
 sandbox-vault/
 harness/build/
 .DS_Store
+# 私有测试工具与测试依赖，不进公开仓库
+dev/

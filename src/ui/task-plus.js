@@ -11,8 +11,8 @@ import {HOST} from '../host.js';
 import {esc, ink, circle, icon} from '../draw/ink.js';
 import {parseTask, nextRepeat, repeatDays, activeToken, suggestions, PRIORITIES, REMINDERS, REPEATS, addDays, addMonths} from './task-parse.js';
 import {sheetHtml, splitChecklist, joinChecklist, SLASH, SG} from './task-sheet.js';
-import {completeTask, reopenTask} from '../data/complete.js';
-import {dropTasks, markDeleted, restoreDeleted} from '../data/trash.js';
+import {completeTask, reopenTask} from '../data/complete.ts';
+import {dropTasks, markDeleted, restoreDeleted} from '../data/trash.ts';
 import {createMdEditor} from './task-md-editor.js';
 
 const RANK = {pinned: 0, overdue: 1, today: 2, later: 3, none: 4, done: 9};

@@ -7,7 +7,7 @@
 // 关联只写在项目笔记的 goals 里（目标笔记不存项目），改动都在 d 上，由 persist.js 写回。
 import {esc, icon, ink, smearProgress, circle, TICK} from '../draw/ink.js';
 import {HOST} from '../host.js';
-import {markDeleted, restoreDeleted} from '../data/trash.js';
+import {markDeleted, restoreDeleted} from '../data/trash.ts';
 
 const PER = 3, STEP = .5, MAX = 80;
 const pad = n => String(n).padStart(2, '0');

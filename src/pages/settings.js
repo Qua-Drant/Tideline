@@ -6,12 +6,12 @@
 //   日历（0.9.3 前叫“私密”）：日历订阅（地址与取回的日程只在这台设备上，见 data/calendar.js），日程笔记
 //   数据：索引计数与重建、一致性检查（只读）、同步冲突副本、示例航程；关于：版本、重新起航
 // 改了就生效，没有“保存”按钮；写进笔记的改动旁边淡入“已写入”。
-import {PRESETS, PROVIDERS} from '../ai/acp.js';
+import {PRESETS, PROVIDERS} from '../ai/acp.ts';
 import {providerName, modelsOf, defaultModelOf} from './ai.js';
 import {SecretComponent} from 'obsidian';
 import {ink, circle, icon, esc} from '../draw/ink.js';
-import {FOLDERS} from '../data/index.js';
-import {supportQr, supportUrl} from '../support.js';
+import {FOLDERS} from '../data/index.ts';
+import {supportQr, supportUrl} from '../support.ts';
 
 const SVG = (s, w = 20, h = w) => `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${s}</svg>`;
 const PAGES = [['device', '设备'], ['guidance', '指引'], ['notes', '笔记'], ['secret', '日历'], ['data', '数据'], ['about', '关于']];

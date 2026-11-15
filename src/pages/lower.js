@@ -8,11 +8,11 @@ import {createR12Art} from '../draw/proto/paper-r12-art.js';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.js';
 import {createThought} from './thought.js';
 import {createAI} from './ai.js';
-import {buildModel} from '../data/model.js';
-import {createPersist} from '../data/persist.js';
-import {FOLDERS} from '../data/index.js';
-import {completeTask, reopenTask} from '../data/complete.js';
-import {dropTasks} from '../data/trash.js';
+import {buildModel} from '../data/model.ts';
+import {createPersist} from '../data/persist.ts';
+import {FOLDERS} from '../data/index.ts';
+import {completeTask, reopenTask} from '../data/complete.ts';
+import {dropTasks} from '../data/trash.ts';
 import {HOST} from '../host.js';
 // 原型模块（paper-tasks.js 撤销“加任务”）经它拿掉任务并登记删除（P2-10，sync-proto 的改写表）
 HOST.dropTasks = dropTasks;

@@ -35,7 +35,7 @@ export function section(text: string, title: string): string[]{
   return out;
 }
 // 正文里某个二级标题下的整段文字（到下一个二级标题为止）
-export function sectionText(text: string, title: string): string{
+function sectionText(text: string, title: string): string{
   const m = new RegExp('^##\\s+' + title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'm').exec(bodyOf(text)); if (!m) return '';
   const rest = bodyOf(text).slice(m.index + m[0].length), end = rest.search(/^##\s/m);
   return (end < 0 ? rest : rest.slice(0, end)).trim();

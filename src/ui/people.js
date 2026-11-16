@@ -14,18 +14,18 @@ import {HOST} from '../host.ts';
 import {markDeleted, restoreDeleted, dropTasks} from '../data/trash.ts';
 import {completeTask} from '../data/complete.ts';
 
-export const CADENCE = [[0, '不提醒'], [7, '每周'], [14, '每两周'], [30, '每月'], [90, '每季度']];
+const CADENCE =[[0, '不提醒'], [7, '每周'], [14, '每两周'], [30, '每月'], [90, '每季度']];
 const CHOICES = [['talked', '谈过了'], ['done', '做完了'], ['later', '下次再说']];
 const closed = t => t.status === 'done' || t.status === 'cancelled';
 export const days = (a, b) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5);
-export const lastContact = p => (p.history || []).reduce((m, h) => /^\d{4}-\d{2}-\d{2}$/.test(h.date || '') && h.date > m ? h.date : m, '');
+const lastContact =p => (p.history || []).reduce((m, h) => /^\d{4}-\d{2}-\d{2}$/.test(h.date || '') && h.date > m ? h.date : m, '');
 // 该联系了吗：没设频率 → null；设了但从没记过 → 该联系；否则看离上次联系过了几天
-export function dueOf(p, today){
+function dueOf(p, today){
   if (!p.cadence) return null; const last = lastContact(p); if (!last) return {over: true, never: true};
   const gap = days(last, today); return {over: gap > p.cadence, gap, left: p.cadence - gap};
 }
-export const ago = (date, today) => { const n = days(date, today); return n <= 0 ? '今天' : n === 1 ? '昨天' : n < 14 ? n + ' 天前' : n < 60 ? Math.round(n / 7) + ' 周前' : n < 730 ? Math.round(n / 30) + ' 个月前' : Math.round(n / 365) + ' 年前'; };
-export const cleanName = v => String(v || '').replace(/[\\/:*?"<>|#^[\]@!！~]/g, ' ').trim().replace(/\s+/g, '·').slice(0, 40);
+const ago =(date, today) => { const n = days(date, today); return n <= 0 ? '今天' : n === 1 ? '昨天' : n < 14 ? n + ' 天前' : n < 60 ? Math.round(n / 7) + ' 周前' : n < 730 ? Math.round(n / 30) + ' 个月前' : Math.round(n / 365) + ' 年前'; };
+const cleanName =v => String(v || '').replace(/[\\/:*?"<>|#^[\]@!！~]/g, ' ').trim().replace(/\s+/g, '·').slice(0, 40);
 const cadenceText = n => CADENCE.find(c => c[0] === n)?.[1] || `每 ${n} 天`;
 const underline = `<svg viewBox="0 0 160 6" preserveAspectRatio="none" aria-hidden="true">${ink([[0, 4], [80, 3.6], [160, 4]], .9, TICK)}</svg>`;
 const initialMark = p => `<span class="person-initial">${`<svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">${circle(14, 14, 12, 1.2)}</svg>`}<span>${esc(p.initial || p.name.slice(0, 1))}</span></span>`;

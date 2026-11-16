@@ -2,7 +2,7 @@
 // 发新版本时在最前面加一项；纸条列出“上次用的版本”之后到现在的所有变化。
 import type {ChangeEntry} from './plugin-types.ts';
 
-export const CHANGES: ChangeEntry[] = [
+const CHANGES: ChangeEntry[] = [
   ['0.9.7', [
     '设置 › 关于 › 支持潮线：点“请近岸喝杯咖啡”可用微信扫码赞赏，赞赏码会随纸本和夜航配色切换',
   ]],

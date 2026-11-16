@@ -1,7 +1,8 @@
 // 笔压线与小图形（取自潮线的纸本设计原型 paper.js，函数体照搬，只改成模块导出；原型未随仓库发布）。
 // 这些函数只做绘图：输入点和颜色，输出 SVG；不读页面、不读数据。
-// 每个绘图函数有两个版本：字符串版（ink、icon、buttonFrame……，还没改成 DOM 构建的页面在用）和节点版（inkEl、iconEl、buttonFrameEl……，
+// 绘图函数有两个版本：字符串版（ink、icon、circle……，还没改成 DOM 构建的页面在用）和节点版（inkEl、iconEl、buttonFrameEl……，
 // 用 dom.ts 建 SVG 元素）。两者共用同一份几何计算（strokeD、iconParts、popupFramePoints……），字符串版的输出与改动前逐字相同。
+// 只剩节点版的（浮标、羽毛笔、手绘框）：字符串版已无人用，第 3b2 期删去。
 // 风景另有描述版（inkV、circleV，见 scene.ts）：先描述、比较过再建节点；轮廓与节点版共用同一份记忆。
 import {getStroke} from 'perfect-freehand';
 import {svg, setAttrs} from './dom.ts';
@@ -12,13 +13,13 @@ import type {Shape} from './scene.ts';
 /** 一个点：[x, y]（SVG 用户坐标） */
 export type Point = [x: number, y: number];
 
-export const INK='#1C2A35', PAPER='#F4F5F2', SECONDARY='#5B6871', TICK='#B6C0C5', NOW='#C8206A';
+export const INK='#1C2A35', PAPER='#F4F5F2', SECONDARY='#5B6871', TICK='#B6C0C5';
 /** HTML 转义：& < > " ' 五个字符；null / undefined 当空串（只给字符串版用；节点版的文字不解析，不要转义） */
 export const esc=(s: unknown): string=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as Record<string, string>)[c]);
 /** Catmull-Rom 插值：把稀疏的折线点补成平滑的密点（首尾不变） */
 export function smooth(points: Point[]): Point[]{const out: Point[]=[];for(let i=0;i<points.length-1;i++){const a=points[Math.max(0,i-1)],b=points[i],c=points[i+1],d=points[Math.min(points.length-1,i+2)],steps=Math.max(4,Math.ceil(Math.hypot(c[0]-b[0],c[1]-b[1])/3));for(let j=0;j<steps;j++){const t=j/steps,t2=t*t,t3=t2*t;out.push([.5*(2*b[0]+(-a[0]+c[0])*t+(2*a[0]-5*b[0]+4*c[0]-d[0])*t2+(-a[0]+3*b[0]-3*c[0]+d[0])*t3),.5*(2*b[1]+(-a[1]+c[1])*t+(2*a[1]-5*b[1]+4*c[1]-d[1])*t2+(-a[1]+3*b[1]-3*c[1]+d[1])*t3)]);}}out.push(points.at(-1) as Point);return out;}
 /** 一笔笔压线的轮廓：path 的 d（M…Z）。points 至少两点 */
-export function strokeD(points: Point[],size: number): string{const sampled=smooth(points),p=getStroke(sampled.map((q,i)=>[...q,.03+.94*Math.sin(Math.PI*i/(sampled.length-1))]),{size,thinning:.5,smoothing:.75,streamline:0,simulatePressure:false,last:true});return `M${p.map(q=>q.map(n=>n.toFixed(2)).join(',')).join('L')}Z`;}
+function strokeD(points: Point[],size: number): string{const sampled=smooth(points),p=getStroke(sampled.map((q,i)=>[...q,.03+.94*Math.sin(Math.PI*i/(sampled.length-1))]),{size,thinning:.5,smoothing:.75,streamline:0,simulatePressure:false,last:true});return `M${p.map(q=>q.map(n=>n.toFixed(2)).join(',')).join('L')}Z`;}
 // 同一笔（同样的点、粗细、颜色）画出来一模一样，记下结果：图标、清单行前的小记号每次重画都是同几笔
 const INK_MEMO=new Map<string, string>();
 /** 一笔笔压线：返回一个填色的 <path …/>（不足两点时返回空串）；attrs 原样拼进 path 的属性 */
@@ -74,10 +75,6 @@ export function iconEl(type: string,size=20,color=INK): SVGSVGElement{
 const BUOY_PAPER='M11 23 L17 23 L18 28 L20 34 L17 39 L11 39 L8 34 L10 28Z';
 const BUOY_LINES: [Point[], number, string][]=[[[[14,2],[14,24]],1.3,INK],[[[14,7],[23,10],[21,15],[14,14]],1.15,INK],[[[11,23],[17,23],[18,28],[20,34],[17,39],[11,39],[8,34],[10,28],[11,23]],1.55,INK],[[[9,33],[19,33]],.9,INK],[[[3,44],[9,43],[15,44],[25,43]],1.15,INK],[[[7,49],[16,48],[23,49]],.95,TICK]];
 /** 今日页的浮标（28×52） */
-export function buoy(): string{
- const [mast,flag,body,band,wave,ripple]=BUOY_LINES.map(([p,w,c])=>ink(p,w,c));
- return `<svg viewBox="0 0 28 52" width="28" height="52" aria-hidden="true" data-buoy-waterline="44"><path data-buoy-paper d="${BUOY_PAPER}" fill="${PAPER}" stroke="${PAPER}" stroke-width="2" stroke-linejoin="round"/>${mast}${circle(14,2.5,1.1,1)}${flag}${body}${band}${wave}${ripple}</svg>`;
-}
 export function buoyEl(): SVGSVGElement{
  const [mast,flag,body,band,wave,ripple]=BUOY_LINES.map(([p,w,c])=>inkEl(p,w,c));
  return svg('svg',{viewBox:'0 0 28 52',width:28,height:52,'aria-hidden':'true','data-buoy-waterline':44},svg('path',{'data-buoy-paper':true,d:BUOY_PAPER,fill:PAPER,stroke:PAPER,'stroke-width':2,'stroke-linejoin':'round'}),mast,circleEl(14,2.5,1.1,1),flag,body,band,wave,ripple);
@@ -87,23 +84,19 @@ export function buoyEl(): SVGSVGElement{
 const QUILL_LINES: [Point[], number][]=[[[[7,37],[13,29],[21,18],[32,4]],1.7],[[[10,32],[7,24],[10,15],[19,8],[32,4],[30,15],[23,23],[15,28],[10,32]],1.45],[[[10,18],[16,23],[22,22]],1.05],[[[16,11],[21,17],[27,16]],1.05],[[[23,7],[25,11],[30,9]],.95],[[[7,35],[4,40],[8,38],[11,32]],1.25]];
 const QUILL_UNDERLINE: Point[]=[[5,44],[13,43.7],[24,44]];
 /** 顶部“记录”按钮里的羽毛笔 */
-export function quillIcon(): string{return `<svg viewBox="0 0 40 48" width="36" height="44" aria-hidden="true">${QUILL_LINES.map(([p,w])=>ink(p,w)).join('')}${ink(QUILL_UNDERLINE,1.25,INK,'data-quill-underline')}</svg>`;}
 export function quillIconEl(): SVGSVGElement{return svg('svg',{viewBox:'0 0 40 48',width:36,height:44,'aria-hidden':'true'},QUILL_LINES.map(([p,w])=>inkEl(p,w)),inkEl(QUILL_UNDERLINE,1.25,INK,{'data-quill-underline':true}));}
 
 // —— 手绘框 ——
 const buttonFramePoints=(w: number,h: number): Point[]=>{const r=2.6;return [[r+1.5,1.5],[w*.35,1.2],[w*.7,1.5],[w-r-1.5,1.5],[w-1.5,r+1.5],[w-1.25,h*.52],[w-1.5,h-r-1.5],[w-r-1.5,h-1.5],[w*.5,h-1.25],[r+1.5,h-1.5],[1.5,h-r-1.5],[1.2,h*.5],[1.5,r+1.5],[r+1.5,1.5]];};
 /** 按钮的手绘框（w×h 的一笔 path） */
-export function buttonFrame(w: number,h: number): string{return ink(buttonFramePoints(w,h),1.5);}
 export function buttonFrameEl(w: number,h: number): SVGPathElement|null{return inkEl(buttonFramePoints(w,h),1.5);}
 function popupFramePoints(w: number,h: number): Point[]{const r=5,i=2,pts: Point[]=[],edge=(x0: number,y0: number,x1: number,y1: number,phase: number)=>{const n=Math.max(2,Math.round(Math.hypot(x1-x0,y1-y0)/9));for(let k=0;k<n;k++){const t=k/n,wob=.35*Math.sin(t*Math.PI*3+phase);pts.push([x0+(x1-x0)*t+(y1===y0?0:wob),y0+(y1-y0)*t+(y1===y0?wob:0)]);}},corner=(cx: number,cy: number,a0: number)=>{for(let k=0;k<4;k++){const a=a0+k*Math.PI/8;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}};
  edge(i+r,i,w-i-r,i,0);corner(w-i-r,i+r,-Math.PI/2);edge(w-i,i+r,w-i,h-i-r,1);corner(w-i-r,h-i-r,0);edge(w-i-r,h-i,i+r,h-i,2);corner(i+r,h-i-r,Math.PI/2);edge(i,h-i-r,i,i+r,3);corner(i+r,i+r,Math.PI);pts.push(...pts.slice(0,3));
  return pts;}
 /** 面板与纸条的手绘框（圆角矩形，path 带 data-popup-frame） */
-export function popupFrame(w: number,h: number): string{return ink(popupFramePoints(w,h),1.5).replace('<path ','<path data-popup-frame ');}
 export function popupFrameEl(w: number,h: number): SVGPathElement|null{return inkEl(popupFramePoints(w,h),1.5,INK,{'data-popup-frame':true});}
 function pillFramePoints(w: number,h: number): Point[]{const r=Math.min(h/2,w/2)-1.2,pts: Point[]=[],L=2*(w-2*r-2.4)+2*Math.PI*r,n=Math.max(24,Math.round(L/7));for(let i=0;i<=n;i++){const u=i/n*L,s=w-2*r-2.4,j=.35*Math.sin(i*1.9);let x: number,y: number;if(u<s){x=1.2+r+u;y=1.2;}else if(u<s+Math.PI*r){const q=(u-s)/r-Math.PI/2;x=w-1.2-r+Math.cos(q)*r;y=h/2+Math.sin(q)*(h/2-1.2);}else if(u<2*s+Math.PI*r){x=w-1.2-r-(u-s-Math.PI*r);y=h-1.2;}else{const q=(u-2*s-Math.PI*r)/r+Math.PI/2;x=1.2+r+Math.cos(q)*r;y=h/2+Math.sin(q)*(h/2-1.2);}pts.push([x,y+j]);}return pts;}
 /** 胶囊形的手绘框（path 带 data-popup-frame） */
-export function pillFrame(w: number,h: number): string{return ink(pillFramePoints(w,h),1.25).replace('<path ','<path data-popup-frame ');}
 export function pillFrameEl(w: number,h: number): SVGPathElement|null{return inkEl(pillFramePoints(w,h),1.25,INK,{'data-popup-frame':true});}
 
 // —— 涂抹式进度条 ——

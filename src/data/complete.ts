@@ -10,13 +10,13 @@ import type {Model, ModelTask} from './types.ts';
 /** 任务完成、撤销时要放回去的那几个字段 */
 type Saved = Pick<ModelTask, 'status' | 'completed' | 'date' | 'markdown' | 'description'>;
 
-export const closedTask = (t: Pick<ModelTask, 'status'>) => t.status === 'done' || t.status === 'cancelled';
+const closedTask =(t: Pick<ModelTask, 'status'>) => t.status === 'done' || t.status === 'cancelled';
 const KEYS = ['status', 'completed', 'date', 'markdown', 'description'] as const;
 const pick = (t: ModelTask): Saved => Object.fromEntries(KEYS.map(k => [k, t[k]])) as Saved;
 
 // 下一次（跳过今天及以前）；规则认不出时 null
 // nextRepeat 在 ui/task-parse.js（还是 JS）：给日期与规则，返回下一次的日期或 null
-export function nextOccurrence(date: string | null | undefined, rule: string | null | undefined, today: string): string | null{
+function nextOccurrence(date: string | null | undefined, rule: string | null | undefined, today: string): string | null{
   const first: string | null = date && rule ? nextRepeat(date, rule) : null; if (!first) return null;
   let n: string | null = first; for (let i = 0; i < 400 && n && n <= today; i++) n = nextRepeat(n, rule) || null;
   return n || first;

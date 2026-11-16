@@ -8,9 +8,13 @@
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
+import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// 构建前先核对风景素材的描述数据（src/draw/proto/asset-shapes.js）是否与 assets.js 一致：素材改了却忘了重新生成时，构建失败
+const shapesCheck = spawnSync(process.execPath, [path.join(root, 'tools/make-asset-shapes.mjs'), '--check'], {cwd: root, stdio: 'inherit'});
+if (shapesCheck.status !== 0) { console.error('构建中止：asset-shapes.js 需要重新生成（node tools/make-asset-shapes.mjs）'); process.exit(1); }
 const dist = path.join(root, 'dist');
 const watch = process.argv.includes('--watch');
 const deployAt = process.argv.indexOf('--deploy');

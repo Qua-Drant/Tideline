@@ -40,7 +40,7 @@ export function zoteroInfo(app: App | null | undefined, override = ''): ZoteroIn
 // —— 从 Zotero Integration 导出的笔记里取字段 ——
 const HEAD = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 // 某个标题（任意级别、名字不分大小写，取第一个匹配的名字）下面到同级或更高级标题为止的文字
-export function headingText(body: string, names: string[]): string{
+function headingText(body: string, names: string[]): string{
   const lines = body.split('\n'), want = names.map(n => n.toLowerCase());
   for (let i = 0; i < lines.length; i++) {
     const m = HEAD.exec(lines[i]); if (!m || !want.includes(m[2].replace(/[*_`]/g, '').trim().toLowerCase())) continue;
@@ -52,7 +52,7 @@ export function headingText(body: string, names: string[]): string{
 }
 const strip = (s: string): string => s.replace(/!?\[\[[^\]|]*\|([^\]]+)\]\]/g, '$1').replace(/!?\[\[([^\]]+)\]\]/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '').replace(/[*_`]/g, '').replace(/\s+/g, ' ').trim();
 // 标注：列表项、引用块、或一段一段的文字，各算一条
-export function marksOf(block: string): string[]{
+function marksOf(block: string): string[]{
   const out: string[] = []; let cur: string[] = [];
   const push = () => { const s = strip(cur.join(' ')); if (s && !/^%%/.test(s)) out.push(s); cur = []; };
   for (const raw of block.split('\n')) {

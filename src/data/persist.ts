@@ -42,7 +42,7 @@ export const setSection = (text: string, title: string, content: string): string
   return fm + body.slice(0, m.index) + block + (after ? '\n' + after : '');
 });
 // 正文开头（第一个标题之前）的第一段
-export const setLead = (text: string, para: string): string => keepEol(text, s => {
+const setLead =(text: string, para: string): string => keepEol(text, s => {
   const {fm, body} = splitFm(s), i = body.search(/^#{1,6}\s/m), head = i < 0 ? body : body.slice(0, i), tail = i < 0 ? '' : body.slice(i);
   const parts = head.trim() ? head.trim().split(/\n\s*\n/) : []; if (para) parts[0] = lf(para); else parts.shift();
   return fm + (parts.length ? parts.join('\n\n') + '\n' : '') + (tail ? (parts.length ? '\n' : '') + tail : '');
@@ -154,7 +154,7 @@ async function writeBody(writer: Writer, path: string, want: BodyParts, had: Bod
   for (const [t, v] of Object.entries(want.log || {})) if (snap(v) !== snap(had?.log?.[t])) await writer.body(path, s => editLog(s, t, had?.log?.[t] || [], v));
 }
 // 0.9 人物的 ## 记录：只在列表末尾追加（或撤销时去掉刚加的那几行），这一节里使用者自己写的段落、空行原样留着
-export const editLog = (text: string, title: string, before: string[], after: string[]): string => keepEol(text, s => editLogLF(s, title, before, after));
+const editLog =(text: string, title: string, before: string[], after: string[]): string => keepEol(text, s => editLogLF(s, title, before, after));
 function editLogLF(text: string, title: string, before: string[], after: string[]): string{
   const appended = after.length >= before.length && before.every((l, i) => l === after[i]), removed = before.length > after.length && after.every((l, i) => l === before[i]);
   if (!appended && !removed) return setSection(text, title, after.join('\n'));

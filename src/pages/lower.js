@@ -18,7 +18,7 @@ import {HOST} from '../host.ts';
 // 原型模块（paper-tasks.js 撤销“加任务”）经它拿掉任务并登记删除（P2-10，sync-proto 的改写表）
 HOST.dropTasks = dropTasks;
 
-export const LOWER = ['tasks', 'projects', 'review', 'library', 'brain'];
+const LOWER = ['tasks', 'projects', 'review', 'library', 'brain'];
 export const PAGES = ['thought', 'ai', ...LOWER];
 
 export function createLower(view){

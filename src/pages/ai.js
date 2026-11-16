@@ -13,8 +13,7 @@ export const AI_HTML = `<section id="ai" class="page ai" aria-label="指引" hid
 // 存在本机设置里）；还没读到时 Claude 用三个预设，其他家只有“默认”（= 不改代理自己的默认）。每家可以在设置里选默认模型。
 const CLAUDE_PRESET = [{value: 'sonnet', name: 'Sonnet'}, {value: 'opus', name: 'Opus'}, {value: 'haiku', name: 'Haiku'}];
 const DEFAULT_MODELS = {claude: CLAUDE_PRESET.map(m => m.name)};
-export const CLAUDE_MODEL = {sonnet: 'Sonnet', opus: 'Opus', haiku: 'Haiku'};
-export const AUTO = '默认';
+const AUTO = '默认';
 // 这一家的模型（{value, name}）；没读到时 null（Claude 用预设）
 export const modelsOf = (plugin, id) => plugin.aiModels?.(id) || plugin.ai?.models?.[id] || (id === 'claude' ? CLAUDE_PRESET : null);
 // 设置里为这一家选的默认模型（value）；Claude 沿用旧的 ai.model

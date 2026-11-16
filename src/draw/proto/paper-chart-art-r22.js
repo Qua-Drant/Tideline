@@ -1,5 +1,6 @@
 import {chartArtR21,NOW} from './paper-chart-art-r21.js';
-import {maritimeArt} from './paper-maritime-r14.js';
+import {maritimeArt} from './paper-maritime-r14.ts';
+import {sh} from '../scene.ts';
 export {NOW};
 // R22: one layout for the whole chart. Zones, lanes, boats, piers, the archive tube, the new berth and the compass
 // are placed first in pixels; islets, soundings, weed, clouds, currents and zone limits then take only the space
@@ -47,38 +48,40 @@ export function chartLayoutR22(w,h,{active=[],planned=[],paused=[],completed=[],
  const soundings=[],want=Math.round((w-cL-cR)*(h-90)/26000);for(const[x,y]of order(water)){if(soundings.length>=want)break;if(x<leftX(y)+18||x>rightX(y)-18)continue;const r=fit([[x,y]],18,12,'sounding',22);if(r)soundings.push({...r,t:x>b1&&x<b2?(y>h*.55?'50':'30'):(x<b1?'10':'20')});}
  return{w,h,k,cL,cR,zones,labels,lanes,marks,piers,spit,archive,berth,compass,clouds,isle,islets,rocks,weeds,soundings,R,leftX,rightX,top,bottom};}
 export function chartArtR22(a){
- const r21=chartArtR21(a),L=a.ink,C=a.curve,I=a.INK,M=a.SECONDARY,T=a.TICK,P=a.PAPER,m=maritimeArt(a);
+ const r21=chartArtR21(a),L=a.ink,I=a.INK,M=a.SECONDARY,T=a.TICK,P=a.PAPER,m=maritimeArt(a);
  const F=p=>`<path d="M${p.map(q=>q.map(v=>+v.toFixed(1)).join(',')).join('L')}Z" fill="${P}"/>`;
  // A line is drawn only where it does not cross a placed thing; each free run is drawn on its own.
  function runs(pts,lay,tags,p=6,step=3){const out=[];let cur=[];const block=([x,y])=>lay.R.some(q=>tags.includes(q.tag)&&x>q.x-p&&x<q.x+q.w+p&&y>q.y-p&&y<q.y+q.h+p);
  for(let i=1;i<pts.length;i++){const[a0,a1]=pts[i-1],[b0,b1]=pts[i],n=Math.max(1,Math.ceil(Math.hypot(b0-a0,b1-a1)/step));for(let j=0;j<n;j++){const q=[a0+(b0-a0)*j/n,a1+(b1-a1)*j/n];if(block(q)){if(cur.length>3)out.push(cur);cur=[];}else cur.push(q);}}if(cur.length>3)out.push(cur);return out;}
  const SOLID=['label','boat','pier','ui','compass','isle','islet','rock','spit','cloud'];
- function islet(x,y,k,seed=1){const r=i=>((Math.sin(i*12.9898+seed*78.233)*43758.5453)%1+1)%1,n=9,pts=[];for(let i=0;i<=n;i++){const t=i/n,hh=Math.sin(t*Math.PI)*(14+r(i)*10)*k;pts.push([x-26*k+52*k*t,y-hh]);}
- let s=F([...pts,[x+26*k,y],[x-26*k,y]])+C(pts,1.15,I)+C([[x-30*k,y],[x+30*k,y]],.8,M);for(let i=0;i<6;i++){const t=.55+i*.07,px=x-26*k+52*k*t,tp=y-Math.sin(t*Math.PI)*16*k;s+=L([[px,tp+2],[px-2*k,y-1]],.4,M,'opacity=".75"');}
- for(const dy of [4,8])s+=C([[x-34*k+dy,y+dy],[x,y+dy+1],[x+34*k-dy,y+dy]],.5,T);return `<g data-chart-islet>${s}</g>`;}
- function shores(lay){const{w,h}=lay;let s='';const left=[...Array(41)].map((_,i)=>{const y=h*(.13+.8*i/40);return[lay.leftX(y),y];}),right=[...Array(41)].map((_,i)=>{const y=h*(.12+.81*i/40);return[lay.rightX(y),y];});
- s+=F([[0,left[0][1]],...left,[0,left.at(-1)[1]]])+C(left,1.5)+F([[w,right[0][1]],...right,[w,right.at(-1)[1]]])+C(right,1.5);for(const[o,col]of [[9,M],[19,T]]){s+=C(left.map(([x,y])=>[x+o*lay.k,y]),.65,col,'opacity=".8"')+C(right.map(([x,y])=>[x-o*lay.k,y]),.65,col,'opacity=".8"');}
- const k=lay.k;s+=m.tower(lay.leftX(h*.27)*.45,h*.27,.5*k)+m.house(4,h*.31,.5*k)+m.house(lay.leftX(h*.5)*.35,h*.52,.42*k)+m.tower(w-lay.cR*.45,h*.33,.48*k)+m.house(w-lay.cR*.6,h*.62,.52*k)+m.house(w-lay.cR*.3,h*.66,.42*k);
- for(const p of lay.piers){const{x0,x1,y}=p,a0=Math.min(x0,x1),a1=Math.max(x0,x1);s+=F([[a0,y-4],[a1,y-4],[a1,y+3],[a0,y+3]])+L([[a0,y-4],[a1,y-4]],1.05)+L([[a0,y+3],[a1,y+3]],1.05)+L([[x1,y-4],[x1,y+3]],1);const n=Math.max(2,Math.floor((a1-a0)/22));for(let i=1;i<=n;i++){const x=a0+(a1-a0)*i/(n+.4);s+=L([[x,y-11],[x,y+8]],.85)+a.circle(x,y-11,1.7,.8);}}
- s+=C([[0,h-12],[w*.07,h-15],[w*.12,h-10],[w*.19,h-13],[w*.32,h-11],[w*.43,h-8],[w*.52,h-9],[w*.63,h-8],[w*.73,h-11],[w*.81,h-8],[w*.9,h-13],[w,h-10]],1.1,M);return s;}
+ // 第 3b 期：海图风景输出描述（draw/scene.ts），原来的字符串版只在风景里用，删去。画笔 LV / CV / FV 是描述版
+ const LV=a.inkV,CV=a.curveV,FV=p=>sh('path',{d:`M${p.map(q=>q.map(v=>+v.toFixed(1)).join(',')).join('L')}Z`,fill:P});
+ function isletV(x,y,k,seed=1){const r=i=>((Math.sin(i*12.9898+seed*78.233)*43758.5453)%1+1)%1,n=9,pts=[];for(let i=0;i<=n;i++){const t=i/n,hh=Math.sin(t*Math.PI)*(14+r(i)*10)*k;pts.push([x-26*k+52*k*t,y-hh]);}
+ const s=[FV([...pts,[x+26*k,y],[x-26*k,y]]),CV(pts,1.15,I),CV([[x-30*k,y],[x+30*k,y]],.8,M)];for(let i=0;i<6;i++){const t=.55+i*.07,px=x-26*k+52*k*t,tp=y-Math.sin(t*Math.PI)*16*k;s.push(LV([[px,tp+2],[px-2*k,y-1]],.4,M,{opacity:'.75'}));}
+ for(const dy of [4,8])s.push(CV([[x-34*k+dy,y+dy],[x,y+dy+1],[x+34*k-dy,y+dy]],.5,T));return sh('g',{'data-chart-islet':true},s);}
+ function shoresV(lay){const{w,h}=lay;const s=[];const left=[...Array(41)].map((_,i)=>{const y=h*(.13+.8*i/40);return[lay.leftX(y),y];}),right=[...Array(41)].map((_,i)=>{const y=h*(.12+.81*i/40);return[lay.rightX(y),y];});
+ s.push(FV([[0,left[0][1]],...left,[0,left.at(-1)[1]]]),CV(left,1.5),FV([[w,right[0][1]],...right,[w,right.at(-1)[1]]]),CV(right,1.5));for(const[o,col]of [[9,M],[19,T]]){s.push(CV(left.map(([x,y])=>[x+o*lay.k,y]),.65,col,{opacity:'.8'}),CV(right.map(([x,y])=>[x-o*lay.k,y]),.65,col,{opacity:'.8'}));}
+ const k=lay.k;s.push(m.towerV(lay.leftX(h*.27)*.45,h*.27,.5*k),m.houseV(4,h*.31,.5*k),m.houseV(lay.leftX(h*.5)*.35,h*.52,.42*k),m.towerV(w-lay.cR*.45,h*.33,.48*k),m.houseV(w-lay.cR*.6,h*.62,.52*k),m.houseV(w-lay.cR*.3,h*.66,.42*k));
+ for(const p of lay.piers){const{x0,x1,y}=p,a0=Math.min(x0,x1),a1=Math.max(x0,x1);s.push(FV([[a0,y-4],[a1,y-4],[a1,y+3],[a0,y+3]]),LV([[a0,y-4],[a1,y-4]],1.05),LV([[a0,y+3],[a1,y+3]],1.05),LV([[x1,y-4],[x1,y+3]],1));const n=Math.max(2,Math.floor((a1-a0)/22));for(let i=1;i<=n;i++){const x=a0+(a1-a0)*i/(n+.4);s.push(LV([[x,y-11],[x,y+8]],.85),a.circleV(x,y-11,1.7,.8));}}
+ s.push(CV([[0,h-12],[w*.07,h-15],[w*.12,h-10],[w*.19,h-13],[w*.32,h-11],[w*.43,h-8],[w*.52,h-9],[w*.63,h-8],[w*.73,h-11],[w*.81,h-8],[w*.9,h-13],[w,h-10]],1.1,M));return s;}
  // The paused water is a sheltered cove: an island whose eastern side opens into a small bay, hatched on its lee.
- function bay(lay){const{x,y,w:bw,h:bh}=lay.spit,cx=x+bw/2,cy=y+bh*.5,rx=bw*.46,ry=bh*.42,pts=[];for(let i=0;i<=48;i++){const t=i/48*Math.PI*2,a=Math.atan2(Math.sin(t),Math.cos(t)),notch=.42*Math.exp(-(a*a)/.18),wob=1+Math.sin(t*5+1.3)*.05+Math.sin(t*3)*.04;pts.push([cx+Math.cos(t)*rx*(wob-notch),cy+Math.sin(t)*ry*(wob-notch*.4)]);}
- let s=F(pts)+C(pts,1.2,I)+C(pts.slice(8,22).map(([px,py])=>[cx+(px-cx)*.82,cy+(py-cy)*.82]),.55,M);for(let i=0;i<9;i++){const t=Math.PI*(.15+i*.075),px=cx+Math.cos(t)*rx*.86,py=cy+Math.sin(t)*ry*.86;s+=L([[px,py],[px-3,py-6]],.45,M,'opacity=".7"');}
- s+=C([[cx-rx*.3,cy-ry*.1],[cx-rx*.1,cy-ry*.5],[cx+rx*.15,cy-ry*.25]],.55,M);for(const o of [7,13])s+=C([[cx+rx*.35,cy-ry*.6-o*.3],[cx+rx*.62+o*.4,cy],[cx+rx*.35,cy+ry*.6+o*.3]],.5,T);
- for(const o of [8,15])s+=C([[cx-rx*.9,cy+ry+o*.5],[cx,cy+ry+o],[cx+rx*.7,cy+ry+o*.5]],.5,T);return s+m.tower(cx-rx*.35,cy-ry*.05,.3*lay.k);}
- function scene(lay){const{w,h,k}=lay;let s=shores(lay)+bay(lay);
- for(const c of lay.clouds)s+=m.cloud(c.x,c.y+c.h*.6,.8*k);
- if(lay.isle){const{cx,y:iy,h:ih}=lay.isle,by=iy+ih-8,q=k;s+=F([[cx-75*q,by],[cx-45*q,by-12*q],[cx-19*q,by-47*q],[cx+1*q,by-56*q],[cx+22*q,by-22*q],[cx+49*q,by-16*q],[cx+77*q,by]])+C([[cx-75*q,by],[cx-45*q,by-12*q],[cx-19*q,by-47*q],[cx+1*q,by-56*q],[cx+22*q,by-22*q],[cx+49*q,by-16*q],[cx+77*q,by]],1.15)+L([[cx-18*q,by-42*q],[cx-23*q,by-17*q],[cx-39*q,by-6*q]],.65,M)+L([[cx+3*q,by-45*q],[cx+13*q,by-22*q],[cx+34*q,by-10*q]],.6,M)+m.tower(cx-1*q,by-53*q,.3*q)+C([[cx-82*q,by+5],[cx,by+8],[cx+84*q,by+5]],.6,T);}
- for(const r of lay.islets)s+=islet(r.cx,r.y+r.h*.8,r.s,r.seed);for(const r of lay.rocks)s+=m.rock(r.cx,r.y+r.h*.8,.55*k);
+ function bayV(lay){const{x,y,w:bw,h:bh}=lay.spit,cx=x+bw/2,cy=y+bh*.5,rx=bw*.46,ry=bh*.42,pts=[];for(let i=0;i<=48;i++){const t=i/48*Math.PI*2,a=Math.atan2(Math.sin(t),Math.cos(t)),notch=.42*Math.exp(-(a*a)/.18),wob=1+Math.sin(t*5+1.3)*.05+Math.sin(t*3)*.04;pts.push([cx+Math.cos(t)*rx*(wob-notch),cy+Math.sin(t)*ry*(wob-notch*.4)]);}
+ const s=[FV(pts),CV(pts,1.2,I),CV(pts.slice(8,22).map(([px,py])=>[cx+(px-cx)*.82,cy+(py-cy)*.82]),.55,M)];for(let i=0;i<9;i++){const t=Math.PI*(.15+i*.075),px=cx+Math.cos(t)*rx*.86,py=cy+Math.sin(t)*ry*.86;s.push(LV([[px,py],[px-3,py-6]],.45,M,{opacity:'.7'}));}
+ s.push(CV([[cx-rx*.3,cy-ry*.1],[cx-rx*.1,cy-ry*.5],[cx+rx*.15,cy-ry*.25]],.55,M));for(const o of [7,13])s.push(CV([[cx+rx*.35,cy-ry*.6-o*.3],[cx+rx*.62+o*.4,cy],[cx+rx*.35,cy+ry*.6+o*.3]],.5,T));
+ for(const o of [8,15])s.push(CV([[cx-rx*.9,cy+ry+o*.5],[cx,cy+ry+o],[cx+rx*.7,cy+ry+o*.5]],.5,T));s.push(m.towerV(cx-rx*.35,cy-ry*.05,.3*lay.k));return s;}
+ function sceneV(lay){const{w,h,k}=lay;const s=[shoresV(lay),bayV(lay)];
+ for(const c of lay.clouds)s.push(m.cloudV(c.x,c.y+c.h*.6,.8*k));
+ if(lay.isle){const{cx,y:iy,h:ih}=lay.isle,by=iy+ih-8,q=k;s.push(FV([[cx-75*q,by],[cx-45*q,by-12*q],[cx-19*q,by-47*q],[cx+1*q,by-56*q],[cx+22*q,by-22*q],[cx+49*q,by-16*q],[cx+77*q,by]]),CV([[cx-75*q,by],[cx-45*q,by-12*q],[cx-19*q,by-47*q],[cx+1*q,by-56*q],[cx+22*q,by-22*q],[cx+49*q,by-16*q],[cx+77*q,by]],1.15),LV([[cx-18*q,by-42*q],[cx-23*q,by-17*q],[cx-39*q,by-6*q]],.65,M),LV([[cx+3*q,by-45*q],[cx+13*q,by-22*q],[cx+34*q,by-10*q]],.6,M),m.towerV(cx-1*q,by-53*q,.3*q),CV([[cx-82*q,by+5],[cx,by+8],[cx+84*q,by+5]],.6,T));}
+ for(const r of lay.islets)s.push(isletV(r.cx,r.y+r.h*.8,r.s,r.seed));for(const r of lay.rocks)s.push(m.rockV(r.cx,r.y+r.h*.8,.55*k));
  // Currents run between the lanes; zone limits are dashed and break around anything placed on them.
  const[a0,a1]=lay.zones.active,ys=[];const L0=lay.lanes.map(l=>l.y);const all=[lay.top-34,...L0,lay.bottom+20];for(let i=1;i<all.length;i++){const g=all[i]-all[i-1];if(g>40)for(const t of g>70?[.36,.64]:[.5])ys.push(all[i-1]+g*t);}
- for(const[i,y]of ys.entries())for(const run of runs([[a0+20+(i%3)*8,y],[a0+(a1-a0)*.3,y-4],[a0+(a1-a0)*.6,y+2],[a1-10,y]],lay,[...SOLID,'lane'],10))s+=C(run,.55,T,'opacity=".6"');
- for(const z of ['active','paused','completed']){const x=lay.zones[z][0];for(const run of runs([[x-6,30],[x+4,h*.3],[x-3,h*.6],[x+5,h-30]],lay,[...SOLID,'lane','land'],8,4))s+=a.dash(run,.8,M);}
- for(const r of lay.weeds)s+=m.plant(r.cx,r.y+r.h,r.kk*k);
- s+='<g data-chart-soundings>'+lay.soundings.map(r=>`<text x="${r.cx.toFixed(1)}" y="${(r.y+r.h-2).toFixed(1)}" font-size="9" fill="${M}" opacity=".7" text-anchor="middle" style="font-family:var(--mono)">${r.t}</text>`).join('')+'</g>';
- return '<g data-r22-chart>'+s+'</g>';}
+ for(const[i,y]of ys.entries())for(const run of runs([[a0+20+(i%3)*8,y],[a0+(a1-a0)*.3,y-4],[a0+(a1-a0)*.6,y+2],[a1-10,y]],lay,[...SOLID,'lane'],10))s.push(CV(run,.55,T,{opacity:'.6'}));
+ for(const z of ['active','paused','completed']){const x=lay.zones[z][0];for(const run of runs([[x-6,30],[x+4,h*.3],[x-3,h*.6],[x+5,h-30]],lay,[...SOLID,'lane','land'],8,4))s.push(a.dashV(run,.8,M));}
+ for(const r of lay.weeds)s.push(m.plantV(r.cx,r.y+r.h,r.kk*k));
+ s.push(sh('g',{'data-chart-soundings':true},lay.soundings.map(r=>sh('text',{x:r.cx.toFixed(1),y:(r.y+r.h-2).toFixed(1),'font-size':'9',fill:M,opacity:'.7','text-anchor':'middle',style:'font-family:var(--mono)'},r.t))));
+ return sh('g',{'data-r22-chart':true},s);}
  function hud(lay){const c=lay.compass;return c?`<g data-chart-hud>${a.insetAsset('compass-rose-r10',c.x,c.y,c.w,c.h)}</g>`:'';}
  // The archive is a rolled chart with its count; the tube is part of the button, not the scenery.
  function tube(){return `<svg viewBox="0 0 64 26" width="54" height="22" aria-hidden="true">${F([[8,4],[54,4],[54,22],[8,22]])}${L([[8,4],[54,4]],1.1)}${L([[8,22],[54,22]],1.1)}${m.E(8,13,4,9,1.1)}${m.E(54,13,4,9,1.1)}${m.E(54,13,2.2,6,.6,M)}${L([[18,5],[18,21]],.9)}${L([[44,5],[44,21]],.9)}</svg>`;}
- return{...r21,scene,hud,tube};
+ return{...r21,sceneV,hud,tube};
 }

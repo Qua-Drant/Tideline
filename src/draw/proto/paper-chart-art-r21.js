@@ -1,5 +1,5 @@
 import {chartArt} from './paper-chart-art-r14.js';
-import {maritimeArt} from './paper-maritime-r14.js';
+import {maritimeArt} from './paper-maritime-r14.ts';
 // R21: the chart keeps its R14 coasts and adds what the reference comp reads by — hatched islets, soundings,
 // dashed zone limits and weed along the lower shore. The selected voyage is the one thing drawn in magenta.
 export const NOW='#C8206A';

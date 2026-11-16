@@ -1,14 +1,20 @@
 import {HOST} from '../../host.ts';
+import {sh} from '../scene.ts';
 // R16: engraved hold timber, laid rope, drawstring sacks, framed plank crates and a hinged archive crate.
 export function cargoR16(a,prev){
  const {d,ink:L,curve:C,INK:I,SECONDARY:M,TICK:T,PAPER:P}=a;
- const E=(x,y,rx,ry,n=1,c=I)=>C(Array.from({length:33},(_,i)=>[x+Math.cos(i*Math.PI/16)*rx,y+Math.sin(i*Math.PI/16)*ry]),n,c);
- const F=(p,c=P)=>`<path d="M${p.map(q=>q.map(v=>+v.toFixed(2)).join(',')).join('L')}Z" fill="${c}"/>`;
+ const ellipse33=(x,y,rx,ry)=>Array.from({length:33},(_,i)=>[x+Math.cos(i*Math.PI/16)*rx,y+Math.sin(i*Math.PI/16)*ry]);
+ const E=(x,y,rx,ry,n=1,c=I)=>C(ellipse33(x,y,rx,ry),n,c);
+ const fillD=p=>`M${p.map(q=>q.map(v=>+v.toFixed(2)).join(',')).join('L')}Z`;
+ const F=(p,c=P)=>`<path d="${fillD(p)}" fill="${c}"/>`;
  const O=(p,n=1.3,c=I,attrs='')=>L([...p,p[0]],n,c,attrs);
  let seed=40917;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
  const hatch=(x0,y0,x1,y1,step,dx,dy,n=.36,c=M,op=.6)=>{let s='';for(let x=x0;x<x1;x+=step)s+=L([[x,y0],[x+dx,y0+dy]],n,c,`opacity="${op}"`);return s;};
  // Grain that follows a board, broken into a few long strokes with knots.
- function grain(x,y,w,h,lines=3,knot=true){let s='';for(let i=0;i<lines;i++){const yy=y+h*(i+1)/(lines+1);let xx=x+2+rand()*w*.1;while(xx<x+w-6){const len=Math.min(x+w-2-xx,w*(.22+rand()*.4));s+=C([[xx,yy+(rand()-.5)],[xx+len*.5,yy+(rand()-.5)*1.2],[xx+len,yy+(rand()-.5)]],.4,i%2?M:T,'opacity=".8"');xx+=len+3+rand()*8;}}if(knot&&w>60){const kx=x+w*(.2+rand()*.6),ky=y+h*(.3+rand()*.4);s+=C(Array.from({length:13},(_,i)=>[kx+Math.cos(i*Math.PI/6)*4,ky+Math.sin(i*Math.PI/6)*1.3]),.42,M);}return s;}
+ // 第 3b 期：几何（grainStrokes，消耗同一个 rand）与输出分开：grain 是字符串版（箱子还在模板里画），grainV 是描述版（货舱地板，风景用）
+ function grainStrokes(x,y,w,h,lines=3,knot=true){const out=[];for(let i=0;i<lines;i++){const yy=y+h*(i+1)/(lines+1);let xx=x+2+rand()*w*.1;while(xx<x+w-6){const len=Math.min(x+w-2-xx,w*(.22+rand()*.4));out.push([[[xx,yy+(rand()-.5)],[xx+len*.5,yy+(rand()-.5)*1.2],[xx+len,yy+(rand()-.5)]],.4,i%2?M:T,true]);xx+=len+3+rand()*8;}}if(knot&&w>60){const kx=x+w*(.2+rand()*.6),ky=y+h*(.3+rand()*.4);out.push([Array.from({length:13},(_,i)=>[kx+Math.cos(i*Math.PI/6)*4,ky+Math.sin(i*Math.PI/6)*1.3]),.42,M,false]);}return out;}
+ function grain(x,y,w,h,lines=3,knot=true){let s='';for(const[p,n,c,faded]of grainStrokes(x,y,w,h,lines,knot))s+=faded?C(p,n,c,'opacity=".8"'):C(p,n,c);return s;}
+ const grainV=(x,y,w,h,lines=3,knot=true)=>grainStrokes(x,y,w,h,lines,knot).map(([p,n,c,faded])=>a.curveV(p,n,c,faded?{opacity:'.8'}:null));
  function twisted(p,n=2,step=5.5){let s=C(p,n,I);for(let i=1;i<p.length;i++){const[a0,a1]=p[i-1],[b0,b1]=p[i],len=Math.hypot(b0-a0,b1-a1),ux=(b0-a0)/len,uy=(b1-a1)/len,w=n*1.05;for(let t=step*.5;t<len;t+=step){const x=a0+ux*t,y=a1+uy*t;s+=L([[x+uy*w-ux*1.3,y-ux*w-uy*1.3],[x-uy*w+ux*1.3,y+ux*w+uy*1.3]],.45,M);}}return s;}
  const sag=(x0,y0,x1,y1,drop,n=9)=>Array.from({length:n},(_,i)=>{const t=i/(n-1);return[x0+(x1-x0)*t,y0+(y1-y0)*t+Math.sin(t*Math.PI)*drop];});
  function bolt(x,y){return E(x,y,1.6,1.1)+L([[x-.9,y],[x+.9,y]],.5,M);}
@@ -39,6 +45,8 @@ export function cargoR16(a,prev){
  s+=`<g data-cargo-wall>${F([[w-13,26],[w-3,26],[w-3,122],[w-13,122]])}${O([[w-13,26],[w-3,26],[w-3,122],[w-13,122]],1.4)}${hatch(w-11,30,w-5,0,2,0,88,.34,M,.5)}</g>`;
  s+=floor(w,h);return s;}
  function floor(w,h){let s="";s+=`<g data-cargo-floor>${F([[0,h-20],[w,h-20],[w,h],[0,h]])}${L([[0,h-20],[w,h-20]],1.8)}${L([[0,h-14],[w,h-14]],.7,M)}`;for(let i=0;i<14;i++){const x=i*w/13;s+=L([[x,h-14],[x-18,h]],.55,T)+E(x+6,h-17,.7,.5,.6,M);}s+=grain(0,h-13,w,12,2,false)+'</g>';return s;}
+ // 货舱地板的描述版（R23 的风景用；字符串版 floor 只剩已被覆盖的旧版 scene 引用）
+ function floorV(w,h){const LV=a.inkV,s=[sh('path',{d:fillD([[0,h-20],[w,h-20],[w,h],[0,h]]),fill:P}),LV([[0,h-20],[w,h-20]],1.8),LV([[0,h-14],[w,h-14]],.7,M)];for(let i=0;i<14;i++){const x=i*w/13;s.push(LV([[x,h-14],[x-18,h]],.55,T),a.curveV(ellipse33(x+6,h-17,.7,.5),.6,M));}s.push(grainV(0,h-13,w,12,2,false));return sh('g',{'data-cargo-floor':true},s);}
 
  // Drawstring sack in the 80 × 94 box; the tag keeps the initial's existing position.
  function envelope(){let s=L([[40,0],[40,6]],1)+C([[36,6],[34,9],[38,12],[42,12],[46,9],[44,6]],1);
@@ -84,5 +92,5 @@ export function cargoR16(a,prev){
 
  // Distinct nav marks: tray for the inbox, framed crate for lists, calendar for the coming week.
  function navGlyph(type){const S=s=>`<svg viewBox="0 0 20 20" aria-hidden="true">${s}</svg>`;if(type==='tray')return S(L([[2,11],[6,4],[14,4],[18,11]],1.3)+L([[2,11],[2,17],[18,17],[18,11],[13,11],[12,13.5],[8,13.5],[7,11],[2,11]],1.3));if(type==='crate')return S(O([[3,6],[17,6],[17,17],[3,17]],1.3)+L([[3,6],[6,3],[19,3],[17,6]],1.1)+L([[19,3],[19,14],[17,17]],1.1)+L([[5,11.5],[15,11.5]],.8,M)+L([[6,8.5],[14,14.5]],.7,M));if(type==='calendar')return S(O([[2,5],[18,5],[18,18],[2,18]],1.3)+L([[2,9],[18,9]],1)+L([[6,2],[6,7]],1.3)+L([[14,2],[14,7]],1.3)+L([[6,13],[9,13]],1.2)+L([[11,13],[14,13]],1.2));return null;}
- return{scene,floor,plankCrate,twisted,envelope,crate,newCrate,loose,archive,navGlyph,light:prev.light,vignette:()=>'',paint(){paintPose();},toggle(open){stop();const from=d.cache.cargoArchiveMotion?.pose??(open?0:1);d.cache.cargoArchiveMotion={from,to:open?1:0,pose:from,time:0,duration:420,paused:!!d.ui.paused,startedAt:performance.now(),finished:false};if(matchMedia('(prefers-reduced-motion:reduce)').matches)paint(420);else if(!d.ui.paused)d.cache.cargoArchiveRAF=requestAnimationFrame(tick);},pause(){stop();const m=d.cache.cargoArchiveMotion;if(m)m.paused=true;return m?{time:m.time,duration:420}:null;},seek(ms){paint(ms);return d.cache.cargoArchiveMotion?.time??null;},reset(){stop();d.cache.cargoArchiveMotion=null;paintPose();}};
+ return{scene,floor,floorV,plankCrate,twisted,envelope,crate,newCrate,loose,archive,navGlyph,light:prev.light,vignette:()=>'',paint(){paintPose();},toggle(open){stop();const from=d.cache.cargoArchiveMotion?.pose??(open?0:1);d.cache.cargoArchiveMotion={from,to:open?1:0,pose:from,time:0,duration:420,paused:!!d.ui.paused,startedAt:performance.now(),finished:false};if(matchMedia('(prefers-reduced-motion:reduce)').matches)paint(420);else if(!d.ui.paused)d.cache.cargoArchiveRAF=requestAnimationFrame(tick);},pause(){stop();const m=d.cache.cargoArchiveMotion;if(m)m.paused=true;return m?{time:m.time,duration:420}:null;},seek(ms){paint(ms);return d.cache.cargoArchiveMotion?.time??null;},reset(){stop();d.cache.cargoArchiveMotion=null;paintPose();}};
 }

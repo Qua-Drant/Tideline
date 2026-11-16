@@ -2,9 +2,12 @@
 // 这些函数只做绘图：输入点和颜色，输出 SVG；不读页面、不读数据。
 // 每个绘图函数有两个版本：字符串版（ink、icon、buttonFrame……，还没改成 DOM 构建的页面在用）和节点版（inkEl、iconEl、buttonFrameEl……，
 // 用 dom.ts 建 SVG 元素）。两者共用同一份几何计算（strokeD、iconParts、popupFramePoints……），字符串版的输出与改动前逐字相同。
+// 风景另有描述版（inkV、circleV，见 scene.ts）：先描述、比较过再建节点；轮廓与节点版共用同一份记忆。
 import {getStroke} from 'perfect-freehand';
 import {svg, setAttrs} from './dom.ts';
 import type {Attrs} from './dom.ts';
+import {sh} from './scene.ts';
+import type {Shape} from './scene.ts';
 
 /** 一个点：[x, y]（SVG 用户坐标） */
 export type Point = [x: number, y: number];
@@ -31,6 +34,11 @@ export function inkEl(points: Point[],size=1.6,color=INK,attrs?: Attrs|null): SV
   if(attrs)setAttrs(el,attrs);
   return el;
 }
+/** ink 的描述版（风景用，见 scene.ts）：sh('path', {d, fill, …attrs})（不足两点时返回 null，作子项时跳过）。轮廓与节点版共用记忆 */
+export function inkV(points: Point[],size=1.6,color=INK,attrs?: Attrs|null): Shape|null{
+  if(points.length<2)return null;
+  return sh('path',attrs?{d:strokeDMemo(points,size),fill:color,...attrs}:{d:strokeDMemo(points,size),fill:color});
+}
 /** 按种子给出可重现的伪随机数（0–1） */
 export function randomFor(seed: unknown): () => number{let n=2166136261;for(const c of String(seed))n=Math.imul(n^c.charCodeAt(0),16777619);return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296};}
 
@@ -41,6 +49,7 @@ const starPoints=(x: number,y: number,r: number): Point[]=>Array.from({length:11
 /** 手绘圆：圆心 (x, y)、半径 r */
 export const circle=(x: number,y: number,r: number,size=1.4,color=INK): string=>ink(circlePoints(x,y,r),size,color);
 export const circleEl=(x: number,y: number,r: number,size=1.4,color=INK): SVGPathElement|null=>inkEl(circlePoints(x,y,r),size,color);
+export const circleV=(x: number,y: number,r: number,size=1.4,color=INK): Shape|null=>inkV(circlePoints(x,y,r),size,color);
 /** 手绘五角星：中心 (x, y)、外半径 r */
 export const star=(x: number,y: number,r: number,color=INK): string=>ink(starPoints(x,y,r),1.5,color);
 export const starEl=(x: number,y: number,r: number,color=INK): SVGPathElement|null=>inkEl(starPoints(x,y,r),1.5,color);

@@ -65,7 +65,7 @@ export function createAI({core, r12Art, view}){
   return {
     render(){ syncSettings(d, plugin); guidance.render(); detect(); },
     refresh(){ detected = false; controller.close(); syncSettings(d, plugin, true); if (d.ui.page === 'ai') { guidance.render(); view.drawScenery(); } detect(); },
-    scenery(box){ return r12Art.guidance(box); },
+    scenery(box){ return r12Art.guidanceV(box); },
     close(){ controller.close(); if (HOST.ai === controller) HOST.ai = null; },
   };
 }

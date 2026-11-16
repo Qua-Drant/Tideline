@@ -45,10 +45,10 @@ export function resolveProvider(id: string, conf: Record<string, Partial<Provide
   const args = typeof c.args === 'string' ? splitArgs(c.args) : Array.isArray(c.args) ? c.args : p.args;
   return {...p, id, command: (c.command || '').trim() || p.command, args: c.args === undefined || c.args === '' ? p.args : args};
 }
-export function splitArgs(s: string | null | undefined): string[]{ const out: string[] = []; for (const m of String(s || '').matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) out.push(m[1] ?? m[2] ?? m[3]); return out; }
+function splitArgs(s: string | null | undefined): string[]{ const out: string[] = []; for (const m of String(s || '').matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) out.push(m[1] ?? m[2] ?? m[3]); return out; }
 
 // 找命令：写了路径就用它；否则 PATH（where / which），再看 npm 全局目录（Obsidian 拿到的 PATH 常常不含它）
-export function findCommand(command: string): {path: string | null; error?: string}{
+function findCommand(command: string): {path: string | null; error?: string}{
   if (!command) return {path: null, error: '还没有填启动命令'};
   const looksPath = /[\\/]/.test(command);
   if (looksPath) return fs().existsSync(command) ? {path: command} : {path: null, error: `找不到“${command}”`};

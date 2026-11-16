@@ -5,9 +5,9 @@
 import type {PolicyLists} from '../data/types.ts';
 import type {PermissionMode, PolicyResult, ToolInput} from './types.ts';
 
-export const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'LS', 'NotebookRead']);
-export const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
-export const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
+const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'LS', 'NotebookRead']);
+const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
+const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
 
 const slash = (s: unknown): string => String(s || '').replace(/\\/g, '/');
 const folder = (s: unknown): string => { const x = slash(s).replace(/^\.?\//, ''); return x; };

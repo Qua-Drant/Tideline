@@ -9,7 +9,7 @@ export type NavItem = [id: string, name: string, icon: string];
 export const NAV: NavItem[] = [['thought', '思索', 'star'], ['ai', '指引', 'flag'], ['today', '今日', 'sunrise'], ['tasks', '任务', 'box'], ['projects', '项目', 'route'], ['review', '复盘', 'book'], ['library', '知识库', 'lead'], ['brain', '大脑', 'nodes']];
 /** 罗盘指针指向每一页的角度（度） */
 export const ANGLE: Record<string, number> = {thought: 0, ai: 45, today: 90, tasks: 108, projects: 126, review: 144, library: 162, brain: 180};
-export const READY = new Set(['thought', 'ai', 'today', 'tasks', 'projects', 'review', 'library', 'brain']); // 已经做好的页；其余在侧栏里置灰
+const READY = new Set(['thought', 'ai', 'today', 'tasks', 'projects', 'review', 'library', 'brain']); // 已经做好的页；其余在侧栏里置灰
 
 /** 手写字（原型 paper-handfont-r28.js 的 createHandFont）：框只用它写“记录”两个字 */
 export interface HandFont {

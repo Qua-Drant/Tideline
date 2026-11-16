@@ -8,7 +8,7 @@ import type {Shape, Part, Parts} from '../scene.ts';
 // a 690 × 767 plane, flags hung at measured stations. Long continuous strokes, three weights only
 // (structure 1.6, detail 1, pale 0.6), sparse shading — no traced or auto-vectorised lines.
 // 第 3b 期转成 TypeScript：只在指引页的风景里用，输出描述（scene.ts）；画面与原来的字符串逐项相同。
-export const GUIDANCE_W=690,GUIDANCE_H=767,GUIDANCE_HORIZON=626,GUIDANCE_CENTER=335,GUIDANCE_SPAN=610;
+export const GUIDANCE_H=767,GUIDANCE_HORIZON=626,GUIDANCE_CENTER=335,GUIDANCE_SPAN=610;
 export const GUIDANCE_FLAGS=[[178,325,77],[272,317,72],[352,305,79],[454,284,66],[531,281,74]].map(([x,y,w])=>({x,y,k:w/68}));
 const yardY=(x: number)=>334-x*.1637,yardR=(x: number)=>6.4-Math.max(0,x)*.0028;
 const mastX=(y: number)=>113-(y-50)*.012,mastR=(y: number)=>12+(y-50)*.031;

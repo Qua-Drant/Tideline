@@ -1,6 +1,7 @@
 // Shared objects, drawn in paper coordinates. No image or network dependencies.
 // 第 3b 期：几何与输出分开。塔、房子、礁石、水草、云、椭圆的几何是一列笔画（op：填纸的多边形，或一笔 L / C 线），
 // 字符串版（页面模板还在用：复盘页的小画、项目页的卷筒）与描述版（…V，风景用，见 scene.ts）都从同一列 op 出，字符串版与原来逐字相同。
+// 第 3b2 期：云的字符串版只有已删的旧版海图（r14）用，删去，只留描述版。
 // 远岸、完成态的海景、灯塔光束、海鸟只在风景里用，只有描述版。
 import type {Point} from '../ink.ts';
 import type {Attrs} from '../dom.ts';
@@ -43,7 +44,6 @@ export function maritimeArt(a: MaritimePens){
  // —— 字符串版与描述版共用一列 op ——
  const E = (x: number, y: number, rx: number, ry: number, size = 1, col = I) => C(ellipsePoints(x, y, rx, ry), size, col);
  const EV = (x: number, y: number, rx: number, ry: number, size = 1, col = I) => CV(ellipsePoints(x, y, rx, ry), size, col);
- const cloud = (x: number, y: number, k = 1, col = T) => `<g transform="${at(x, y, k)}">${str(cloudOps(col))}</g>`;
  const cloudV = (x: number, y: number, k = 1, col = T) => sh('g', {transform: at(x, y, k)}, shapes(cloudOps(col)));
  const tower = (x: number, y: number, k = 1) => `<g transform="${at(x, y, k)}">${str(TOWER)}</g>`;
  const towerV = (x: number, y: number, k = 1) => sh('g', {transform: at(x, y, k)}, shapes(TOWER));
@@ -82,6 +82,6 @@ export function maritimeArt(a: MaritimePens){
    sh('stop', {offset: '0', 'stop-color': '#FFF4C9', 'stop-opacity': night ? .75 : .65}), sh('stop', {offset: '.3', 'stop-color': '#FFF5D4', 'stop-opacity': night ? .31 : .3}), sh('stop', {offset: '1', 'stop-color': '#FFF9E8', 'stop-opacity': '0'}))); }
   for (const side of [-1, 1]) { const end = side < 0 ? x - Math.min(440, w * .4) : w + 34; paths.push(sh('path', {'data-lens-beam': true, 'data-beam-side': side, d: `M${x},${y - 2} L${end},${y + 12} Q${end + side * 8},${y + 39} ${end},${y + 70} L${x},${y + 3}Z`, fill: `url(#r15-lens-${side})`})); }
   return parts(sh('defs', null, defs), paths);}
- return {cloud, tower, house, rock, plant, E, cloudV, towerV, houseV, rockV, plantV, EV, birdV, leftCoastV, completedV, beamV};
+ return {tower, house, rock, plant, E, cloudV, towerV, houseV, rockV, plantV, birdV, leftCoastV, completedV, beamV};
 }
 function missing(name: string): never { throw new Error('maritimeArt：画风景要给描述版画笔 ' + name); }

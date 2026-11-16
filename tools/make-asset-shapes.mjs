@@ -1,6 +1,7 @@
 // 生成 src/draw/proto/asset-shapes.js：把 assets.js 里风景要用的 SVG 素材写成描述数据（src/draw/scene.ts 的 Shape：{t, a, k}），
 // 风景直接按描述建节点，运行时不再解析 SVG 字符串。assets.js 不动（还有页面模板按字符串用它）。
-//   node tools/make-asset-shapes.mjs
+//   node tools/make-asset-shapes.mjs           重新生成
+//   node tools/make-asset-shapes.mjs --check   只检查现有文件是否与素材一致（不写文件；不一致时退出码 1）。tools/build.mjs 构建前会跑它
 // 素材的写法很规整（只有元素、双引号属性、自闭合标签，没有文字、注释与实体）；遇到别的写法就报错停下，不猜。
 // 生成后把描述按同样的写法拼回字符串，与原素材逐字比较，不一致也报错。
 import fs from 'node:fs';
@@ -45,5 +46,18 @@ for (const name of NAMES) {
   shapes[name] = list;
 }
 const file = path.join(root, 'src/draw/proto/asset-shapes.js');
-fs.writeFileSync(file, `// 由 tools/make-asset-shapes.mjs 从 assets.js 生成，不要手改：风景用到的 SVG 素材写成描述（src/draw/scene.ts 的 Shape）。\nexport const assetShapes=${JSON.stringify(shapes)};\n`);
-console.log('已生成', path.relative(root, file), Object.keys(shapes).join('、'), fs.statSync(file).size, '字节');
+const content = `// 由 tools/make-asset-shapes.mjs 从 assets.js 生成，不要手改：风景用到的 SVG 素材写成描述（src/draw/scene.ts 的 Shape）。\nexport const assetShapes=${JSON.stringify(shapes)};\n`;
+if (process.argv.includes('--check')) {
+  // 只比较、不写文件：与现有的 asset-shapes.js 逐字比较，不一致时以非零退出（tools/build.mjs 构建前调用）。
+  // 换行符不算差异（Windows 上 git 检出时可能换成 \r\n）
+  const rel = path.relative(root, file).split(path.sep).join('/');
+  const now = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : null;
+  if (now !== content) {
+    console.error(`${rel} 与 assets.js 不一致（${now === null ? '文件不存在' : '素材或生成规则改过之后没有重新生成'}）。请运行 node tools/make-asset-shapes.mjs 重新生成后再构建。`);
+    process.exit(1);
+  }
+  console.log(rel, '与 assets.js 一致');
+} else {
+  fs.writeFileSync(file, content);
+  console.log('已生成', path.relative(root, file), Object.keys(shapes).join('、'), fs.statSync(file).size, '字节');
+}

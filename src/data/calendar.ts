@@ -36,7 +36,7 @@ const header = (h: Record<string, string> | null | undefined, name: string) => {
 // 等一个 Promise，最多 ms 毫秒；超时就抛出 message
 const within = <T>(promise: Promise<T>, ms: number, message: string) => new Promise<T>((resolve, reject) => { const t = setTimeout(() => reject(Object.assign(new Error(message), {timeout: true})), ms); promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); }); });
 // Retry-After：秒数或 HTTP 日期 → 毫秒（拿不到给 0）
-export function retryAfter(v: string | null | undefined, now = Date.now()){
+function retryAfter(v: string | null | undefined, now = Date.now()){
   if (!v) return 0; const n = Number(v); if (Number.isFinite(n)) return Math.max(0, n * 1000);
   const t = Date.parse(v); return Number.isFinite(t) ? Math.max(0, t - now) : 0;
 }

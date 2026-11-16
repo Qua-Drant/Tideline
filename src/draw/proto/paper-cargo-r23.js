@@ -10,16 +10,15 @@ import {sh, parts} from '../scene.ts';
 // The vista keeps only sparse water strokes, with no horizon line.
 // R23 (copied from R22, which stays as it was): the band is 20 units shallower (deck at 120); sacks and lantern are
 // smaller and both end above the rail rope, so nothing hanging from the beam touches it.
+// 第 3b2 期：只被已删的旧版函数用的字符串版（rope、coil、hangingCoilR20 及其 F / O）删去；返回对象只留货舱页取用的成员。
 // 第 3b 期：风景（sceneV 及其各部分）输出描述（draw/scene.ts），原来的字符串版删去；laid、floorCoil 的几何与输出分开，
 // 字符串版留给归档箱（archive，还在页面模板里），描述版给风景。画笔：L / C 是字符串版，LV / CV 是描述版（phase2.js 的 api）。
-export const HOLD_W=1491,BEAM_H=28,DECK_Y=120,DECK_B=132;
+const HOLD_W=1491,BEAM_H=28,DECK_Y=120,DECK_B=132;
 const TIES=[890,1071,1168,1274,1380],SACK={w:43,h:56,top:36,k:.56},LANTERN={cx:802,cy:65,k:.9};
 const LADDER={x:21,stiles:[[7,13],[43,49]],rung:39};
 export function cargoR23(a,r16){
  const {d,curve:C,ink:L,INK:I,SECONDARY:M,TICK:T,PAPER:P,inkV:LV,curveV:CV,circleV}=a;
- const F=(p,c=P)=>`<path d="M${p.map(q=>q.map(v=>+v.toFixed(2)).join(',')).join('L')}Z" fill="${c}"/>`;
  const FV=(p,c=P)=>sh('path',{d:`M${p.map(q=>q.map(v=>+v.toFixed(2)).join(',')).join('L')}Z`,fill:c});
- const O=(p,n=1.3,c=I,at='')=>L([...p,p[0]],n,c,at);
  const OV=(p,n=1.3,c=I,at=null)=>LV([...p,p[0]],n,c,at);
  const unit=w=>w/HOLD_W,fmt=v=>(+v.toFixed(2)).toString();
  const EV=(x,y,rx,ry,n=1,c=I)=>CV(Array.from({length:25},(_,i)=>{const t=i*Math.PI/12;return[x+Math.cos(t)*rx,y+Math.sin(t)*ry];}),n,c);
@@ -41,7 +40,7 @@ export function cargoR23(a,r16){
  // laysOpacity：绞纹的不透明度（地上盘绳里压在下面的几圈淡一些，原来在字符串上把 .85 换成 .5）
  function laidV(P,wd,opts,laysOpacity='.85'){const g=laidGeometry(P,wd,opts);return [sh('path',{d:g.ring,fill:P_,'fill-rule':'evenodd'}),CV(g.A,g.edge,I),CV(g.B,g.edge*.9,I),
   sh('path',{d:g.lays,fill:'none',stroke:I,'stroke-width':g.layW,'stroke-linecap':'round',opacity:laysOpacity}),sh('path',{d:g.lee,fill:'none',stroke:M,'stroke-width':g.leeW,'stroke-linecap':'round',opacity:'.75'})];}
- const P_=P,rope=(p,n=1.5)=>laid(sample(p,1.6),n*2.3,{edge:.75}),ropeV=(p,n=1.5)=>laidV(sample(p,1.6),n*2.3,{edge:.75});
+ const P_=P,ropeV=(p,n=1.5)=>laidV(sample(p,1.6),n*2.3,{edge:.75});
  const ellipse=(cx,cy,rx,ry,rot=0,k=72)=>Array.from({length:k},(_,i)=>{const t=i/k*Math.PI*2,x=Math.cos(t)*rx,y=Math.sin(t)*ry;return[cx+x*Math.cos(rot)-y*Math.sin(rot),cy+x*Math.sin(rot)+y*Math.cos(rot)];});
  // A coil lying on the floor: loops flaked one on another, each a closed laid ring; the tail leaves from the bottom loop.
  // 几何（floorCoilParts：尾巴、几笔短线、一圈圈绳）与输出分开：floorCoil 是字符串版（归档箱），floorCoilV 是描述版（地上的盘绳）
@@ -64,12 +63,6 @@ export function cargoR23(a,r16){
  const tag=[[26,44],[50,43],[51,69],[27,70]];o.push(LV([[38,27],[38,44]],.7),FV(tag),OV(tag,1),circleV(38,47,1,.6));const fs=12/s/k;
  o.push(sh('text',{x:'38.5',y:fmt(57+fs*.36),'font-size':fmt(fs),'text-anchor':'middle',fill:I,style:'font-family:var(--sans)','text-decoration':pressed?'underline':null},person.initial==null?'':String(person.initial)));if(pressed)o.push(LV([[31,63.5],[46,63.5]],.9));
  return sh('g',{'data-cargo-sack':`${person.id}`,transform:`translate(${ox} ${oy}) scale(${k})`},o);}
- // A laid rope coil: stacked loops, the front half of each heavier with twist ticks, a lashing and a free tail.
- function coil(cx,cy,rx,ry,loops,dy,n=1.15){let o='';for(let i=0;i<loops;i++){const y=cy-i*dy,r=rx-i*.6,q=ry-i*.15;o+=C(Array.from({length:13},(_,j)=>{const t=Math.PI+j*Math.PI/12;return[cx+Math.cos(t)*r,y+Math.sin(t)*q];}),.6,M);const front=Array.from({length:17},(_,j)=>{const t=j*Math.PI/16;return[cx+Math.cos(t)*r,y+Math.sin(t)*q];});o+=C(front,n,I);for(let j=1;j<16;j+=2){const t=j*Math.PI/16,x=cx+Math.cos(t)*r,yy=y+Math.sin(t)*q;o+=L([[x-1.2,yy-1.6],[x+1.2,yy+1.4]],.45,M);}}return o;}
- function hangingCoilR20(cx,cy){let o=F([[cx-2,cy-30],[cx+4,cy-30],[cx+4,cy-24],[cx-2,cy-24]])+O([[cx-2,cy-30],[cx+4,cy-30],[cx+4,cy-24],[cx-2,cy-24]],1);
- for(let i=0;i<6;i++){const r=13-i*.4,h=24-i*.8,x=cx+1+i*.6;o+=C(Array.from({length:21},(_,j)=>{const t=-Math.PI/2+j*Math.PI*2/20;return[x+Math.cos(t)*r,cy+4+Math.sin(t)*h];}),i?.55:1.2,i?M:I);}
- for(let j=0;j<12;j++){const t=-Math.PI/2+.3+j*.5,x=cx+1+Math.cos(t)*13,y=cy+4+Math.sin(t)*24;o+=L([[x-1.3,y-1.4],[x+1.3,y+1.4]],.45,M);}
- o+=C([[cx-3,cy-24],[cx-5,cy-16],[cx-3,cy-8]],1.3)+L([[cx-7,cy-20],[cx+3,cy-18]],.8)+L([[cx-7,cy-17],[cx+3,cy-15]],.8)+rope([[cx+6,cy+26],[cx+8,cy+36],[cx+5,cy+44],[cx+7,cy+50]],1.1);return o;}
  // Hanging coil: a cleat, loops hung from it back to front, two lashing turns round the neck and a tail.
  function hangingCoilV(cx,cy){const top=cy-24,o=[FV([[cx-4,top-8],[cx+6,top-8],[cx+6,top-2],[cx-4,top-2]]),OV([[cx-4,top-8],[cx+6,top-8],[cx+6,top-2],[cx-4,top-2]],1),LV([[cx-8,top-8],[cx+10,top-8]],1.2)];
  o.push(laidV(sample([[cx+4,top+44],[cx+6,top+58],[cx+3,top+70],[cx+6,top+80]],1.4),3.2,{edge:.75}));
@@ -108,5 +101,5 @@ export function cargoR23(a,r16){
  function place(root,width){if(!root||!root.clientWidth)return;const s=unit(width||root.clientWidth);root.querySelectorAll('.cargo-mailbag').forEach((b,i)=>Object.assign(b.style,{left:fmt((TIES[i+1]??TIES.at(-1))*s-SACK.w*s/2)+'px',top:fmt((SACK.top-6)*s)+'px',width:fmt(SACK.w*s)+'px',height:fmt((SACK.h+6)*s)+'px'}));root.style.setProperty('--cargo-s',fmt(s));const today=root.querySelector('[data-p2="task-nav-today"]');if(today)today.dataset.p2Drop='today:';}
  // The archive stack keeps R16's crates and lid; only its coil is swapped for a laid one (tail to the left).
  function archive(){const src=r16.archive(),open=src.indexOf('<g opacity=".9">'),cut=src.indexOf('<g data-archive-inside>');let i=open,depth=0;for(;i<cut;i++){if(src.startsWith('<g',i))depth++;else if(src.startsWith('</g>',i)){depth--;if(!depth){i+=4;break;}}}return src.slice(0,i)+'<g data-archive-coil>'+floorCoil(118,123,17,3.6,4,-1)+'</g>'+src.slice(cut);}
- return{sceneV,coil,laid,sample,ellipse,floorCoil,archive,place,light:()=>'',lampButton:()=>'',toggleLamp(){},envelope:()=>''};
+ return{sceneV,archive,place,light:()=>'',lampButton:()=>'',toggleLamp(){}};
 }

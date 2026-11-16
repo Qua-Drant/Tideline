@@ -78,5 +78,5 @@ export function brainPage(a){
  else if(key==='brain-band'){d.ui.brainType=id&&d.ui.brainType!==id?id:null;d.ui.brainSelected=null;d.ui.brainList=false;}
  else if(key==='brain-zoom')d.ui.brainZoom=Math.max(.8,Math.min(1.2,Math.round(((d.ui.brainZoom||1)+(id==='+'?.1:-.1))*10)/10));else if(key==='brain-rank')d.ui.brainRankShut=!d.ui.brainRankShut;
  a.update();return true;}
- return{render,action,scenery,applySelection,search(){render();a.drawScenery();},key(e){const node=e.target.closest('[data-brain-node]');if(d.ui.page==='brain'&&node&&e.shiftKey&&e.key==='Enter'){e.preventDefault();a.go(node.dataset.kind,node.dataset.id);return true;}if(d.ui.page==='brain'&&e.key==='≡'){e.preventDefault();d.ui.brainList=!d.ui.brainList;a.update();return true;}return false;},help:[[420,60,'上方按类型筛选，右侧可缩放与切换列表',30,-30],[560,330,'点选保留关联，双击或 Shift+Enter 回到对象所在页',-20,-130],[1060,200,'右侧列出关联最多的节点',-40,-60]]};
+ return{render,action,scenery,applySelection,search(){render();a.drawScenery();},key(e){const node=e.target.closest('[data-brain-node]');if(d.ui.page==='brain'&&node&&e.shiftKey&&e.key==='Enter'){e.preventDefault();a.go(node.dataset.kind,node.dataset.id);return true;}if(d.ui.page==='brain'&&e.key==='≡'){e.preventDefault();d.ui.brainList=!d.ui.brainList;a.update();return true;}return false;}};
 }

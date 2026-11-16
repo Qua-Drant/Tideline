@@ -31,7 +31,7 @@ export const SG = {
   search: svg(circle(8,8,5,1.2) + ink([[11.6,11.6],[16,16]],1.3)),
   person: svg(circle(9,6,3,1.1) + ink([[3,16],[4.5,12],[9,10.5],[13.5,12],[15,16]],1.1)),
 };
-export const STYLE_TOOLS = [
+const STYLE_TOOLS = [
   ['h', '标题', '<b class="task-tf-letter">H</b>'], ['b', '粗体', '<b class="task-tf-letter">B</b>'], ['i', '斜体', '<i class="task-tf-letter">I</i>'], ['s', '删除线', '<s class="task-tf-letter">S</s>'],
   ['mark', '高亮', svg(ink([[3,14],[6,11],[12,5],[14,7],[8,13],[5,16],[3,14]],1.1) + ink([[2,17],[16,17]],2.2), 18)],
   null,
@@ -64,7 +64,7 @@ export function splitChecklist(text){
 }
 export const joinChecklist = (desc, items) => [desc.trim(), items.map(i => `- [${i.done ? 'x' : ' '}] ${i.text}`).join('\n')].filter(Boolean).join('\n\n');
 
-export function whenText(t){
+function whenText(t){
   return [t.date ? md(t.date) : '', t.time || '', t.repeat ? t.repeat : '', t.time && t.remind ? '提醒 ' + REMIND_LABEL[t.remind] : ''].filter(Boolean).join(' · ');
 }
 

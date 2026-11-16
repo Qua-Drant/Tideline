@@ -12,7 +12,7 @@ interface ImageToken { href?: string | null; title?: string | null; text?: strin
 /** 渲染函数里的 this：marked 的 Renderer，带着当前的 parser */
 interface RendererThis { parser: {parseInline(tokens: unknown[]): string} }
 
-export const SAFE_LINK = /^(https?:|mailto:|#)/i;
+const SAFE_LINK =/^(https?:|mailto:|#)/i;
 const renderer = new Renderer();
 renderer.html = (token: HtmlToken) => esc(token.text);
 renderer.link = function(this: RendererThis, {href, title, tokens}: LinkToken){

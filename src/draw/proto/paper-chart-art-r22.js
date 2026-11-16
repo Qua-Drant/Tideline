@@ -80,8 +80,7 @@ export function chartArtR22(a){
  for(const r of lay.weeds)s.push(m.plantV(r.cx,r.y+r.h,r.kk*k));
  s.push(sh('g',{'data-chart-soundings':true},lay.soundings.map(r=>sh('text',{x:r.cx.toFixed(1),y:(r.y+r.h-2).toFixed(1),'font-size':'9',fill:M,opacity:'.7','text-anchor':'middle',style:'font-family:var(--mono)'},r.t))));
  return sh('g',{'data-r22-chart':true},s);}
- function hud(lay){const c=lay.compass;return c?`<g data-chart-hud>${a.insetAsset('compass-rose-r10',c.x,c.y,c.w,c.h)}</g>`:'';}
  // The archive is a rolled chart with its count; the tube is part of the button, not the scenery.
  function tube(){return `<svg viewBox="0 0 64 26" width="54" height="22" aria-hidden="true">${F([[8,4],[54,4],[54,22],[8,22]])}${L([[8,4],[54,4]],1.1)}${L([[8,22],[54,22]],1.1)}${m.E(8,13,4,9,1.1)}${m.E(54,13,4,9,1.1)}${m.E(54,13,2.2,6,.6,M)}${L([[18,5],[18,21]],.9)}${L([[44,5],[44,21]],.9)}</svg>`;}
- return{...r21,sceneV,hud,tube};
+ return{...r21,sceneV,tube};
 }

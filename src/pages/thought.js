@@ -4,7 +4,9 @@
 // 数据是下方五页共用的那份 d（model.js），改动由 persist.js 写回笔记。
 import {getStroke} from 'perfect-freehand';
 import {HOST} from '../host.ts';
-import {ink, circle, icon, star, esc, randomFor, smearProgress, INK, TICK} from '../draw/ink.ts';
+import {ink, circle, icon, star, esc, randomFor, smearProgress, inkV, circleV, INK, TICK} from '../draw/ink.ts';
+import {sh, parts} from '../draw/scene.ts';
+import {assetShapes} from '../draw/proto/asset-shapes.js';
 import {Lexer} from '../draw/proto/vendor/marked.mjs';
 import {createGoals} from '../ui/goals.js';
 
@@ -105,12 +107,16 @@ export function createThought({core, r12Art, r14Marine, view}){
   function ideaStar(i){ const size = {seed: 5, growing: 6.5, ready: 8, adopted: 8, parked: 5}[i.stage] || 5, opacity = {seed: .5, growing: .75, ready: 1, adopted: 1, parked: .35}[i.stage] || .5; return `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><g opacity="${opacity}">${star(12, 12, size)}${i.review ? circle(12, 12, 10, 1) : ''}</g></svg>`; }
   function starPosition(n, w){ const halton = (v, base) => { let result = 0, f = 1; while (v) { f /= base; result += f * (v % base); v = Math.floor(v / base); } return result; }; return [(.055 + halton(n + 1, 2) * .73) * w, 40 + halton(n + 1, 3) * 149]; }
   const skyGlint = (x, y, r, color) => ink([[x - r, y], [x, y - .45], [x + r, y]], .6, color) + ink([[x, y - r * 1.45], [x - .2, y], [x, y + r * 1.45]], .65, color);
-  function skyLink(p, q){ const key = 'r15-dash-' + p.map(Math.round).join('-') + '-' + q.map(Math.round).join('-'), x = (p[0] + q[0]) / 2, y = (p[1] + q[1]) / 2, w = $('#sheet').clientWidth, color = r12Art.skyInk(x, y, w); return `<defs><mask id="${key}" maskUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="240"><path d="M${p.join(',')}L${q.join(',')}" fill="none" stroke="white" stroke-width="3" stroke-dasharray="2.5 6.5"/></mask></defs><g data-star-link mask="url(#${key})">${ink([p, q], .62, color, 'opacity=".62"')}</g>`; }
-  function lampGlow(cx, cy, on, night){
-    const rand = randomFor('lamp-halo'), color = on ? (night ? '#D8B77D' : '#BE965F') : '#8D9291'; let s = '';
-    if (on) for (const [size, opacity] of [[52, .045], [38, .09], [24, .16]]) { const p = getStroke([[cx, cy, .55]], {size, thinning: .15, smoothing: .8, simulatePressure: false}); s += `<path d="M${p.map(q => q.join(',')).join('L')}Z" fill="${color}" opacity="${opacity}"/>`; }
-    for (let i = 0; i < 190; i++) { const a = rand() * Math.PI * 2, r = Math.pow(rand(), 1.8) * (on ? 32 : 13), x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * .86, opacity = (on ? (night ? .11 : .12) : .035) * (1 - r / 40); s += ink([[x - .4, y], [x + .5, y + .1]], 2 + rand() * 2.6, color, `opacity="${opacity.toFixed(3)}"`); }
-    return s + ink([[cx - .2, cy], [cx + .2, cy]], on ? 6.2 : 2.8, color, `opacity="${on ? .88 : .3}"`);
+  // 风景里的两样（第 3b 期起输出描述，见 draw/scene.ts）：想法之间的虚线、灯塔的灯光
+  function skyLinkV(p, q){ const key = 'r15-dash-' + p.map(Math.round).join('-') + '-' + q.map(Math.round).join('-'), x = (p[0] + q[0]) / 2, y = (p[1] + q[1]) / 2, w = $('#sheet').clientWidth, color = r12Art.skyInk(x, y, w);
+    return parts(sh('defs', null, sh('mask', {id: key, maskUnits: 'userSpaceOnUse', x: '0', y: '0', width: w, height: '240'}, sh('path', {d: `M${p.join(',')}L${q.join(',')}`, fill: 'none', stroke: 'white', 'stroke-width': '3', 'stroke-dasharray': '2.5 6.5'}))),
+      sh('g', {'data-star-link': true, mask: `url(#${key})`}, inkV([p, q], .62, color, {opacity: '.62'}))); }
+  function lampGlowV(cx, cy, on, night){
+    const rand = randomFor('lamp-halo'), color = on ? (night ? '#D8B77D' : '#BE965F') : '#8D9291', s = [];
+    if (on) for (const [size, opacity] of [[52, .045], [38, .09], [24, .16]]) { const p = getStroke([[cx, cy, .55]], {size, thinning: .15, smoothing: .8, simulatePressure: false}); s.push(sh('path', {d: `M${p.map(q => q.join(',')).join('L')}Z`, fill: color, opacity})); }
+    for (let i = 0; i < 190; i++) { const a = rand() * Math.PI * 2, r = Math.pow(rand(), 1.8) * (on ? 32 : 13), x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * .86, opacity = (on ? (night ? .11 : .12) : .035) * (1 - r / 40); s.push(inkV([[x - .4, y], [x + .5, y + .1]], 2 + rand() * 2.6, color, {opacity: opacity.toFixed(3)})); }
+    s.push(inkV([[cx - .2, cy], [cx + .2, cy]], on ? 6.2 : 2.8, color, {opacity: on ? .88 : .3}));
+    return s;
   }
   function ideaEmptyScene(){
     const planets = circle(70, 38, 23, 1.4) + ink([[33, 54], [52, 46], [88, 28], [109, 16]], 1.1) + ink([[33, 54], [40, 58], [77, 43], [109, 16]], 1.1) + circle(161, 66, 11, 1.25) + star(18, 19, 4) + star(140, 12, 3.5) + star(195, 88, 3);
@@ -172,24 +178,24 @@ export function createThought({core, r12Art, r14Marine, view}){
   function prewarm(box, soon = false){ lastBox = box; const k = d.clock.time + '|' + box.width; if (warm === k) return; clearTimeout(warmTimer);
     warmTimer = setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 50)))(() => { if (HOST.root !== view.root || !view.root.isConnected || d.ui.page !== 'thought' || HOST.transitionApi?.state().running) return; warm = k; const keep = d.ui.lamp, toggle = $('#lighthouse-toggle'), style = toggle.getAttribute('style');
       d.ui.lamp = !keep; try { scenery(box, true); } finally { d.ui.lamp = keep; sky(); toggle.setAttribute('style', style); } }), soon ? 0 : 2000); }
-  // 风景（原型 drawScenery 的 thought 分支）
+  // 风景（原型 drawScenery 的 thought 分支）：描述（draw/scene.ts），由视图比较过再建节点
   function scenery(box, warming = false){
     if (!warming) prewarm(box);
-    const w = box.width, phase = sky(), night = phase === 'night'; let s = r12Art.thoughtCoast(w);
+    const w = box.width, phase = sky(), night = phase === 'night', s = [r12Art.thoughtCoastV(w)];
     const ratio = ((minutes() - 360 + 1440) % 1440) / 1080, sunX = w * (.2 + .42 * Math.max(0, Math.min(1, ratio))), sunY = 62 - 34 * Math.sin(Math.max(0, Math.min(1, ratio)) * Math.PI), starColor = r12Art.skyInk(sunX, sunY, w);
-    s += `<g data-morph="sun">${circle(sunX, sunY, 13, 1.4, starColor)}${night ? ink([[sunX - 4, sunY - 11], [sunX + 3, sunY - 4], [sunX + 4, sunY + 4], [sunX - 1, sunY + 11]], 1.3, starColor) : ''}</g>`;
+    s.push(sh('g', {'data-morph': 'sun'}, circleV(sunX, sunY, 13, 1.4, starColor), night ? inkV([[sunX - 4, sunY - 11], [sunX + 3, sunY - 4], [sunX + 4, sunY + 4], [sunX - 1, sunY + 11]], 1.3, starColor) : null));
     const lx = w - 174, ly = 25, sc = .18, cx = lx + (879 - 780) * sc, cy = ly + (389 - 267) * sc;
-    // 灯塔按天空逐像素着色（几十毫秒）：天空只随时刻、灯的开关变，所以按“宽度 + 时刻 + 灯”记下结果
-    const lkey = [w, d.clock.time, d.ui.lamp].join('|'); if (!lighthouses.has(lkey)) { if (lighthouses.size > 4) lighthouses.delete(lighthouses.keys().next().value); lighthouses.set(lkey, r12Art.lighthouse(asset('lighthouse-off'), `translate(${lx - 780 * sc} ${ly - 267 * sc}) scale(${sc})`, w)); }
-    s += lighthouses.get(lkey);
-    if (d.ui.lamp) { const f = d.cache.skyFrame; s += `<defs><clipPath id="r14-beam-clip"><rect x="${f.left}" y="${f.top}" width="${f.width}" height="${f.height}"/></clipPath></defs><g clip-path="url(#r14-beam-clip)">${r14Marine.beam(cx, cy, w, night)}</g>`; }
-    s += `<g data-morph="lamp-glow">${lampGlow(cx, cy, d.ui.lamp, night)}</g>`;
+    // 灯塔按天空逐像素着色（几十毫秒）：天空只随时刻、灯的开关变，所以按“宽度 + 时刻 + 灯”记下结果（灯塔素材是 asset-shapes.js 里的描述）
+    const lkey = [w, d.clock.time, d.ui.lamp].join('|'); if (!lighthouses.has(lkey)) { if (lighthouses.size > 4) lighthouses.delete(lighthouses.keys().next().value); lighthouses.set(lkey, r12Art.lighthouseV(assetShapes['lighthouse-off'], `translate(${lx - 780 * sc} ${ly - 267 * sc}) scale(${sc})`, w)); }
+    s.push(lighthouses.get(lkey));
+    if (d.ui.lamp) { const f = d.cache.skyFrame; s.push(sh('defs', null, sh('clipPath', {id: 'r14-beam-clip'}, sh('rect', {x: f.left, y: f.top, width: f.width, height: f.height}))), sh('g', {'clip-path': 'url(#r14-beam-clip)'}, r14Marine.beamV(cx, cy, w, night))); }
+    s.push(sh('g', {'data-morph': 'lamp-glow'}, lampGlowV(cx, cy, d.ui.lamp, night)));
     Object.assign($('#lighthouse-toggle').style, {left: (cx - 24) + 'px', top: (cy - 24) + 'px', right: 'auto', width: '48px', height: '48px'});
-    if (d.ui.lamp) s += ink(Array.from({length: 13}, (_, i) => [90 + i * (w - 370) / 12, 164 - Math.sin(i / 12 * Math.PI) * 49]), 1, night ? '#C0C8CB' : TICK);
-    else { const groups = {}; d.ideas.forEach((idea, n) => (groups[idea.tag] ??= []).push({n, point: starPosition(n, w)})); let links = '';
-      Object.values(groups).forEach(group => group.slice(0, 8).forEach((entry, i) => { if (!i) return; const near = group.slice(0, i).sort((a, b) => Math.hypot(...a.point.map((v, n) => v - entry.point[n])) - Math.hypot(...b.point.map((v, n) => v - entry.point[n])))[0]; if (near && Math.hypot(...near.point.map((v, n) => v - entry.point[n])) < w * .19) links += skyLink(near.point, entry.point); }));
-      s += '<g data-star-links>' + links + '</g>'; }
-    return s;
+    if (d.ui.lamp) s.push(inkV(Array.from({length: 13}, (_, i) => [90 + i * (w - 370) / 12, 164 - Math.sin(i / 12 * Math.PI) * 49]), 1, night ? '#C0C8CB' : TICK));
+    else { const groups = {}; d.ideas.forEach((idea, n) => (groups[idea.tag] ??= []).push({n, point: starPosition(n, w)})); const links = [];
+      Object.values(groups).forEach(group => group.slice(0, 8).forEach((entry, i) => { if (!i) return; const near = group.slice(0, i).sort((a, b) => Math.hypot(...a.point.map((v, n) => v - entry.point[n])) - Math.hypot(...b.point.map((v, n) => v - entry.point[n])))[0]; if (near && Math.hypot(...near.point.map((v, n) => v - entry.point[n])) < w * .19) links.push(skyLinkV(near.point, entry.point)); }));
+      s.push(sh('g', {'data-star-links': true}, links)); }
+    return parts(s);
   }
 
   // 事件（原型 paper.js 里这一页的几处 addEventListener 与 handleAction 的思索分支）

@@ -1,4 +1,4 @@
-import {maritimeArt} from './paper-maritime-r14.js';
+import {maritimeArt} from './paper-maritime-r14.ts';
 export function chartArt(a){const L=a.ink,C=a.curve,I=a.INK,M=a.SECONDARY,T=a.TICK,P=a.PAPER,m=maritimeArt(a),F=p=>`<path d="M${p.map(q=>q.join(',')).join('L')}Z" fill="${P}"/>`;
  function scene(w,h){let s='',X=x=>x*w,Y=y=>y*h,R=p=>p.map(([x,y])=>[X(x),Y(y)]);
  // The ports occupy the margins. Navigation remains in the open water between them.

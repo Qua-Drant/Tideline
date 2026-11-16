@@ -3,9 +3,10 @@
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
 import {createPhase2} from '../draw/proto/phase2.js';
 import {assets, assetBoxes} from '../draw/proto/assets.js';
-import {ink, circle, icon, star, esc, smooth} from '../draw/ink.ts';
-import {createR12Art} from '../draw/proto/paper-r12-art.js';
-import {maritimeArt} from '../draw/proto/paper-maritime-r14.js';
+import {ink, circle, icon, star, esc, inkV, circleV} from '../draw/ink.ts';
+import {parts} from '../draw/scene.ts';
+import {createR12Art} from '../draw/proto/paper-r12-art.ts';
+import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
 import {createThought} from './thought.js';
 import {createAI} from './ai.js';
 import {buildModel} from '../data/model.ts';
@@ -86,7 +87,7 @@ export function createLower(view){
   }, {capture: true});
   const core = {
     get data(){ return model(); },
-    ink, circle, icon, star, esc,
+    ink, circle, icon, star, esc, inkV, circleV, // inkV / circleV：风景的描述版画笔（draw/scene.ts）
     asset: name => assets[name] || '',
     render: () => view.render(true),
     navigate: page => view.go(page),
@@ -111,8 +112,9 @@ export function createLower(view){
     // nav：只有版式与模型仍有效时，才直接露出已经画好的页面。
     render(page, nav, width, height){
       model(); p2 ??= createPhase2(core);
-      if (!art) { const r12 = createR12Art({data: d, ink, circle, icon, esc}), sketchMark = (pts, size = 1.3, color = '#1C2A35') => ink(pts, size, color, `data-draw-path="M${smooth(pts).map(q => q.map(n => n.toFixed(2)).join(',')).join('L')}" data-draw-width="${size}"`);
-        art = {r12, r14: maritimeArt({ink: r12.L, curve: ink, circle, draw: sketchMark})}; }
+      // r14 只给思索页画灯塔光束（beamV）；原来那支带 data-draw-path 的笔只有完成态海景用，这里用不到，第 3b 期删去
+      if (!art) { const r12 = createR12Art({data: d, ink, circle, icon, esc});
+        art = {r12, r14: maritimeArt({ink: r12.L, curve: ink, inkV: r12.LV, curveV: inkV})}; }
       thought ??= createThought({core, r12Art: art.r12, r14Marine: art.r14, view});
       ai ??= createAI({core, r12Art: art.r12, view, aiEnabled: plugin.settings?.ai?.enabled});
       d.ui.page = page;
@@ -136,7 +138,8 @@ export function createLower(view){
       drawn[page] = signature();
       return false;
     },
-    scenery(box){ return (d.ui.page === 'thought' && thought ? thought.scenery(box) : '') + (d.ui.page === 'ai' && ai ? ai.scenery(box) : '') + (p2 ? p2.scenery(box) : ''); },
+    // 当前页的风景：描述（draw/scene.ts）
+    scenery(box){ return parts(d.ui.page === 'thought' && thought ? thought.scenery(box) : null, d.ui.page === 'ai' && ai ? ai.scenery(box) : null, p2 ? p2.scenery(box) : null); },
     fit(){ thought?.fit(); },
     get ai(){ return ai; },
     // 搜索结果跳过去：交给原型的 openObject（项目、任务、人物、文献、书籍）；大脑页的输入同时筛选节点

@@ -96,12 +96,12 @@ function build(target: Node, make: () => Child): DocumentFragment {
   try { const f = doc.createDocumentFragment(); add(f, make(), doc); return f; } finally { scope = outer; }
 }
 
-/** 换掉 el 的全部子节点（对应 html.ts 的 setHtml）。make 返回要放进去的内容；返回 '' / null 等于清空 */
+/** 换掉 el 的全部子节点。make 返回要放进去的内容；返回 '' / null 等于清空 */
 export function setNodes(el: Element, make: () => Child): void {
   el.replaceChildren(build(el, make));
 }
 
-/** 插到 el 的旁边或里面（对应 html.ts 的 insertHtml）：beforebegin / afterbegin / beforeend / afterend */
+/** 插到 el 的旁边或里面：beforebegin / afterbegin / beforeend / afterend */
 export function insertNodes(el: Element, position: InsertPosition, make: () => Child): void {
   const f = build(el, make);
   switch (position) {
@@ -112,7 +112,7 @@ export function insertNodes(el: Element, position: InsertPosition, make: () => C
   }
 }
 
-/** 用新内容换掉 el 自己（对应 html.ts 的 replaceWithHtml；el 必须有父节点） */
+/** 用新内容换掉 el 自己（el 必须有父节点） */
 export function replaceWithNodes(el: Element, make: () => Child): void {
   el.replaceWith(build(el, make));
 }

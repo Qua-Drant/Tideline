@@ -2,19 +2,20 @@
 // 和原型的区别只在“怎么更新”：原型每次操作都整页重写；这里每块区域记下自己上次的输入，没变就不动（DOM 与风景都是）。
 // 风景按“尺寸 + 版式位置 + 时刻 + 随手记时刻 + 是否全部完成”缓存，切回这一页、或改了与风景无关的东西时直接复用。
 // 第 3 期：页面上的结构用 DOM 构建（draw/dom.ts），每个函数对应原来的一段模板。文字直接成为文本节点，不再 esc()。
-// 风景（scenery）仍输出 SVG 字符串：远岸、小船、完成态的海景出自还没改成 DOM 构建的原型模块（paper-r12-art.js、paper-maritime-r14.js），
-// 由视图写进 #scenery（view.ts 的 showScene）。
-import {ink, circle, inkEl, circleEl, iconEl, buoyEl, smearProgressEl, smooth, INK, PAPER, SECONDARY, TICK} from '../draw/ink.ts';
+// 第 3b 期：风景（scenery）输出描述（draw/scene.ts），由视图比较过再建节点、写进 #scenery（view.ts 的 showScene）。
+import {inkEl, circleEl, iconEl, buoyEl, smearProgressEl, inkV, smooth, INK, PAPER, SECONDARY, TICK} from '../draw/ink.ts';
 import type {Point} from '../draw/ink.ts';
 import {h, svg, setNodes} from '../draw/dom.ts';
 import type {Child} from '../draw/dom.ts';
-import {maritimeArt} from '../draw/proto/paper-maritime-r14.js';
-import type {createR12Art} from '../draw/proto/paper-r12-art.js';
+import {sh, parts} from '../draw/scene.ts';
+import type {Part, Parts, Shape} from '../draw/scene.ts';
+import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
+import type {createR12Art} from '../draw/proto/paper-r12-art.ts';
 import {walkVisible} from '../ui/visible.js';
 import type {DayQuestion, DayView, IndexEvent, IndexTask} from '../data/types.ts';
 import type {SheetBox, ViewUI} from '../view.ts';
 
-/** 原型的画笔（paper-r12-art.js 的 createR12Art；还没转 TypeScript，类型从 .js 推断） */
+/** 原型的画笔（paper-r12-art.ts 的 createR12Art） */
 type R12Art = ReturnType<typeof createR12Art>;
 /** 一段文字所在的、各层滚动区可见范围的交集（ui/visible.js 的 walkVisible 给出；没有滚动区时 null） */
 interface Clip { top: number; bottom: number; left: number; right: number }
@@ -216,16 +217,17 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
       ys.map(y => [svg('circle', {cx: 11, cy: y, r: 5, fill: PAPER}), circleEl(11, y, 3.2, 1.5)])]);
   }
 
-  // 风景（原型 drawScenery 的 today 分支）：SVG 字符串（见文件开头）
-  const sceneCache = new Map<string, string>();
-  const marine = maritimeArt({ink: art.L, curve: ink, circle, draw(points: Point[], size: number, color: string){
+  // 风景（原型 drawScenery 的 today 分支）：描述（见文件开头）。缓存的是与遮罩无关的那部分描述（描述不可变，可以反复用）
+  const sceneCache = new Map<string, Part[]>();
+  // 完成态海景的笔：带 data-draw-path / data-draw-width（原来的 draw 只收三个参数，第四个参数 attrs 不用，这里照旧）
+  const marine = maritimeArt({inkV: art.LV, curveV: inkV, drawV(points: Point[], size?: number, color?: string){
     const center = smooth(points).map(point => point.map(n => n.toFixed(2)).join(',')).join('L');
-    return ink(points, size, color, `data-draw-path="M${center}" data-draw-width="${size}"`);
+    return inkV(points, size, color, {'data-draw-path': `M${center}`, 'data-draw-width': String(size)});
   }});
   function obstacles(base: SheetBox, completed: boolean){
-    const out: string[] = [], m = 12, range = document.createRange();
+    const out: Shape[] = [], m = 12, range = document.createRange();
     const add = (left: number, top: number, right: number, bottom: number) => {
-      if (right > left && bottom > top) out.push(`<rect x="${(left - base.left - m).toFixed(1)}" y="${(top - base.top - m).toFixed(1)}" width="${(right - left + 2 * m).toFixed(1)}" height="${(bottom - top + 2 * m).toFixed(1)}" fill="black"/>`);
+      if (right > left && bottom > top) out.push(sh('rect', {x: (left - base.left - m).toFixed(1), y: (top - base.top - m).toFixed(1), width: (right - left + 2 * m).toFixed(1), height: (bottom - top + 2 * m).toFixed(1), fill: 'black'}));
     };
     walkVisible(sec, (n: Node, c: Clip | null) => { range.selectNode(n);
       for (const b of range.getClientRects()) { let {top, bottom, left, right} = b; if (c) { top = Math.max(top, c.top); bottom = Math.min(bottom, c.bottom); left = Math.max(left, c.left); right = Math.min(right, c.right); }
@@ -236,7 +238,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
       const clip = label.getBoundingClientRect();
       for (const text of label.children) for (const rect of text.getClientRects()) add(rect.left, rect.top, Math.min(rect.right, clip.right), rect.bottom);
     }
-    return out.join('');
+    return out;
   }
   // 下方各栏的范围：宽视图是三个栏容器；窄视图里栏容器不占位（display:contents），按小节的左边缘归成两栏
   function columns(): {left: number; right: number; bottom: number}[]{
@@ -247,7 +249,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
       by.set(k, c ? {left: Math.min(c.left, r.left), right: Math.max(c.right, r.right), bottom: Math.max(c.bottom, r.bottom)} : {left: r.left, right: r.right, bottom: r.bottom}); }
     return [...by.values()].sort((a, b) => a.left - b.left);
   }
-  function scenery(v: DayView, box: SheetBox){
+  function scenery(v: DayView, box: SheetBox): Part[]{
     const tb = $('#timeline')!.getBoundingClientRect(), w = box.width, y = Math.round(tb.top - box.top + 60), x = ratio(v.time) * w;
     const above = $('.above')!.getBoundingClientRect(), focus = $('#focus')!.getBoundingClientRect(), other = $('#other-tasks')!.getBoundingClientRect(), below = $('.below')!.getBoundingClientRect(), cols = columns();
     const side = other.left > focus.right - 1; // 聚焦与其他任务左右并排（窄视图 < 820 时上下排，不画竖线）
@@ -257,19 +259,19 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
     let body = sceneCache.get(key);
     if (!body) {
       const horizon = Array.from({length: 65}, (_, i): Point => { const t = i / 64; return [t * w, y + Math.sin(t * Math.PI * 2) * .6 + Math.sin(t * Math.PI * 8) * .16]; });
-      let s = `<g data-morph="horizon">${ink(horizon, 1.5, '#A3B4BA')}${ink(horizon.filter(q => q[0] < x).concat([[x, y + Math.sin(x / w * Math.PI * 2) * .6]]), 1.7)}</g>`;
-      for (const n of [0, 1 / 3, 2 / 3, 1]) s += ink([[n * w, y - 3], [n * w, y + 5]], 1.15, TICK);
-      for (const n of v.journal) { const xx = ratio(n.time) * w; s += ink([[xx, y - 6], [xx, y + 4]], 1.25); }
-      const ship = art.ship(x, y), shore = `<g mask="url(#compass-shore-clear)">${art.water(w, y, x, v.allDone)}</g>`;
+      const s: Parts[] = [sh('g', {'data-morph': 'horizon'}, inkV(horizon, 1.5, '#A3B4BA'), inkV(horizon.filter(q => q[0] < x).concat([[x, y + Math.sin(x / w * Math.PI * 2) * .6]]), 1.7))];
+      for (const n of [0, 1 / 3, 2 / 3, 1]) s.push(inkV([[n * w, y - 3], [n * w, y + 5]], 1.15, TICK));
+      for (const n of v.journal) { const xx = ratio(n.time) * w; s.push(inkV([[xx, y - 6], [xx, y + 4]], 1.25)); }
+      const ship = art.shipV(x, y), shore = sh('g', {mask: 'url(#compass-shore-clear)'}, art.waterV(w, y, x, v.allDone));
       // 完成风景里有填色的远岸。先画远岸，再画水线、刻度与小船。
-      s = v.allDone ? `${shore}<g mask="url(#compass-shore-clear)">${marine.completed(w, y)}</g>${s}${ship}` : s + ship + shore;
-      if (v.allDone) s += `<g data-morph="water">${ink([[w * .82, y + 43], [w * .88, y + 42], [w * .97, y + 43]], 1.1, TICK)}${ink([[w * .78, y + 55], [w * .84, y + 56], [w * .91, y + 55]], 1.05, TICK)}${ink([[w * .89, y + 67], [w * .93, y + 66], [w * .99, y + 67]], 1, TICK)}</g>`;
-      let d = ''; if (!v.allDone && side) { const xx = (focus.right + other.left) / 2 - box.left; d += art.L([[xx, above.top - box.top], [xx, above.bottom - box.top - 4]], .8, TICK); }
-      for (let i = 1; i < cols.length; i++) { const xx = (cols[i - 1].right + cols[i].left) / 2 - box.left; d += art.L([[xx, below.top - box.top + 2], [xx, Math.min(box.height - 30, Math.max(cols[i - 1].bottom, cols[i].bottom) - box.top - 3)]], .75, TICK); }
-      body = s + `<g data-r14-dividers>${d}</g>`;
+      const all: Parts[] = v.allDone ? [shore, sh('g', {mask: 'url(#compass-shore-clear)'}, marine.completedV(w, y)), s, ship] : [s, ship, shore];
+      if (v.allDone) all.push(sh('g', {'data-morph': 'water'}, inkV([[w * .82, y + 43], [w * .88, y + 42], [w * .97, y + 43]], 1.1, TICK), inkV([[w * .78, y + 55], [w * .84, y + 56], [w * .91, y + 55]], 1.05, TICK), inkV([[w * .89, y + 67], [w * .93, y + 66], [w * .99, y + 67]], 1, TICK)));
+      const d: Parts[] = []; if (!v.allDone && side) { const xx = (focus.right + other.left) / 2 - box.left; d.push(art.LV([[xx, above.top - box.top], [xx, above.bottom - box.top - 4]], .8, TICK)); }
+      for (let i = 1; i < cols.length; i++) { const xx = (cols[i - 1].right + cols[i].left) / 2 - box.left; d.push(art.LV([[xx, below.top - box.top + 2], [xx, Math.min(box.height - 30, Math.max(cols[i - 1].bottom, cols[i].bottom) - box.top - 3)]], .75, TICK)); }
+      body = parts(all, sh('g', {'data-r14-dividers': true}, d));
       sceneCache.set(key, body); if (sceneCache.size > 8) sceneCache.delete(sceneCache.keys().next().value as string);
     }
-    return `<defs><mask id="compass-shore-clear" maskUnits="userSpaceOnUse" x="-1" y="0" width="${w + 2}" height="${box.height}"><rect x="-1" width="${w + 2}" height="${box.height}" fill="white"/>${mask}</mask></defs>${body}`;
+    return parts(sh('defs', null, sh('mask', {id: 'compass-shore-clear', maskUnits: 'userSpaceOnUse', x: '-1', y: '0', width: w + 2, height: box.height}, sh('rect', {x: '-1', width: w + 2, height: box.height, fill: 'white'}), mask)), body);
   }
   return {el: sec, render, fit, scenery, get events(){ return events; }, stats: () => ({scenes: sceneCache.size, dials: dialCache.size})};
 }

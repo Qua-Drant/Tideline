@@ -11,9 +11,9 @@ import {todayActions} from './data/write.ts';
 import {completeTask, reopenTask} from './data/complete.ts';
 import {ink, circle, icon, esc, inkEl, circleEl, buttonFrameEl, popupFrameEl, pillFrameEl} from './draw/ink.ts';
 import {h, setNodes, insertNodes} from './draw/dom.ts';
-// 风景（#scenery）仍是字符串：下方各页的风景、今日页风景里的远岸与小船都出自还没改成 DOM 构建的原型模块（见 showScene）
-import {setHtml} from './draw/html.ts';
-import {createR12Art} from './draw/proto/paper-r12-art.js';
+import {sameParts, buildParts} from './draw/scene.ts';
+import type {Part} from './draw/scene.ts';
+import {createR12Art} from './draw/proto/paper-r12-art.ts';
 import {createHandFont} from './draw/proto/paper-handfont-r28.js';
 import {createMore} from './ui/more.js';
 import {createFocusGuard} from './ui/focus-guard.js';
@@ -70,12 +70,13 @@ export interface ViewPerf {
 /** 纸的范围（风景的坐标系）；scroll：窄视图里纸上下滚动 */
 export interface SheetBox { x: number; y: number; left: number; top: number; width: number; height: number; right: number; bottom: number; scroll: boolean }
 
-/** 一页风景：生成它的 HTML，和解析出来的那组节点（露出来时整组换回去） */
-export interface SceneNodes { html: string; nodes: ChildNode[] }
+/** 一页风景：它的描述（draw/scene.ts），和按描述建好的那组节点（露出来时整组换回去）。
+ *  内容变了就换一个新的记录：过场（paper-transition-r37.js）按这个对象记它量过的线条 */
+export interface SceneNodes { parts: readonly Part[]; nodes: ChildNode[] }
 /** 风景的 <svg id="scenery">：记着当前挂的是哪一组节点 */
 type SceneSvg = SVGSVGElement & {__compassScene?: SceneNodes | null};
-/** 风景缓存（下方各页）：尺寸和那张风景的 HTML */
-interface SceneCache { w: number; h: number; scene: string }
+/** 风景缓存（下方各页）：尺寸和那张风景的描述 */
+interface SceneCache { w: number; h: number; scene: readonly Part[] }
 
 // 与还没转 TypeScript 的模块的边界：TypeScript 从 .js 推断的类型里，下面这几样是 any（JS 里先写 let d = null / let ai = null，
 // 或 querySelector 的结果），视图用到的这几样在这里写明（其余成员沿用推断）。
@@ -84,8 +85,8 @@ type LowerPages = Omit<ReturnType<typeof createLower>, 'data' | 'model' | 'ai' |
   readonly data: Model | null;
   model(): Model;
   readonly ai: {refresh(): void} | null;
-  /** 当前页的风景（SVG 内容的 HTML） */
-  scenery(box: DOMRect | null): string;
+  /** 当前页的风景（描述） */
+  scenery(box: DOMRect | null): readonly Part[];
 };
 /** 今日页（pages/today.ts 的 createToday）：el 是 <section id="today"> */
 type TodayPage = ReturnType<typeof createToday>;
@@ -381,18 +382,23 @@ export class CompassView extends ItemView {
     if (!cached || this.plugin.index.examples?.size) this.frames();
   }
   // 每页保留最近一张风景的节点；露出来时只换这一组，同名的 SVG 定义始终只挂一份。
-  showScene(svg: SceneSvg, html: string){
+  // 风景每次都重新算出描述；与这一页上次的描述逐项相同（sameParts）就复用上次的节点，不同才按描述建新的。
+  // 节点属于建它的那个 document：视图搬进弹出窗口（或搬回来）后，上次的节点在另一个 document 里，这时按描述在当前 document 里重建一份（内容不变，记录不换）。
+  showScene(svg: SceneSvg, list: readonly Part[]){
     this.sceneNodes ??= {};
     let scene = this.sceneNodes[this.page];
-    if (scene?.html === html) {
-      if (svg.__compassScene !== scene) svg.replaceChildren(...scene.nodes);
+    if (scene && sameParts(scene.parts, list)) {
+      if (scene.nodes.length && scene.nodes[0].ownerDocument !== svg.ownerDocument) scene.nodes = this.buildScene(svg, scene.parts);
+      else if (svg.__compassScene !== scene) svg.replaceChildren(...scene.nodes);
     }
-    else {
-      setHtml(svg, html);
-      wrapAmbient(svg); // 每页的手绘动态：外面套一层再动，不盖掉元素自己的定位
-      scene = this.sceneNodes[this.page] = {html, nodes: [...svg.childNodes]};
-    }
+    else scene = this.sceneNodes[this.page] = {parts: list, nodes: this.buildScene(svg, list)};
     svg.__compassScene = scene;
+  }
+  // 按描述在风景所在的 document 里建节点，换掉 #scenery 的内容；返回建好的这组节点
+  buildScene(svg: SceneSvg, list: readonly Part[]): ChildNode[]{
+    svg.replaceChildren(buildParts(list, svg.ownerDocument));
+    wrapAmbient(svg); // 每页的手绘动态：外面套一层再动，不盖掉元素自己的定位
+    return [...svg.childNodes];
   }
   // “?”说明：按 ? 开关（不在输入框里时），换页时收起
   toggleHelp(on = this.root.querySelector<HTMLElement>('#help')!.hidden){ const h = this.root.querySelector<HTMLElement>('#help')!; h.hidden = !on; if (!on) h.replaceChildren(); }

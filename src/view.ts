@@ -5,12 +5,14 @@ import {ItemView} from 'obsidian';
 import type {WorkspaceLeaf} from 'obsidian';
 import {buildFrame} from './frame.ts';
 import type {Frame} from './frame.ts';
-import {createToday} from './pages/today.js';
+import {createToday} from './pages/today.ts';
 import {dayView} from './data/day.ts';
 import {todayActions} from './data/write.ts';
 import {completeTask, reopenTask} from './data/complete.ts';
-import {ink, circle, icon, esc, buttonFrame, popupFrame, pillFrame} from './draw/ink.ts';
-import {setHtml, insertHtml} from './draw/html.ts';
+import {ink, circle, icon, esc, inkEl, circleEl, buttonFrameEl, popupFrameEl, pillFrameEl} from './draw/ink.ts';
+import {h, setNodes, insertNodes} from './draw/dom.ts';
+// 风景（#scenery）仍是字符串：下方各页的风景、今日页风景里的远岸与小船都出自还没改成 DOM 构建的原型模块（见 showScene）
+import {setHtml} from './draw/html.ts';
 import {createR12Art} from './draw/proto/paper-r12-art.js';
 import {createHandFont} from './draw/proto/paper-handfont-r28.js';
 import {createMore} from './ui/more.js';
@@ -85,8 +87,8 @@ type LowerPages = Omit<ReturnType<typeof createLower>, 'data' | 'model' | 'ai' |
   /** 当前页的风景（SVG 内容的 HTML） */
   scenery(box: DOMRect | null): string;
 };
-/** 今日页（pages/today.js 的 createToday）：el 是 <section id="today"> */
-type TodayPage = Omit<ReturnType<typeof createToday>, 'el'> & {el: HTMLElement};
+/** 今日页（pages/today.ts 的 createToday）：el 是 <section id="today"> */
+type TodayPage = ReturnType<typeof createToday>;
 
 export class CompassView extends ItemView {
   // 字段都在构造函数或 onOpen 里赋值；这里只声明类型（declare：不产生代码）
@@ -277,10 +279,13 @@ export class CompassView extends ItemView {
     const list = changesSince(from, now); if (!list.length) return;
     this.root.querySelector('.upgrade-slip')?.remove();
     // 0.9.3（评审 P1-1）：按版本分组，只展开最近一个版本，其余收在“更早的变化”；纸是实的（不透字）；是对话框，Esc 关，关后焦点回原处
-    const group = ([v, items]: ChangeEntry) => `<h4 class="upgrade-ver mono">${esc(v)}</h4><ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    const group = ([v, items]: ChangeEntry) => [h('h4', {class: 'upgrade-ver mono'}, v), h('ul', null, items.map(x => h('li', null, x)))];
     const [first, ...rest] = list, more = rest.reduce((n, [, items]) => n + items.length, 0);
     this.upgradeReturn = document.activeElement;
-    insertHtml(this.root.querySelector('#sheet')!, 'beforeend', `<div class="ob-slip ob-finale hand-popup upgrade-slip" role="dialog" aria-labelledby="upgrade-title"><button class="inline-close" data-action="close-upgrade" aria-label="关掉">×</button><h3 class="upgrade-title" id="upgrade-title">这次的变化<small class="mono">${esc(from)} → ${esc(now)}</small></h3><div class="upgrade-body">${group(first)}${rest.length ? `<details class="upgrade-more"><summary>更早的变化（${more} 条）</summary>${rest.map(group).join('')}</details>` : ''}</div></div>`);
+    insertNodes(this.root.querySelector('#sheet')!, 'beforeend', () => h('div', {class: 'ob-slip ob-finale hand-popup upgrade-slip', role: 'dialog', 'aria-labelledby': 'upgrade-title'},
+      h('button', {class: 'inline-close', 'data-action': 'close-upgrade', 'aria-label': '关掉'}, '×'),
+      h('h3', {class: 'upgrade-title', id: 'upgrade-title'}, '这次的变化', h('small', {class: 'mono'}, from + ' → ' + now)),
+      h('div', {class: 'upgrade-body'}, group(first), rest.length ? h('details', {class: 'upgrade-more'}, h('summary', null, `更早的变化（${more} 条）`), rest.map(group)) : null)));
     const slip = this.root.querySelector<HTMLElement>('.upgrade-slip')!;
     slip.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this.closeUpgrade(); } });
     slip.querySelector<HTMLElement>('.inline-close')!.focus({preventScroll: true});
@@ -444,7 +449,7 @@ export class CompassView extends ItemView {
       let svg = (el.firstElementChild?.classList.contains(cls) ? el.firstElementChild : el.querySelector(':scope > .' + cls)) as SVGSVGElement | null;
       if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add(cls); svg.setAttribute('aria-hidden', 'true'); el.prepend(svg); }
       svg.dataset.size = key; svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-      setHtml(svg, btn ? buttonFrame(w, h) : el.classList.contains('hand-pill') ? pillFrame(w, h) : popupFrame(w, h));
+      setNodes(svg, () => btn ? buttonFrameEl(w, h) : el.classList.contains('hand-pill') ? pillFrameEl(w, h) : popupFrameEl(w, h));
     }
     // 设置、首次起航和纸条不经过页面渲染：它们画完框后重新找滚动区，好画手绘小三角
     if (this.root.querySelector('.settings-view, .onboarding, .hand-popup, #search:not([hidden])') || this.moreModal) { this.moreModal = !!this.root.querySelector('.settings-view, .onboarding'); this.more?.update(); }
@@ -503,7 +508,7 @@ export class CompassView extends ItemView {
     svg.addEventListener('pointermove', move); svg.addEventListener('pointerup', up, {once: true}); this.preview(svg, value);
   }
   preview(svg: SVGSVGElement, value: number){ const a = Math.PI + (value - 1) / 9 * Math.PI; let g = svg.querySelector('.needle'); if (!g) { g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.classList.add('needle'); svg.append(g); }
-    setHtml(g, ink([[87 - Math.cos(a) * 4, 86 - Math.sin(a) * 4], [87, 86], [87 + Math.cos(a) * 36, 86 + Math.sin(a) * 36]], 2, 'currentColor') + circle(87, 86, 3.1, 1.4, 'currentColor')); svg.setAttribute('aria-valuenow', value as unknown as string); svg.setAttribute('aria-valuetext', value as unknown as string); }
+    setNodes(g, () => [inkEl([[87 - Math.cos(a) * 4, 86 - Math.sin(a) * 4], [87, 86], [87 + Math.cos(a) * 36, 86 + Math.sin(a) * 36]], 2, 'currentColor'), circleEl(87, 86, 3.1, 1.4, 'currentColor')]); svg.setAttribute('aria-valuenow', value as unknown as string); svg.setAttribute('aria-valuetext', value as unknown as string); }
   async dialKey(e: KeyboardEvent){
     const svg = (e.target as Element).closest?.<SVGSVGElement>('.dial'); if (!svg || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault();
     const now = Number(svg.getAttribute('aria-valuenow')) || 0, value = Math.max(1, Math.min(10, (now || (e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? 2 : 0)) + (e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : -1)));

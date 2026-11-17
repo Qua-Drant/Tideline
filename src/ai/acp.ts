@@ -32,7 +32,7 @@ export const PRESETS: Record<string, ProviderPreset> = {
   codex: {name: 'Codex', vendor: 'OpenAI', command: 'codex-acp', args: [], install: 'npm install -g @agentclientprotocol/codex-acp', login: 'codex login', keyEnv: 'OPENAI_API_KEY', askMode: 'read-only'},
   gemini: {name: 'Gemini CLI', vendor: 'Google', command: 'gemini', args: ['--experimental-acp'], install: 'npm install -g @google/gemini-cli', login: 'gemini', keyEnv: 'GEMINI_API_KEY'},
   codebuddy: {name: 'CodeBuddy', vendor: '腾讯云', command: 'codebuddy', args: ['--acp'], install: 'npm install -g @tencent-ai/codebuddy-code', login: 'codebuddy', keyEnv: 'CODEBUDDY_API_KEY', askMode: 'default'},
-  // DeepSeek Harness：官方 README 没写安装命令、也没写 API 密钥的环境变量名（docs/AI接入.md）。不给可复制的安装命令；
+  // DeepSeek Harness：官方 README 没写安装命令、也没写 API 密钥的环境变量名。不给可复制的安装命令；
   // 密钥变量名按惯例填 DEEPSEEK_API_KEY，但标明未验证（unverified 里的话会显示在设置的供应商卡上）
   deepseek: {name: 'DeepSeek Harness', vendor: 'DeepSeek', command: 'dsh', args: ['--profile', 'acp'], install: '', login: '', keyEnv: 'DEEPSEEK_API_KEY',
     unverified: {install: '官方说明没有给出安装命令，请按 DeepSeek Harness 自己的说明安装（潮线没有验证过安装办法）', keyEnv: '这个变量名没有在官方文档里确认；不生效时改用它自己的凭据文件（$DSH_HOME/.credentials.yaml 或 .env）'}},

@@ -11,6 +11,7 @@ import {sh, parts} from '../scene.ts';
 // R23 (copied from R22, which stays as it was): the band is 20 units shallower (deck at 120); sacks and lantern are
 // smaller and both end above the rail rope, so nothing hanging from the beam touches it.
 // 第 3b2 期：只被已删的旧版函数用的字符串版（rope、coil、hangingCoilR20 及其 F / O）删去；返回对象只留货舱页取用的成员。
+// 第 3c 期：马灯开关的空实现（light、lampButton、toggleLamp）与任务页里对它们的调用、task-lamp 动作一并删去。
 // 第 3b 期：风景（sceneV 及其各部分）输出描述（draw/scene.ts），原来的字符串版删去；laid、floorCoil 的几何与输出分开，
 // 字符串版留给归档箱（archive，还在页面模板里），描述版给风景。画笔：L / C 是字符串版，LV / CV 是描述版（phase2.js 的 api）。
 const HOLD_W=1491,BEAM_H=28,DECK_Y=120,DECK_B=132;
@@ -101,5 +102,5 @@ export function cargoR23(a,r16){
  function place(root,width){if(!root||!root.clientWidth)return;const s=unit(width||root.clientWidth);root.querySelectorAll('.cargo-mailbag').forEach((b,i)=>Object.assign(b.style,{left:fmt((TIES[i+1]??TIES.at(-1))*s-SACK.w*s/2)+'px',top:fmt((SACK.top-6)*s)+'px',width:fmt(SACK.w*s)+'px',height:fmt((SACK.h+6)*s)+'px'}));root.style.setProperty('--cargo-s',fmt(s));const today=root.querySelector('[data-p2="task-nav-today"]');if(today)today.dataset.p2Drop='today:';}
  // The archive stack keeps R16's crates and lid; only its coil is swapped for a laid one (tail to the left).
  function archive(){const src=r16.archive(),open=src.indexOf('<g opacity=".9">'),cut=src.indexOf('<g data-archive-inside>');let i=open,depth=0;for(;i<cut;i++){if(src.startsWith('<g',i))depth++;else if(src.startsWith('</g>',i)){depth--;if(!depth){i+=4;break;}}}return src.slice(0,i)+'<g data-archive-coil>'+floorCoil(118,123,17,3.6,4,-1)+'</g>'+src.slice(cut);}
- return{sceneV,archive,place,light:()=>'',lampButton:()=>'',toggleLamp(){}};
+ return{sceneV,archive,place};
 }

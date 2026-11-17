@@ -1,4 +1,4 @@
-// 原型模块眼里的“页面”：原型直接用 document / window，插件里换成插件根元素（tools/sync-proto.mjs 把复制件里的 document.… 改成 HOST.…）。
+// 原型模块眼里的“页面”：原型直接用 document / window，插件里换成插件根元素（复制原型模块时把其中的 document.… 改成了 HOST.…；当时的同步脚本没有随仓库发布，现在直接维护 src/draw/proto/ 里的文件）。
 // 同一时刻只有一个潮线视图在用（打开命令会复用已有的那个），视图打开时 attach，关闭时 detach 并摘掉原型模块挂的事件。
 import type {Clock, Model, ModelPerson, ModelProject, ModelTask} from './data/types.ts';
 import type {dropTasks} from './data/trash.ts';

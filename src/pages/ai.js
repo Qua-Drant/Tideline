@@ -1,6 +1,6 @@
 // 指引页：桅杆上的类别旗、提示词库与预览、复制；AI 助手（模型菜单、对话、发送）。
 // 画面与交互用原型的 paper-guidance-r28.js（同步进 src/draw/proto/，提示词改为读 潮线/指引/ 下的笔记；
-// “发送”和对话列表改成调 src/ai/controller.js，接本机的 Claude Code，见 docs/AI接入.md）。
+// “发送”和对话列表改成调 src/ai/controller.js，接本机的 Claude Code）。
 import {createGuidance} from '../draw/proto/paper-guidance-r28.js';
 import {createAIController} from '../ai/controller.js';
 import {HOST} from '../host.ts';

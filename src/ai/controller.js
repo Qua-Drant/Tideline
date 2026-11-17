@@ -1,5 +1,5 @@
 // 指引页的对话：把供应商（claude.js；测试工具里是 fake-claude.js）接到原型的对话区。
-// 原型 paper-guidance-r28.js 的“发送”与“对话列表”两处，经 sync-proto 改成调这里（HOST.ai.send / HOST.ai.thread）。
+// 原型 paper-guidance-r28.js 的“发送”与“对话列表”两处，在复制进插件时改成调这里（当时的同步脚本没有随仓库发布）（HOST.ai.send / HOST.ai.thread）。
 // 这里负责：
 //   - 一段对话一个会话；流式显示回答；工具调用收成一行小字；要你确认的事出卡片（改前改后、读受保护的位置、运行命令）
 //   - @ 提到笔记、/ 调出命令与技能

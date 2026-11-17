@@ -1,5 +1,5 @@
 // 今日以外的七页：思索、指引，以及下方五页（任务／货舱、项目／海图、复盘、知识库、大脑）。
-// 画面与交互直接用原型的页面模块（src/draw/proto/，由 tools/sync-proto.mjs 从原型复制并改成只作用于插件视图），
+// 画面与交互直接用原型的页面模块（src/draw/proto/，从原型复制并改成只作用于插件视图；当时的同步脚本没有随仓库发布，现在直接维护这些文件），
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
 import {createPhase2} from '../draw/proto/phase2.js';
 import {assets, assetBoxes} from '../draw/proto/assets.js';
@@ -15,7 +15,7 @@ import {FOLDERS} from '../data/index.ts';
 import {completeTask, reopenTask} from '../data/complete.ts';
 import {dropTasks} from '../data/trash.ts';
 import {HOST} from '../host.ts';
-// 原型模块（paper-tasks.js 撤销“加任务”）经它拿掉任务并登记删除（P2-10，sync-proto 的改写表）
+// 原型模块（paper-tasks.js 撤销“加任务”）经它拿掉任务并登记删除（P2-10，复制原型时的改写）
 HOST.dropTasks = dropTasks;
 
 const LOWER = ['tasks', 'projects', 'review', 'library', 'brain'];
@@ -31,7 +31,7 @@ export function createLower(view){
   // 原型的页面模块在创建时就记住了 d 这个对象：之后只能原地更新它，不能换一个
   function model(){
     const clock = plugin.clock();
-    if (!d) { d = buildModel(plugin.index, clock, null); Object.assign(d.cache, {assets, assetBoxes}); version = plugin.index.version; persist.reset(d); }
+    if (!d) { d = buildModel(plugin.index, clock, null); Object.assign(d.cache, {assetBoxes}); version = plugin.index.version; persist.reset(d); }
     // 有还没写回的改动时先不按笔记重建（否则内存里刚改的会被旧笔记盖掉）；写回之后再重建
     else if (version !== plugin.index.version && !dirty) {
       Object.assign(d, buildModel(plugin.index, clock, d)); version = plugin.index.version; persist.reset(d);

@@ -1,6 +1,6 @@
 import {HOST} from '../../host.ts';
 import {sh, parts} from '../scene.ts';
-import {taskPage} from './paper-tasks.js';
+import {taskPage} from './paper-tasks.ts';
 import {projectPage} from './paper-projects.js';
 import {reviewPage} from './paper-review.js';
 import {libraryPage} from './paper-library-r25.js';

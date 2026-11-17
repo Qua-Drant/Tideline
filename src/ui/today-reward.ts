@@ -1,18 +1,17 @@
 // R39 的远岸先逐笔落墨，再让云、鸟与水纹缓缓动两轮。
+// 第 3c 期：转 TypeScript；遮罩元素用 dom.ts 的 svg 建在风景所在的 document 里（属性顺序与原来逐个 setAttribute 相同）。
+import {svg as svgEl, within} from '../draw/dom.ts';
+import type {DayView} from '../data/types.ts';
+
 const INK_MS = 1400, CYCLE_MS = 6000;
-const MOTION = {
+const MOTION: Record<string, Keyframe[]> = {
   cloud: [{transform: 'translateX(0)'}, {transform: 'translateX(5px)'}, {transform: 'translateX(0)'}],
   birds: [{transform: 'none'}, {transform: 'translate(-3px,-2px) scaleY(.88)'}, {transform: 'none'}],
   water: [{transform: 'translateX(0)', opacity: 1}, {transform: 'translateX(4px)', opacity: .68}, {transform: 'translateX(0)', opacity: 1}],
 };
-const svgNode = (name, attrs) => {
-  const node = document.createElementNS('http://www.w3.org/2000/svg', name);
-  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-  return node;
-};
 
 export function createTodayReward(){
-  let date = null, start = 0, scene = null, defs = null, strokes = [], animations = [];
+  let date: string | null = null, start = 0, scene: Element | null = null, defs: SVGDefsElement | null = null, strokes: SVGGraphicsElement[] = [], animations: Animation[] = [];
   function leave(){
     for (const animation of animations) animation.cancel();
     for (const stroke of strokes) stroke.removeAttribute('mask');
@@ -21,7 +20,7 @@ export function createTodayReward(){
     strokes = []; animations = [];
   }
   function settle(){ start = -Infinity; leave(); }
-  function show(svg, day, enabled){
+  function show(svg: SVGSVGElement, day: DayView, enabled: boolean){
     if (!day.allDone) { date = null; if (scene) leave(); return; }
     if (date !== day.date) { date = day.date; start = performance.now(); }
     if (!enabled) { settle(); return; }
@@ -31,15 +30,15 @@ export function createTodayReward(){
     leave();
     scene = target;
     if (elapsed < INK_MS) {
-      strokes = [...scene.querySelectorAll('[data-draw-path]')];
-      defs = svgNode('defs', {});
-      scene.prepend(defs);
+      strokes = [...target.querySelectorAll<SVGGraphicsElement>('[data-draw-path]')];
+      const doc = svg.ownerDocument, d = defs = within(doc, () => svgEl('defs'));
+      target.prepend(d);
       const marks = strokes.map((stroke, index) => {
         const {x, y, width, height} = stroke.getBBox();
         const id = 'compass-completion-ink-' + index;
-        const mask = svgNode('mask', {id, maskUnits: 'userSpaceOnUse', x: x - 10, y: y - 10, width: width + 20, height: height + 20});
-        const path = svgNode('path', {d: stroke.dataset.drawPath, fill: 'none', stroke: 'white', 'stroke-width': Number(stroke.dataset.drawWidth) * 3 + 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'});
-        mask.append(path); defs.append(mask);
+        const path = within(doc, () => svgEl('path', {d: stroke.dataset.drawPath, fill: 'none', stroke: 'white', 'stroke-width': Number(stroke.dataset.drawWidth) * 3 + 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}));
+        const mask = within(doc, () => svgEl('mask', {id, maskUnits: 'userSpaceOnUse', x: x - 10, y: y - 10, width: width + 20, height: height + 20}, path));
+        d.append(mask);
         const length = path.getTotalLength();
         path.setAttribute('stroke-dasharray', `${length} ${length}`);
         stroke.setAttribute('mask', `url(#${id})`);
@@ -55,12 +54,13 @@ export function createTodayReward(){
         delay += duration;
       }
     }
-    for (const node of scene.querySelectorAll('[data-reward-motion]')) {
-      const animation = node.animate(MOTION[node.dataset.rewardMotion], {duration: CYCLE_MS, delay: INK_MS, iterations: 2, easing: 'ease-in-out'});
+    for (const node of target.querySelectorAll<SVGElement>('[data-reward-motion]')) {
+      const animation = node.animate(MOTION[node.dataset.rewardMotion!], {duration: CYCLE_MS, delay: INK_MS, iterations: 2, easing: 'ease-in-out'});
       animation.currentTime = elapsed;
       animations.push(animation);
     }
-    animations.at(-1).onfinish = () => { if (scene === target) leave(); };
+    // 没有一个动画时这里会抛错（原来就是这样，见第 3c 期报告）
+    animations.at(-1)!.onfinish = () => { if (scene === target) leave(); };
   }
   return {show, leave, settle};
 }

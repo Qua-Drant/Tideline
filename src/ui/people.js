@@ -9,7 +9,7 @@
 //   任务详情的人名标签有 ×；右键“待沟通”可以勾掉；货单输入 @新名字 时补全纸条里能直接新建人物。
 // 上次联系不另存：取 ## 记录 里最晚的日期。联系频率写在人物笔记的 cadence（天数）。
 import {esc, icon, ink, circle, TICK} from '../draw/ink.ts';
-import {dayText} from './day-text.js';
+import {dayText} from './day-text.ts';
 import {HOST} from '../host.ts';
 import {markDeleted, restoreDeleted, dropTasks} from '../data/trash.ts';
 import {completeTask} from '../data/complete.ts';

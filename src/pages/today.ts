@@ -11,7 +11,7 @@ import {sh, parts} from '../draw/scene.ts';
 import type {Part, Parts, Shape} from '../draw/scene.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
 import type {createR12Art} from '../draw/proto/paper-r12-art.ts';
-import {walkVisible} from '../ui/visible.js';
+import {walkVisible} from '../ui/visible.ts';
 import type {DayQuestion, DayView, IndexEvent, IndexTask} from '../data/types.ts';
 import type {SheetBox, ViewUI} from '../view.ts';
 

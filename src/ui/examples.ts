@@ -4,26 +4,32 @@
 // 放在文字含这篇笔记标题、且文字最短的那个元素后面（就是名称本身，不会落到“完成”这类按钮上）。
 // 今日页：今天的日记是示例时，习惯、自问、投入、随手记几块整块淡下去，印放在各块的小标题后；往年今日同理。
 // 没装示例时什么都不做（只看一眼有没有残留的印）。
+// 第 3c 期：转 TypeScript；“例”字印用 DOM 构建（draw/dom.ts），不再插 HTML 字符串。
+import {h, insertNodes} from '../draw/dom.ts';
+import type {CompassView} from '../view.ts';
+import type CompassPlugin from '../main.ts';
+
 const ATTRS = ['data-detail', 'data-complete', 'data-star', 'data-goal', 'data-plan', 'data-guidance-prompt', 'data-id', 'data-project-route', 'data-brain-node', 'data-cargo-document'];
 const SEL = ATTRS.map(a => `[${a}]`).join(',');
 const DAY_GROUPS = ['habits', 'questions', 'investments', 'journal'];
-const SEAL = '<i class="example-seal" aria-hidden="true" title="示例笔记">例</i>';
+const TABLES = ['tasks', 'projects', 'ideas', 'people', 'literature', 'books', 'goals', 'prompts'] as const;
+const seal = () => h('i', {class: 'example-seal', 'aria-hidden': 'true', title: '示例笔记'}, '例');
 
-export function createExampleMarks({view, plugin}){
+export function createExampleMarks({view, plugin}: {view: CompassView; plugin: CompassPlugin}){
   const root = view.root;
-  function clear(scope){ for (const e of scope.querySelectorAll('.is-example')) e.classList.remove('is-example'); for (const s of scope.querySelectorAll('.example-seal')) s.remove(); }
-  function titleOf(path){ const ix = plugin.index; for (const t of ['tasks', 'projects', 'ideas', 'people', 'literature', 'books', 'goals', 'prompts']) { const x = ix[t]?.get(path); if (x) return x.title || x.name || ''; } return ''; }
+  function clear(scope: Element){ for (const e of scope.querySelectorAll('.is-example')) e.classList.remove('is-example'); for (const s of scope.querySelectorAll('.example-seal')) s.remove(); }
+  function titleOf(path: string){ const ix = plugin.index; for (const t of TABLES) { const x = ix[t]?.get(path) as {title?: string; name?: string} | undefined; if (x) return x.title || x.name || ''; } return ''; }
   function apply(){
     const ex = plugin.index.examples;
     if (!ex?.size) { if (root.querySelector('.is-example, .example-seal')) clear(root); return; }
-    const scopes = new Set([...root.querySelectorAll('#sheet > section.page:not([hidden])'), root.querySelector('#today:not([hidden])')].filter(Boolean));
-    const want = new Set();
+    const scopes = new Set([...root.querySelectorAll<HTMLElement>('#sheet > section.page:not([hidden])'), root.querySelector<HTMLElement>('#today:not([hidden])')].filter((s): s is HTMLElement => !!s));
+    const want = new Set<Element | null>();
     for (const scope of scopes) {
-      const best = new Map(); // 条目 → 放印的元素
+      const best = new Map<string, {el: Element; named: boolean; len: number}>(); // 条目 → 放印的元素
       for (const el of scope.querySelectorAll(SEL)) {
-        let id = null; for (const a of ATTRS) { const v = el.getAttribute(a); if (v == null) continue; const hit = v.split('|').find(x => ex.has(x)); if (hit) { id = hit; break; } }
+        let id: string | null = null; for (const a of ATTRS) { const v = el.getAttribute(a); if (v == null) continue; const hit = v.split('|').find(x => ex.has(x)); if (hit) { id = hit; break; } }
         if (!id) { el.classList.remove('is-example'); continue; }
-        if (!el.parentElement.closest('.is-example')) el.classList.add('is-example');
+        if (!el.parentElement!.closest('.is-example')) el.classList.add('is-example');
         const text = el.textContent.replace('例', '').trim(); if (text.length < 2) continue;
         const title = titleOf(id), named = !!title && text.includes(title), cur = best.get(id);
         // 先比“含不含标题”，再比文字长短
@@ -32,14 +38,14 @@ export function createExampleMarks({view, plugin}){
       for (const x of best.values()) want.add(x.el);
       // 今日页：这一天、往年今日的日记是示例时
       if (scope.id === 'today') {
-        const day = ex.has(scope.dataset.dayNote), past = ex.has(scope.dataset.pastNote);
+        const day = ex.has(scope.dataset.dayNote!), past = ex.has(scope.dataset.pastNote!);
         for (const g of DAY_GROUPS) { const box = scope.querySelector(`[data-today-group="${g}"]`); if (!box) continue; box.classList.toggle('is-example', day); if (day) want.add(box.querySelector('.today-section-mark span')); }
         const pb = scope.querySelector('[data-today-group="past"]'); if (pb) { pb.classList.toggle('is-example', past); if (past) want.add(pb.querySelector('.today-section-mark span')); }
       }
     }
     want.delete(null);
     for (const s of root.querySelectorAll('.example-seal')) if (!want.has(s.parentElement)) s.remove();
-    for (const el of want) if (!el.querySelector(':scope > .example-seal')) el.insertAdjacentHTML('beforeend', SEAL);
+    for (const el of want) if (el && !el.querySelector(':scope > .example-seal')) insertNodes(el, 'beforeend', seal);
   }
   return {apply};
 }

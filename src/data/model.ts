@@ -36,7 +36,7 @@ export function buildModel(index: IndexLike, clock: Clock, prev?: Model | null):
   const d = {
     clock: {date, time},
     ui: prev?.ui || defaultUI(date),
-    cache: prev?.cache || {assetBoxes: {}},
+    cache: prev?.cache || {},
     serial: prev?.serial || 1,
     trash: prev?.trash || new Set(), // 显式删除队列（P2-10，trash.ts）：重建模型时沿用
     meetingPreparations: prev?.meetingPreparations || [],

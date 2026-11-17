@@ -5,6 +5,7 @@ import {inkEl, circleEl, iconEl, quillIconEl, INK, TICK} from './draw/ink.ts';
 import {h, svg, setNodes} from './draw/dom.ts';
 import {captureShell} from './ui/capture.ts';
 import {mapShell, searchShell} from './ui/map-search.ts';
+import {thoughtShell} from './pages/thought.ts';
 
 /** 侧栏的一项：[页名, 显示名, 图标] */
 export type NavItem = [id: string, name: string, icon: string];
@@ -15,8 +16,7 @@ const READY = new Set(['thought', 'ai', 'today', 'tasks', 'projects', 'review', 
 
 /** 手写字（原型 paper-handfont-r28.js 的 createHandFont）：框只用它写“记录”两个字 */
 export interface HandFont {
-  text(str: string, options?: {size?: number; color?: string; weight?: number; gap?: number}): string;
-  /** text 的节点版（同样的结构） */
+  /** 一行手写字（svg.hand-text） */
   textEl(str: string, options?: {size?: number; color?: string; weight?: number; gap?: number}): SVGSVGElement;
 }
 
@@ -43,36 +43,8 @@ const WEEKDAY = ['星期日', '星期一', '星期二', '星期三', '星期四'
 function isoWeek(date: string){ const d = new Date(date + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 4)); return 1 + Math.round((((d as unknown as number) - (y as unknown as number)) / 864e5 - 3 + ((y.getUTCDay() + 6) % 7)) / 7); }
 
 // —— 各页的固定外壳 ——
-// 与 pages/thought.js 的 THOUGHT_HTML、pages/ai.js 的 AI_HTML 逐个元素对应。那两个模块还没改成 DOM 构建，字符串常量留在原处、已不再使用；
-// 改它们的那一期把这两个函数搬回去、删掉常量。随手记、小地图、搜索三个外壳第 3c 期已搬回 ui/capture.ts、ui/map-search.ts。
-// 原模板里元素之间的换行（只在 THOUGHT_HTML 里）不再写出：它们落在块级元素之间，不占位置（等价性校验逐个量过，见 dev/compare/phase3a）。
-function thoughtShell(){
-  return h('section', {id: 'thought', class: 'page thought', 'aria-label': '思索', hidden: true},
-    h('div', {class: 'sky-interactions', id: 'sky-interactions'},
-      h('button', {class: 'sky-empty', id: 'sky-empty', 'aria-label': '在天空记下想法', hidden: true}),
-      h('div', {id: 'weeks'}), h('div', {id: 'stars'}),
-      h('button', {id: 'lighthouse-toggle', class: 'lighthouse-hit', 'aria-label': '熄灭灯塔，查看想法', 'aria-pressed': 'true'})),
-    h('div', {id: 'planning', class: 'planning'},
-      h('div', {class: 'goals', id: 'goals'}),
-      h('button', {class: 'fold week-fold', 'data-action': 'week-note', 'aria-label': '展开本周周记'}),
-      h('div', {id: 'week-board', class: 'week-board'})),
-    h('div', {id: 'ideas', class: 'ideas', hidden: true},
-      h('div', {class: 'ideas-layout'},
-        h('aside', {class: 'ideas-index'}, h('div', {id: 'idea-heatmap', class: 'idea-heatmap'}), h('div', {id: 'idea-filters', class: 'idea-filters'})),
-        h('div', {class: 'ideas-stream'},
-          h('form', {id: 'idea-form', class: 'idea-composer'},
-            h('textarea', {id: 'idea-input', 'aria-label': '记下一条想法', placeholder: '现在的想法是…', rows: 1}),
-            h('div', {class: 'composer-bottom'},
-              h('div', {class: 'composer-tag-tools', 'data-expanded': 'false'},
-                h('button', {class: 'composer-tag-toggle', id: 'idea-tag-toggle', type: 'button', 'aria-label': '选择想法标签', 'aria-controls': 'idea-tag-drawer', 'aria-expanded': 'false'},
-                  h('span', {id: 'composer-mark', 'aria-hidden': 'true'})),
-                h('div', {class: 'composer-tag-runway'},
-                  h('div', {id: 'idea-tag-drawer', class: 'tag-inline-drawer', role: 'group', 'aria-label': '想法标签选择', 'aria-hidden': 'true', inert: true},
-                    h('div', {id: 'tag-inline-options', class: 'tag-inline-options'})),
-                  h('div', {id: 'chosen-tag-wrap', class: 'chosen-tag-wrap'}, h('div', {id: 'composer-tags', class: 'composer-tags'})))),
-              h('button', {class: 'text-button', type: 'submit'}, '记下'))),
-          h('div', {id: 'idea-list', class: 'idea-feed'})))));
-}
+// 与 pages/ai.js 的 AI_HTML 逐个元素对应。那个模块还没改成 DOM 构建，字符串常量留在原处、已不再使用；改它的那一期把这个函数搬回去、删掉常量。
+// 随手记、小地图、搜索三个外壳第 3c 期已搬回 ui/capture.ts、ui/map-search.ts；思索页的外壳第 3d 期搬回 pages/thought.ts。
 function aiShell(){
   return h('section', {id: 'ai', class: 'page ai', 'aria-label': '指引', hidden: true},
     h('div', {class: 'mast-scene'}, h('div', {id: 'flags', class: 'flags'})),

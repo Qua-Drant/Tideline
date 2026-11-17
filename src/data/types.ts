@@ -333,9 +333,9 @@ export interface ModelAI {
 export interface Model {
   clock: Clock;
   ui: UIState;
-  /** 画面缓存（素材的 viewBox 表、天空、滚动位置、归档箱动画……），页面模块自己管。assetBoxes 由 lower.js 注入，思索页的望远镜读它。
-   *  第 3c 期：原来一并注入的素材内容（assets）与 brush 没人读，删去 */
-  cache: {assetBoxes: Record<string, string>; [key: string]: unknown};
+  /** 画面缓存（天空、滚动位置、归档箱动画……），页面模块自己管。
+   *  第 3c 期：原来注入的素材内容（assets）与 brush 没人读，删去；第 3d 期：思索页的望远镜直接从 assets.js 取 viewBox，assetBoxes 也不再注入 */
+  cache: Record<string, unknown>;
   /** 新条目的流水号（还没写成笔记时的临时 id） */
   serial: number;
   /** 显式删除队列（trash.ts） */

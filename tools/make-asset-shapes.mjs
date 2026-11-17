@@ -1,4 +1,4 @@
-// 生成 src/draw/proto/asset-shapes.js：把 assets.js 里风景要用的 SVG 素材写成描述数据（src/draw/scene.ts 的 Shape：{t, a, k}），
+// 生成 src/draw/proto/asset-shapes.js：把 assets.js 里要用的 SVG 素材写成描述数据（src/draw/scene.ts 的 Shape：{t, a, k}），
 // 风景直接按描述建节点，运行时不再解析 SVG 字符串。assets.js 不动（还有页面模板按字符串用它）。
 //   node tools/make-asset-shapes.mjs           重新生成
 //   node tools/make-asset-shapes.mjs --check   只检查现有文件是否与素材一致（不写文件；不一致时退出码 1）。tools/build.mjs 构建前会跑它
@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {assets} from '../src/draw/proto/assets.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const NAMES = ['lighthouse-off']; // 风景用到的素材（思索页的灯塔）
+const NAMES = ['lighthouse-off', 'telescope-r10']; // 用到的素材：思索页风景里的灯塔、想法流空着时的望远镜插图（第 3d 期起也按描述建节点）
 
 function read(src){
   let i = 0;

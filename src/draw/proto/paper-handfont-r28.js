@@ -11,15 +11,13 @@ export function createHandFont(){
  const path=p=>{if(p.length<3)return 'M'+p.map(q=>q.map(v=>v.toFixed(2)).join(',')).join('L');let d='M'+p[0].map(v=>v.toFixed(2)).join(',');for(let i=0;i<p.length-1;i++){const a=p[Math.max(0,i-1)],b=p[i],c=p[i+1],e=p[Math.min(p.length-1,i+2)];d+='C'+[b[0]+(c[0]-a[0])/6,b[1]+(c[1]-a[1])/6,c[0]-(e[0]-b[0])/6,c[1]-(e[1]-b[1])/6,c[0],c[1]].map(v=>v.toFixed(2)).join(',');}return d;};
  function glyph(ch,x0,y0,size,seed){const strokes=HAND_GLYPHS[ch];if(!strokes)return null;const k=size/100,slant=.07,rot=(rnd(seed)-.5)*.05,dy=(rnd(seed+3)-.5)*size*.04,cos=Math.cos(rot),sin=Math.sin(rot);
   return strokes.map((p,i)=>{let run=0;const ph=rnd(seed+i*3)*6;return path(p.map(([x,y],j)=>{if(j)run+=Math.hypot(x-p[j-1][0],y-p[j-1][1]);const w=Math.sin(run*.08+ph)*.55,wx=x+w,wy=y+Math.cos(run*.07+ph)*.45,rx=(wx-50)*cos-(wy-50)*sin+50,ry=(wx-50)*sin+(wy-50)*cos+50;return[x0+(rx+(50-ry)*slant)*k,y0+dy+ry*k];}));}).join('');}
- // text(str,{size,color,weight,gap}) → one inline SVG; aria-label carries the plain text.
- // 第 3 期：排字（layout）与输出分开。text 输出字符串（与原来逐字相同）；textEl 是节点版（dom.ts），结构相同。
+ // textEl(str,{size,color,weight,gap}) → one inline SVG; aria-label carries the plain text.
+ // 第 3 期：排字（layout）与输出分开；textEl 是节点版（dom.ts）。第 3d 期：字符串版 text 的最后一个调用方（起航页）改成节点后删去。
  function layout(str,{size=20,color='#1C2A35',weight,gap=.98}={}){const chars=[...str],wt=weight??Math.max(1.15,size*.078);let x=size*.08,d='';const falls=[];
   chars.forEach((ch,i)=>{const g=glyph(ch,x,size*.04,size,ch.charCodeAt(0)+i*17);if(g)d+=g;else falls.push({x:(x+size*.5).toFixed(1),y:(size*.86).toFixed(1),ch});x+=size*(ch===' '||ch==='·'?.5:gap);});
   const W=x+size*.08,H=size*1.1;return{W:W.toFixed(1),H:H.toFixed(1),d,falls,wt:wt.toFixed(2),size,color};}
- function text(str,opts){const L=layout(str,opts),fall=L.falls.map(f=>`<text x="${f.x}" y="${f.y}" font-size="${L.size}" text-anchor="middle" fill="${L.color}" style="font-family:var(--serif)">${f.ch}</text>`).join('');
-  return `<svg class="hand-text" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}" style="width:${L.W}px;height:${L.H}px" role="img" aria-label="${str}"${fall?' data-fallback':''}><path d="${L.d}" fill="none" stroke="${L.color}" stroke-width="${L.wt}" stroke-linecap="round" stroke-linejoin="round"/>${fall}</svg>`;}
  function textEl(str,opts){const L=layout(str,opts);
   return svg('svg',{class:'hand-text',viewBox:`0 0 ${L.W} ${L.H}`,width:L.W,height:L.H,style:`width:${L.W}px;height:${L.H}px`,role:'img','aria-label':str,'data-fallback':L.falls.length>0},
    svg('path',{d:L.d,fill:'none',stroke:L.color,'stroke-width':L.wt,'stroke-linecap':'round','stroke-linejoin':'round'}),
    L.falls.map(f=>svg('text',{x:f.x,y:f.y,'font-size':L.size,'text-anchor':'middle',fill:L.color,style:'font-family:var(--serif)'},f.ch)));}
- return{text,textEl,has:ch=>!!HAND_GLYPHS[ch]};}
+ return{textEl,has:ch=>!!HAND_GLYPHS[ch]};}

@@ -2,12 +2,11 @@
 // 画面与交互直接用原型的页面模块（src/draw/proto/，从原型复制并改成只作用于插件视图；当时的同步脚本没有随仓库发布，现在直接维护这些文件），
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
 import {createPhase2} from '../draw/proto/phase2.js';
-import {assets, assetBoxes} from '../draw/proto/assets.js';
 import {ink, circle, icon, star, esc, inkV, circleV} from '../draw/ink.ts';
 import {parts} from '../draw/scene.ts';
 import {createR12Art} from '../draw/proto/paper-r12-art.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
-import {createThought} from './thought.js';
+import {createThought} from './thought.ts';
 import {createAI} from './ai.js';
 import {buildModel} from '../data/model.ts';
 import {createPersist} from '../data/persist.ts';
@@ -45,7 +44,7 @@ export function createLower(view){
   }
   function model(){
     const clock = plugin.clock();
-    if (!d) { d = buildModel(plugin.index, clock, null); Object.assign(d.cache, {assetBoxes}); version = plugin.index.version; persist.reset(d); }
+    if (!d) { d = buildModel(plugin.index, clock, null); version = plugin.index.version; persist.reset(d); }
     // 有还没写回的改动时先不按笔记重建（否则内存里刚改的会被旧笔记盖掉）；写回之后再重建
     // deferred：这个任务里已经比较过、发现有未标记的修改——后面再读模型（core.data 一次重画要读很多回）就不再逐项比较（大仓库一次约 30ms）
     else if (stale() && !dirty && !deferred && !persist.pending(d, {hold})) rebuild();
@@ -112,7 +111,6 @@ export function createLower(view){
   const core = {
     get data(){ return model(); },
     ink, circle, icon, star, esc, inkV, circleV, // inkV / circleV：风景的描述版画笔（draw/scene.ts）
-    asset: name => assets[name] || '',
     render: () => view.render(true),
     navigate: page => view.go(page),
     drawScenery: () => view.drawScenery(),

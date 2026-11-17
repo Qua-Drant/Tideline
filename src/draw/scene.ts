@@ -71,6 +71,9 @@ export function sameParts(a: readonly Part[], b: readonly Part[]): boolean {
 
 function child(p: Part): Child { return typeof p === 'string' ? p : svg(p.t, p.a, p.k.map(child)); }
 
+/** 按描述建节点，作为 h / svg 的子节点（在调用方当前的 document 里建，例如 setNodes 当中）。第 3d 期：思索页的望远镜插图用 */
+export function partNodes(list: readonly Part[]): Child[] { return list.map(child); }
+
 /** 按描述在 doc 里建节点（放在一个文档片段里） */
 export function buildParts(list: readonly Part[], doc: Document): DocumentFragment {
   return within(doc, () => frag(list.map(child)));

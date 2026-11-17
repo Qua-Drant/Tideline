@@ -20,15 +20,15 @@ import {createFocusGuard} from './ui/focus-guard.ts';
 import {createEmptyStates} from './ui/empty-states.ts';
 import {HOST} from './host.ts';
 import {createLower, PAGES} from './pages/lower.js';
-import {createSettingsPage} from './pages/settings.js';
-import {createOnboarding} from './pages/onboarding.js';
+import {createSettingsPage} from './pages/settings.ts';
+import {createOnboarding} from './pages/onboarding.ts';
 import {createCapture} from './ui/capture.ts';
 import {createMapSearch} from './ui/map-search.ts';
 import {createEventMist} from './ui/event-mist.ts';
 import {createExampleMarks} from './ui/examples.ts';
 import {createTaskOverlays} from './ui/task-overlays.ts';
 import {createTaskPlus} from './ui/task-plus.js';
-import {createPeople} from './ui/people.js';
+import {createPeople} from './ui/people.ts';
 import {createZoteroUi} from './ui/zotero-ui.ts';
 import {createTooltipPreference} from './ui/tooltip-preference.ts';
 import {createTodayReward} from './ui/today-reward.ts';
@@ -214,10 +214,10 @@ export class CompassView extends ItemView {
     this.zoteroUi = createZoteroUi({view: this, plugin: p});
     this.emptyStates = createEmptyStates({view: this, plugin: p}); // 0.9.3：空状态与没有结果时的一句说明
     this.tooltipPreference = createTooltipPreference(this);
-    this.onboarding = createOnboarding({view: this, plugin: p, ink, circle, icon, esc, hand: this.hand});
+    this.onboarding = createOnboarding({view: this, plugin: p, hand: this.hand});
     // 首次起航的点击、表单、按键先给它（原型也是在捕获阶段先交给它）
     this.registerDomEvent(this.root, 'click', e => { if (this.onboarding.click(e)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
-    this.registerDomEvent(this.root, 'submit', e => { if ((e.target as HTMLFormElement).dataset?.obForm && this.onboarding.submit(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
+    this.registerDomEvent(this.root, 'submit', e => { if ((e.target as HTMLFormElement).dataset?.obForm && this.onboarding.submit(e.target as HTMLFormElement)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
     this.registerDomEvent(document, 'keydown', e => { if (this.root.isConnected && this.onboarding.key(e)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
     // ?：只在潮线是当前视图、焦点不在输入框里时
     this.registerDomEvent(document, 'keydown', e => { if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || !this.root.isConnected || (e.target as Element).closest?.('input,textarea,select,[contenteditable],.cm-editor')) return;

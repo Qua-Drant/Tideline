@@ -110,9 +110,9 @@ export interface Host {
   taskDetailActions?: (t: ModelTask, d: Model) => string;
   /** 日期选择器里标出重复日：field 是日期输入框，month 是 YYYY-MM，返回 YYYY-MM-DD 的集合 */
   taskRepeatDays?: (field: HTMLInputElement, month: string) => Set<string>;
-  /** 项目详情里的关联目标（ui/goals.js） */
+  /** 项目详情里的关联目标（ui/goals.ts） */
   projectGoalChips?: (p: ModelProject, d: Model, B: ProtoButton) => string;
-  /** 人物（ui/people.js） */
+  /** 人物（ui/people.ts） */
   cargoPeople?: (d: Model, max: number) => ModelPerson[];
   cargoMailbags?: (d: Model, B: ProtoButton) => string;
   personDetail?: (p: ModelPerson, d: Model) => string;

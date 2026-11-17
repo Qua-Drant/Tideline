@@ -1,6 +1,6 @@
 // R28 hand lettering (replaces paper-handfont-r27.js, which stays as it was). Same idea — no font file, each character
-// is a few pen strokes in a 0–100 box — but the strokes are whole now: tools/handfont-r28.cjs prunes the spurs that
-// thinning leaves at corners and joins skeleton pieces that run straight through a junction, so a stroke is one line.
+// is a few pen strokes in a 0–100 box — but the strokes are whole now: a one-off prototype script (not in this repository) pruned the spurs that
+// thinning leaves at corners and joined skeleton pieces that run straight through a junction, so a stroke is one line.
 // Drawing is smooth too: each stroke becomes one Catmull–Rom → cubic path with round caps and joins, an even nib
 // width and only a slow, low wobble, instead of short pressure-pen pieces that broke into dots.
 // Skeletons are traced from Noto Sans SC Light (SIL Open Font License). Characters outside the table fall back to serif.

@@ -37,7 +37,7 @@ export default class CompassPlugin extends Plugin {
     this.perf = {loadMs: null, indexMs: null};
     // data.json：{clock}（早先的版本还存了 ai）；settings.ai 在下面换成指向 local.ai 的访问器
     this.settings = Object.assign({clock: null}, await this.loadData() as Partial<PluginSettings> | null) as PluginSettings;
-    // AI：0.3 起经 ACP 接各家代理程序（见 src/ai/acp.ts、docs/AI接入.md）。status：每家一次握手的结果
+    // AI：0.3 起经 ACP 接各家代理程序（见 src/ai/acp.ts）。status：每家一次握手的结果
     this.ai = {status: {}, checked: false};
     this.aiProvider = {caps: {rewind: false},
       create: o => createAcpSession({...o, provider: resolveProvider(o.providerId, this.settings.ai.providers),

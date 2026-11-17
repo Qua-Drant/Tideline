@@ -18,6 +18,34 @@ declare module 'obsidian' {
     };
     /** 这个仓库在本机的 id（未公开）：日历缓存按仓库分开时用 */
     appId?: string;
+    /** 内嵌文件的工厂（未公开）：任务正文借一个内嵌 Markdown 的实例，取它编辑模式的类（task-md-editor.ts） */
+    embedRegistry?: {
+      embedByExtension: Record<string, ((ctx: {app: App; containerEl: HTMLElement; state: unknown}, file: TFile | null, subpath: string) => EmbedMarkdown) | undefined>;
+    };
+  }
+  /** 内嵌 Markdown 的实例（未公开；task-md-editor.ts 只用这几项） */
+  interface EmbedMarkdown {
+    load(): void; unload(): void; showEditor(): void;
+    editable: boolean;
+    editMode: object;
+  }
+  /** 内嵌 Markdown 编辑模式的实例（未公开；task-md-editor.ts 继承它的类） */
+  interface EmbedEditMode {
+    editor?: Editor;
+    onUpdate(update: unknown, changed: boolean): void;
+    set(text: string, clear: boolean): void;
+    unload?(): void; destroy?(): void;
+  }
+  /** 编辑模式的类：new (app, 容器, 宿主) */
+  type EmbedEditModeClass = new (app: App, containerEl: HTMLElement, owner: object) => EmbedEditMode;
+  interface Editor {
+    /** CodeMirror 6 的视图（未公开；task-md-editor.ts 用它量光标位置、重新排版、给正文加 aria-label） */
+    cm?: {
+      contentDOM?: HTMLElement;
+      requestMeasure(): void;
+      coordsAtPos(pos: number): {left: number; top: number; bottom: number} | null;
+      state: {selection: {main: {head: number}}};
+    };
   }
   interface DataAdapter {
     /** 桌面版（FileSystemAdapter）的仓库根目录。属性未公开；getBasePath() 只在 FileSystemAdapter 上有 */

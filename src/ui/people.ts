@@ -10,7 +10,9 @@
 // 上次联系不另存：取 ## 记录 里最晚的日期。联系频率写在人物笔记的 cadence（天数）。
 // 第 3d 期：转 TypeScript。邮包、人物纸、见面纸、项目的相关人员都还嵌在任务页 / 项目页的 HTML 模板里（paper-tasks.js、paper-projects.js 还没改），
 // 这几处的字符串版原样保留；只有纸条搜索时换下的那一段（可选的人）改成节点版，不再借一个临时元素解析 HTML。
-import {esc, icon, ink, circle, iconEl, circleEl, TICK} from '../draw/ink.ts';
+// 第 3e 期：货舱模板（paper-tasks.ts）转成节点构建，邮包、名单纸条、人物纸、见面纸改成节点版，字符串版删去；
+// 项目页的相关人员（projectPeople 与它的名单纸条 picker）还嵌在 paper-projects.js 的模板里，字符串版原样保留。
+import {esc, icon, circle, iconEl, circleEl, inkEl, TICK} from '../draw/ink.ts';
 import {h, svg, replaceWithNodes} from '../draw/dom.ts';
 import {dayText} from './day-text.ts';
 import {HOST} from '../host.ts';
@@ -43,7 +45,8 @@ function dueOf(p: {cadence?: number; history?: PersonHistory[]}, today: string):
 const ago = (date: string, today: string) => { const n = days(date, today); return n <= 0 ? '今天' : n === 1 ? '昨天' : n < 14 ? n + ' 天前' : n < 60 ? Math.round(n / 7) + ' 周前' : n < 730 ? Math.round(n / 30) + ' 个月前' : Math.round(n / 365) + ' 年前'; };
 const cleanName = (v: string | null | undefined) => String(v || '').replace(/[\\/:*?"<>|#^[\]@!！~]/g, ' ').trim().replace(/\s+/g, '·').slice(0, 40);
 const cadenceText = (n: number) => CADENCE.find(c => c[0] === n)?.[1] || `每 ${n} 天`;
-const underline = `<svg viewBox="0 0 160 6" preserveAspectRatio="none" aria-hidden="true">${ink([[0, 4], [80, 3.6], [160, 4]], .9, TICK)}</svg>`;
+// 输入横线下的墨线（节点版，每次新建）
+const underlineEl = () => svg('svg', {viewBox: '0 0 160 6', preserveAspectRatio: 'none', 'aria-hidden': 'true'}, inkEl([[0, 4], [80, 3.6], [160, 4]], .9, TICK));
 const initialMark = (p: {initial?: string; name: string}) => `<span class="person-initial">${`<svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">${circle(14, 14, 12, 1.2)}</svg>`}<span>${esc(p.initial || p.name.slice(0, 1))}</span></span>`;
 // 节点版（纸条搜索时换下的那一段用）
 const initialMarkEl = (p: ModelPerson) => h('span', {class: 'person-initial'}, svg('svg', {viewBox: '0 0 28 28', width: 28, height: 28, 'aria-hidden': 'true'}, circleEl(14, 14, 12, 1.2)), h('span', null, p.initial || p.name.slice(0, 1)));
@@ -73,17 +76,19 @@ export function createPeople(view: CompassView){
     const rest = s.length - (max - 1);
     return [...s.slice(0, max - 1), {id: '__more', name: `还有 ${rest} 人`, initial: '+' + rest, history: []} as unknown as ModelPerson];
   };
+  // 第 3e 期：货舱模板转成节点构建，邮包、新建人物、名单纸条改成节点版（字符串版删去）
   HOST.cargoMailbags = (d, B) => {
     const ui = uiOf(d), f = ui.taskFilter, shown = HOST.cargoPeople!(d, 4) as Bag[];
     const bags = shown.map(p => {
-      if (p.id === '__more') return `<button type="button" class="cargo-mailbag cargo-mailbag-more" data-person-act="more" data-p2-drop="people:" aria-expanded="${!!ui.personPick}" aria-label="${esc(p.name)}：打开名单"></button>`;
+      if (p.id === '__more') return h('button', {type: 'button', class: 'cargo-mailbag cargo-mailbag-more', 'data-person-act': 'more', 'data-p2-drop': 'people:', 'aria-expanded': String(!!ui.personPick), 'aria-label': `${p.name}：打开名单`});
       const due = dueOf(p, d.clock.date), n = pendingOf(p, d).length;
       const label = `${p.name}的待沟通事项${n ? '，' + n + ' 件' : ''}${due?.over ? '，该联系了' : ''}`;
-      return B('task-filter-person', p.id, due?.over ? '<i class="mailbag-due" aria-hidden="true">!</i>' : '', label, `class="cargo-mailbag ${due?.over ? 'is-due' : ''}" data-p2-drop="person:${esc(p.id)}" aria-pressed="${f.kind === 'person' && f.id === p.id}"`);
-    }).join('');
-    const add = `<button type="button" class="cargo-person-add" data-person-act="new" aria-expanded="${!!ui.personNew}" aria-label="新建人物">${icon('plus', 16)}</button>`;
-    const form = ui.personNew ? `<form class="person-pop person-new hand-popup" data-person-form="new" role="dialog" aria-label="新建人物"><input name="name" value="${esc(ui.personNewDraft || '')}" placeholder="名字，回车" aria-label="新人物的名字" autocomplete="off" spellcheck="false">${underline}</form>` : '';
-    return bags + add + form + (ui.personPick ? picker(d, 'cargo') : '');
+      return B('task-filter-person', p.id, due?.over ? h('i', {class: 'mailbag-due', 'aria-hidden': 'true'}, '!') : null, label, {class: `cargo-mailbag ${due?.over ? 'is-due' : ''}`, 'data-p2-drop': 'person:' + p.id, 'aria-pressed': String(f.kind === 'person' && f.id === p.id)});
+    });
+    const add = h('button', {type: 'button', class: 'cargo-person-add', 'data-person-act': 'new', 'aria-expanded': String(!!ui.personNew), 'aria-label': '新建人物'}, iconEl('plus', 16));
+    const form = ui.personNew ? h('form', {class: 'person-pop person-new hand-popup', 'data-person-form': 'new', role: 'dialog', 'aria-label': '新建人物'},
+      h('input', {name: 'name', value: ui.personNewDraft || '', placeholder: '名字，回车', 'aria-label': '新人物的名字', autocomplete: 'off', spellcheck: 'false'}), underlineEl()) : null;
+    return [bags, add, form, ui.personPick ? pickerEl(d) : null];
   };
 
   // —— 可搜索的人物纸条（邮包“还有 N 人”、拖到那里、项目的相关人员）——
@@ -108,38 +113,54 @@ export function createPeople(view: CompassView){
     return h('div', {class: 'goal-pick-items'}, items.length || create ? [items, create ? h('button', {type: 'button', role: 'option', 'data-person-pick-new': create}, iconEl('plus', 15), h('span', null, `新建人物“${create}”`)) : null] : h('p', null, '没有别的人物'));
   }
 
+  // 货舱顶上的名单纸条（节点版；项目页的还嵌在项目页模板里，用上面的字符串版 picker）
+  function pickerEl(d: Model){
+    const ui = uiOf(d), label = ui.personPick?.tasks ? `交给谁（${ui.personPick.tasks.length} 项）` : '挑一个人';
+    return h('div', {class: 'goal-pick person-pick person-pop hand-popup', role: 'listbox', 'aria-label': label},
+      h('label', {class: 'goal-pick-search'}, iconEl('search', 15), h('input', {'data-person-pick-query': true, value: ui.personPickQuery || '', placeholder: '搜索或新建人物', 'aria-label': `${label}：搜索或新建人物`, autocomplete: 'off'})),
+      pickerItemsEl(d, null));
+  }
+
   // —— 人物纸（任务页右栏，筛选到这个人时）——
   HOST.personDetail = (p, d) => uiOf(d).personMeet === p.id ? meetSheet(p, d) : paper(p, d);
+  // 人物纸、见面纸（节点版；结构、属性与原来的模板一一对应，模板里的换行与缩进照样留成空白文本）
   function paper(p: ModelPerson, d: Model){
     const ui = uiOf(d), today = d.clock.date, due = dueOf(p, today), last = lastContact(p), n = pendingOf(p, d).length;
     const projects = d.projects.filter(x => (x.peopleIds || []).includes(p.id));
     const lastText = last ? `${ago(last, today)} · ${dayText(last, today)}${due ? due.over ? ` · 超过 ${-due.left!} 天` : ` · 还有 ${due.left} 天` : ''}` : due ? '还没有记录 · 该联系了' : '还没有记录';
     const options = CADENCE.some(c => c[0] === (p.cadence || 0)) ? CADENCE : [...CADENCE, [p.cadence, cadenceText(p.cadence)] as [number, string]];
     const log = [...(p.history || [])].map((x, i) => ({...x, i})).reverse(), all = ui.personLogAll === p.id, list = all ? log : log.slice(0, 6);
-    return `<div class="person-paper" id="person-paper" data-person="${esc(p.id)}" role="region" aria-label="人物：${esc(p.name)}">
-      <div class="person-head"><button type="button" class="person-initial-btn" data-person-act="initial" aria-expanded="${ui.personInitial === p.id}" aria-label="改头像字（现在是 ${esc(p.initial)}）">${initialMark(p)}</button>
-        <form class="goal-title-form person-name-form" data-person-form="name"><input name="name" class="person-name" value="${esc(p.name)}" aria-label="名字" autocomplete="off" spellcheck="false">${underline}</form>
-        <button type="button" class="inline-close" data-person-act="close" aria-label="收起人物纸，回到全部任务">×</button></div>
-      ${ui.personInitial === p.id ? `<form class="person-initial-form" data-person-form="initial"><span class="goal-label">头像字</span><input name="initial" value="${esc(p.initial)}" maxlength="2" aria-label="头像字（一两个字）" autocomplete="off"><button type="submit">好</button></form>` : ''}
-      <div class="goal-field"><span class="goal-label">联系</span><span class="goal-status person-cadence" role="radiogroup" aria-label="多久联系一次">${options.map(([k, t]) => `<button type="button" role="radio" aria-checked="${(p.cadence || 0) === k}" data-person-cadence="${k}">${t}</button>`).join('')}</span></div>
-      <div class="goal-field"><span class="goal-label">上次联系</span><span class="person-last ${due?.over ? 'overdue' : ''}">${esc(lastText)}</span></div>
-      <div class="goal-field"><span class="goal-label">待沟通</span><span>${n ? `${n} 件，在左边货单里` : '没有攒着的事'}</span></div>
-      ${projects.length ? `<div class="goal-field goal-projects"><span class="goal-label">项目</span><span class="goal-chips">${projects.map(x => `<button type="button" class="goal-chip person-project" data-p2="open-object" data-kind="project" data-id="${esc(x.id)}" aria-label="打开项目 ${esc(x.title)}">${esc(x.title)}</button>`).join('')}</span></div>` : ''}
-      <div class="person-log"><form class="goal-title-form person-log-form" data-person-form="log"><input name="text" value="${esc(ui.personLogDraft || '')}" placeholder="记一笔，回车（带今天的日期）" aria-label="给 ${esc(p.name)} 记一笔" autocomplete="off">${underline}</form>
-        ${list.length ? `<ul>${list.map(x => `<li><span class="mono">${x.date ? esc(x.date.slice(5).replace('-', '/')) : '·'}</span><span>${esc(x.text)}</span></li>`).join('')}</ul>` : '<p class="goal-muted">还没有记录：见完面点“见面了”，或在上面记一笔</p>'}
-        ${log.length > 6 ? `<button type="button" class="person-log-all" data-person-act="log-all">${all ? '收起' : `全部 ${log.length} 条`}</button>` : ''}</div>
-      <div class="goal-foot person-foot"><button type="button" class="person-meet" data-person-act="meet">见面了</button><button type="button" data-person-act="open-note">在 Obsidian 打开</button><button type="button" class="goal-delete" data-person-act="delete">删除</button></div>
-    </div>`;
+    const W6 = '\n      ', W8 = '\n        ';
+    return h('div', {class: 'person-paper', id: 'person-paper', 'data-person': p.id, role: 'region', 'aria-label': `人物：${p.name}`}, W6,
+      h('div', {class: 'person-head'}, h('button', {type: 'button', class: 'person-initial-btn', 'data-person-act': 'initial', 'aria-expanded': String(ui.personInitial === p.id), 'aria-label': `改头像字（现在是 ${p.initial}）`}, initialMarkEl(p)), W8,
+        h('form', {class: 'goal-title-form person-name-form', 'data-person-form': 'name'}, h('input', {name: 'name', class: 'person-name', value: p.name, 'aria-label': '名字', autocomplete: 'off', spellcheck: 'false'}), underlineEl()), W8,
+        h('button', {type: 'button', class: 'inline-close', 'data-person-act': 'close', 'aria-label': '收起人物纸，回到全部任务'}, '×')), W6,
+      ui.personInitial === p.id ? h('form', {class: 'person-initial-form', 'data-person-form': 'initial'}, h('span', {class: 'goal-label'}, '头像字'),
+        h('input', {name: 'initial', value: p.initial, maxlength: '2', 'aria-label': '头像字（一两个字）', autocomplete: 'off'}), h('button', {type: 'submit'}, '好')) : null, W6,
+      h('div', {class: 'goal-field'}, h('span', {class: 'goal-label'}, '联系'), h('span', {class: 'goal-status person-cadence', role: 'radiogroup', 'aria-label': '多久联系一次'},
+        options.map(([k, t]) => h('button', {type: 'button', role: 'radio', 'aria-checked': String((p.cadence || 0) === k), 'data-person-cadence': k}, t)))), W6,
+      h('div', {class: 'goal-field'}, h('span', {class: 'goal-label'}, '上次联系'), h('span', {class: `person-last ${due?.over ? 'overdue' : ''}`}, lastText)), W6,
+      h('div', {class: 'goal-field'}, h('span', {class: 'goal-label'}, '待沟通'), h('span', null, n ? `${n} 件，在左边货单里` : '没有攒着的事')), W6,
+      projects.length ? h('div', {class: 'goal-field goal-projects'}, h('span', {class: 'goal-label'}, '项目'), h('span', {class: 'goal-chips'},
+        projects.map(x => h('button', {type: 'button', class: 'goal-chip person-project', 'data-p2': 'open-object', 'data-kind': 'project', 'data-id': x.id, 'aria-label': `打开项目 ${x.title}`}, x.title)))) : null, W6,
+      h('div', {class: 'person-log'}, h('form', {class: 'goal-title-form person-log-form', 'data-person-form': 'log'},
+        h('input', {name: 'text', value: ui.personLogDraft || '', placeholder: '记一笔，回车（带今天的日期）', 'aria-label': `给 ${p.name} 记一笔`, autocomplete: 'off'}), underlineEl()), W8,
+        list.length ? h('ul', null, list.map(x => h('li', null, h('span', {class: 'mono'}, x.date ? x.date.slice(5).replace('-', '/') : '·'), h('span', null, x.text)))) : h('p', {class: 'goal-muted'}, '还没有记录：见完面点“见面了”，或在上面记一笔'), W8,
+        log.length > 6 ? h('button', {type: 'button', class: 'person-log-all', 'data-person-act': 'log-all'}, all ? '收起' : `全部 ${log.length} 条`) : null), W6,
+      h('div', {class: 'goal-foot person-foot'}, h('button', {type: 'button', class: 'person-meet', 'data-person-act': 'meet'}, '见面了'), h('button', {type: 'button', 'data-person-act': 'open-note'}, '在 Obsidian 打开'), h('button', {type: 'button', class: 'goal-delete', 'data-person-act': 'delete'}, '删除')), '\n    ');
   }
+  // <textarea> 的内容：HTML 解析器会去掉开头的一个换行（原来经解析器写入），这里照做
+  const textareaText = (v: string) => v.startsWith('\n') ? v.slice(1) : v;
   function meetSheet(p: ModelPerson, d: Model){
     const ui = uiOf(d), tasks = pendingOf(p, d), ch = ui.personMeetChoice || {};
-    return `<form class="person-paper person-meet-form" id="person-paper" data-person="${esc(p.id)}" data-person-form="meet" role="region" aria-label="与 ${esc(p.name)} 见面">
-      <div class="person-head">${initialMark(p)}<p class="person-meet-title">与 ${esc(p.name)} 见面 · <span>${dayText(d.clock.date)}</span></p><button type="button" class="inline-close" data-person-act="meet-cancel" aria-label="不记了">×</button></div>
-      <div class="person-meet-items">${tasks.length ? tasks.map(t => `<div class="person-meet-item"><span class="person-meet-task">${esc(t.title)}</span><span class="goal-status" role="radiogroup" aria-label="${esc(t.title)}">${CHOICES.map(([k, l]) => `<button type="button" role="radio" data-person-choice="${k}" data-id="${esc(t.id)}" aria-checked="${(ch[t.id] || 'talked') === k}">${l}</button>`).join('')}</span></div>`).join('') : '<p class="goal-muted">没有攒着要谈的事</p>'}</div>
-      <label class="person-meet-field"><span class="goal-label">结论</span><textarea name="note" rows="2" data-person-draft="note" placeholder="谈了什么、定了什么（写进记录）">${esc(ui.personMeetNote || '')}</textarea></label>
-      <label class="person-meet-field"><span class="goal-label">跟进</span><textarea name="follow" rows="2" data-person-draft="follow" placeholder="一行一件，变成新任务；写 @名字 就挂到那人身上待沟通">${esc(ui.personMeetFollow || '')}</textarea></label>
-      <div class="person-meet-foot"><button type="submit" class="person-meet">记下</button><button type="button" data-person-act="meet-cancel">取消</button></div>
-    </form>`;
+    const W6 = '\n      ';
+    return h('form', {class: 'person-paper person-meet-form', id: 'person-paper', 'data-person': p.id, 'data-person-form': 'meet', role: 'region', 'aria-label': `与 ${p.name} 见面`}, W6,
+      h('div', {class: 'person-head'}, initialMarkEl(p), h('p', {class: 'person-meet-title'}, `与 ${p.name} 见面 · `, h('span', null, dayText(d.clock.date))), h('button', {type: 'button', class: 'inline-close', 'data-person-act': 'meet-cancel', 'aria-label': '不记了'}, '×')), W6,
+      h('div', {class: 'person-meet-items'}, tasks.length ? tasks.map(t => h('div', {class: 'person-meet-item'}, h('span', {class: 'person-meet-task'}, t.title), h('span', {class: 'goal-status', role: 'radiogroup', 'aria-label': t.title},
+        CHOICES.map(([k, l]) => h('button', {type: 'button', role: 'radio', 'data-person-choice': k, 'data-id': t.id, 'aria-checked': String((ch[t.id] || 'talked') === k)}, l))))) : h('p', {class: 'goal-muted'}, '没有攒着要谈的事')), W6,
+      h('label', {class: 'person-meet-field'}, h('span', {class: 'goal-label'}, '结论'), h('textarea', {name: 'note', rows: '2', 'data-person-draft': 'note', placeholder: '谈了什么、定了什么（写进记录）'}, textareaText(ui.personMeetNote || ''))), W6,
+      h('label', {class: 'person-meet-field'}, h('span', {class: 'goal-label'}, '跟进'), h('textarea', {name: 'follow', rows: '2', 'data-person-draft': 'follow', placeholder: '一行一件，变成新任务；写 @名字 就挂到那人身上待沟通'}, textareaText(ui.personMeetFollow || ''))), W6,
+      h('div', {class: 'person-meet-foot'}, h('button', {type: 'submit', class: 'person-meet'}, '记下'), h('button', {type: 'button', 'data-person-act': 'meet-cancel'}, '取消')), '\n    ');
   }
 
   // —— 项目详情：相关人员的 × 与 + ——

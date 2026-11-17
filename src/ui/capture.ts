@@ -11,12 +11,12 @@ import {iconEl} from '../draw/ink.ts';
 import {h, setNodes} from '../draw/dom.ts';
 import {FOLDERS} from '../data/index.ts';
 import {keepEol} from '../data/frontmatter.ts';
-import {parseTask} from './task-parse.js';
+import {parseTask} from './task-parse.ts';
 import {dayText} from './day-text.ts';
 import type {CompassView} from '../view.ts';
 import type CompassPlugin from '../main.ts';
 
-/** task-parse.js（还没转 TypeScript）的 parseTask 的结果里本模块用到的几项（JS 推断出来的类型只有 tokens） */
+/** parseTask（task-parse.ts）的结果里本模块用到的几项 */
 interface ParsedTask { title: string; date?: string | null; time?: string | null; repeat?: string | null; priority?: string | null; listId?: string | null; projectId?: string | null; peopleIds?: string[]; tags?: string[] }
 type CaptureType = 'task' | 'idea' | 'note' | 'achievement' | 'gratitude' | 'project';
 const TYPES: [type: CaptureType, icon: string, name: string][] = [['task', 'box', '任务'], ['idea', 'star', '想法'], ['note', 'note', '随手记'], ['achievement', 'flag', '成就'], ['gratitude', 'heart', '感恩'], ['project', 'route', '项目']];

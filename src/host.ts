@@ -2,9 +2,12 @@
 // 同一时刻只有一个潮线视图在用（打开命令会复用已有的那个），视图打开时 attach，关闭时 detach 并摘掉原型模块挂的事件。
 import type {Clock, Model, ModelPerson, ModelProject, ModelTask} from './data/types.ts';
 import type {dropTasks} from './data/trash.ts';
+import type {Attrs, Child} from './draw/dom.ts';
 
 /** 原型的按钮小工具（phase2.js 的 button）：data-p2=action、data-id=id，body 是按钮里的 HTML，label 是 aria-label，extra 原样拼进属性 */
 export type ProtoButton = (action: string, id: string | null | undefined, body: string, label: string, extra?: string) => string;
+/** 同一个按钮的节点版（draw/proto/p2-nodes.ts）：属性先后与字符串版相同（type、data-p2、data-id、aria-label，再是 attrs） */
+export type ProtoButtonEl = (action: string, id: string | null | undefined, body: Child, label: string, attrs?: Attrs | null) => HTMLButtonElement;
 
 /** 原型的过场模块读的 window.paper 替身（视图在 onOpen 里装上；都是读取时现算的访问器） */
 export interface HostPaper {
@@ -97,25 +100,24 @@ export interface Host {
   taskOrder?: (found: ModelTask[], d: Model) => ModelTask[];
   taskDepth?: (t: ModelTask, d?: Model) => number;
   taskRowClass?: (t: ModelTask, d: Model) => string;
-  taskRowMarks?: (t: ModelTask, d: Model) => string;
+  /** 行尾的小记号（时刻、子任务、检查项、标签、评论），没有时 null（第 3e 期：节点版） */
+  taskRowMarks?: (t: ModelTask, d: Model) => Node | null;
   taskCreated?: (task: ModelTask, d: Model) => void;
   taskNavProject?: (p: ModelProject, d?: Model) => boolean;
   taskProjectCount?: (p: ModelProject, d: Model) => number;
   projectTaskAdd?: (p: ModelProject, d?: Model) => string;
-  /** 任务详情整块（返回空时用原型的） */
-  taskDetailHtml?: (t: ModelTask, d: Model) => string;
-  /** 任务详情里的三处插槽（目前没有模块装） */
-  taskDetailHead?: (t: ModelTask, d: Model) => string;
-  taskDetailExtra?: (t: ModelTask, d: Model) => string;
-  taskDetailActions?: (t: ModelTask, d: Model) => string;
+  /** 任务详情整张纸（task-plus.ts 的详情纸；第 3e 期：节点版） */
+  taskDetail?: (t: ModelTask, d: Model) => HTMLElement;
   /** 日期选择器里标出重复日：field 是日期输入框，month 是 YYYY-MM，返回 YYYY-MM-DD 的集合 */
   taskRepeatDays?: (field: HTMLInputElement, month: string) => Set<string>;
   /** 项目详情里的关联目标（ui/goals.ts） */
   projectGoalChips?: (p: ModelProject, d: Model, B: ProtoButton) => string;
   /** 人物（ui/people.ts） */
   cargoPeople?: (d: Model, max: number) => ModelPerson[];
-  cargoMailbags?: (d: Model, B: ProtoButton) => string;
-  personDetail?: (p: ModelPerson, d: Model) => string;
+  /** 货舱顶上的邮包、新建人物、名单纸条（第 3e 期：节点版） */
+  cargoMailbags?: (d: Model, B: ProtoButtonEl) => Child;
+  /** 任务页右栏的人物纸 / 见面纸（第 3e 期：节点版） */
+  personDetail?: (p: ModelPerson, d: Model) => HTMLElement;
   projectPeople?: (p: ModelProject, d: Model, B: ProtoButton) => string;
   /** 按名字新建人物（已有同名的就返回那个；名字不合法返回 null） */
   createPerson?: (raw: string) => ModelPerson | null;

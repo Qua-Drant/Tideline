@@ -27,7 +27,7 @@ import {createMapSearch} from './ui/map-search.ts';
 import {createEventMist} from './ui/event-mist.ts';
 import {createExampleMarks} from './ui/examples.ts';
 import {createTaskOverlays} from './ui/task-overlays.ts';
-import {createTaskPlus} from './ui/task-plus.js';
+import {createTaskPlus} from './ui/task-plus.ts';
 import {createPeople} from './ui/people.ts';
 import {createZoteroUi} from './ui/zotero-ui.ts';
 import {createTooltipPreference} from './ui/tooltip-preference.ts';

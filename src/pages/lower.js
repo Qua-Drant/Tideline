@@ -25,21 +25,45 @@ export function createLower(view){
   const plugin = view.plugin;
   const drawn = {}; // 每一页上次画的时候的“输入”
   let d = null, p2 = null, thought = null, ai = null, art = null, version = -1, timer = 0, dirty = false;
-  let revision = 0, writing = null, closed = false;
+  let revision = 0, writing = null, closed = false, syncTimer = 0, syncTries = 0, deferred = false;
   const hold = new Set(); // 刚删掉、还能撤销的任务：纸条消失前不进回收站
   const persist = createPersist(plugin.writer);
   // 原型的页面模块在创建时就记住了 d 这个对象：之后只能原地更新它，不能换一个
+  // 按索引重建模型的时机（修“先 render 后 touch”丢修改的竞态）：
+  //   页面代码常是“改模型 → render() → touch()”，原型模块的键盘操作要到 keyup 才由下面的 commit 钩子置 dirty。若在这之间的 render 里
+  //   按索引重建，刚改、还没标记（dirty 仍是 false）的内容就被旧笔记盖掉。所以重建前多看一眼：
+  //   模型与上次写回 / 重建时的快照逐项相同（persist.pending 为假）才当场重建——这时与原来完全一样，不多画一次；
+  //   不同（有刚做、还没标记的修改）就不重建，排一次 syncSoon()：到下一个任务时，同步的“改 → render → touch”早已做完，dirty 已置上，
+  //   等写回完成后再重建（本地优先，与原来一样）；若仍没人标记（键盘按下到松开之间），隔一会儿再看，最多等 3 秒，之后照原来的做法重建。
+  //   写回完成、索引变化（外部改了笔记）、打字挡下的重画放开后的重画都会再走到这里（与原来一样），页面不会停在旧数据上。
+  const stale = () => !!d && version !== plugin.index.version;
+  function rebuild(){
+    const clock = plugin.clock();
+    Object.assign(d, buildModel(plugin.index, clock, d)); version = plugin.index.version; persist.reset(d); syncTries = 0;
+    // 撤销期内删掉的任务：笔记还在（快照里也留着，纸条消失后照常进回收站），但不放回货单
+    if (hold.size) { d.tasks = d.tasks.filter(t => !hold.has(t.id)); d.goals = d.goals.filter(g => !hold.has(g.id)); d.people = d.people.filter(x => !hold.has(x.id)); for (const p of d.projects) { p.goalIds = p.goalIds.filter(id => !hold.has(id)); p.peopleIds = p.peopleIds.filter(id => !hold.has(id)); } for (const t of d.tasks) if (t.peopleIds?.some(id => hold.has(id))) t.peopleIds = t.peopleIds.filter(id => !hold.has(id)); }
+  }
   function model(){
     const clock = plugin.clock();
     if (!d) { d = buildModel(plugin.index, clock, null); Object.assign(d.cache, {assetBoxes}); version = plugin.index.version; persist.reset(d); }
     // 有还没写回的改动时先不按笔记重建（否则内存里刚改的会被旧笔记盖掉）；写回之后再重建
-    else if (version !== plugin.index.version && !dirty) {
-      Object.assign(d, buildModel(plugin.index, clock, d)); version = plugin.index.version; persist.reset(d);
-      // 撤销期内删掉的任务：笔记还在（快照里也留着，纸条消失后照常进回收站），但不放回货单
-      if (hold.size) { d.tasks = d.tasks.filter(t => !hold.has(t.id)); d.goals = d.goals.filter(g => !hold.has(g.id)); d.people = d.people.filter(x => !hold.has(x.id)); for (const p of d.projects) { p.goalIds = p.goalIds.filter(id => !hold.has(id)); p.peopleIds = p.peopleIds.filter(id => !hold.has(id)); } for (const t of d.tasks) if (t.peopleIds?.some(id => hold.has(id))) t.peopleIds = t.peopleIds.filter(id => !hold.has(id)); }
-    }
+    // deferred：这个任务里已经比较过、发现有未标记的修改——后面再读模型（core.data 一次重画要读很多回）就不再逐项比较（大仓库一次约 30ms）
+    else if (stale() && !dirty && !deferred && !persist.pending(d, {hold})) rebuild();
+    else if (stale() && !dirty) { deferred = true; syncSoon(); }
     Object.assign(d.clock, clock);
     return d;
+  }
+  // 稍后按索引重建（若那时没有未写回的改动、不在写回中、详情里没在打字），再重画当前页
+  function syncSoon(wait = 0){
+    if (syncTimer || closed) return;
+    syncTimer = window.setTimeout(() => {
+      syncTimer = 0; deferred = false;
+      // 有未写回的改动：写回完成后（flush 的 finally）再来；打字时（holdRender）：挡下的重画放开时会再走到 model()
+      if (closed || dirty || writing || !stale() || view.taskPlus?.holdRender?.()) return;
+      if (persist.pending(d, {hold}) && syncTries < 10) { syncTries++; syncSoon(300); return; }
+      rebuild();
+      if (view.page !== 'today') view.render(true);
+    }, wait);
   }
   // 每次操作之后（点击、提交、拖放、改值、离开输入框……）稍等一下，把改动写回笔记；同一串操作合并成一次
   // 比较本身在大仓库（5000 篇）要 30ms 左右，放进空闲时间，不占动画帧
@@ -146,7 +170,7 @@ export function createLower(view){
     openObject(kind, id){ model(); p2 ??= createPhase2(core); if (kind === 'task') d.ui.cargoInitialized = true; p2.openObject(kind, id); },
     brainSearch(q){ if (!p2) return; p2.brainSearch(q); if (d.ui.page === 'brain') view.drawScenery(); },
     async close(){
-      closed = true; clearTimeout(timer); ai?.close();
+      closed = true; clearTimeout(timer); window.clearTimeout(syncTimer); ai?.close();
       if (hold.size) { hold.clear(); dirty = true; } // 关掉视图时，还在撤销期的删除照常进回收站
       try { if (writing) await writing; if (dirty) await flush(); } catch {}
     },

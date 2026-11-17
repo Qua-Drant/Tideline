@@ -6,35 +6,52 @@
 //   成就、感恩 → 今天日记的“## 成就”“## 感恩”
 //   项目 → 项目/标题.md（计划中）
 // 记下后底部出现提示，可以撤销（新建的笔记进回收站；日记里加的那一行删掉）。
-import {esc, icon} from '../draw/ink.ts';
-import {FOLDERS, linkName} from '../data/index.ts';
+// 第 3c 期：DOM 构建（draw/dom.ts），不再拼 HTML 字符串；纸条的固定外壳（captureShell）从 frame.ts 搬回这里。
+import {iconEl} from '../draw/ink.ts';
+import {h, setNodes} from '../draw/dom.ts';
+import {FOLDERS} from '../data/index.ts';
 import {keepEol} from '../data/frontmatter.ts';
 import {parseTask} from './task-parse.js';
-import {dayText} from './day-text.js';
+import {dayText} from './day-text.ts';
+import type {CompassView} from '../view.ts';
+import type CompassPlugin from '../main.ts';
 
-const TYPES = [['task', 'box', '任务'], ['idea', 'star', '想法'], ['note', 'note', '随手记'], ['achievement', 'flag', '成就'], ['gratitude', 'heart', '感恩'], ['project', 'route', '项目']];
+/** task-parse.js（还没转 TypeScript）的 parseTask 的结果里本模块用到的几项（JS 推断出来的类型只有 tokens） */
+interface ParsedTask { title: string; date?: string | null; time?: string | null; repeat?: string | null; priority?: string | null; listId?: string | null; projectId?: string | null; peopleIds?: string[]; tags?: string[] }
+type CaptureType = 'task' | 'idea' | 'note' | 'achievement' | 'gratitude' | 'project';
+const TYPES: [type: CaptureType, icon: string, name: string][] = [['task', 'box', '任务'], ['idea', 'star', '想法'], ['note', 'note', '随手记'], ['achievement', 'flag', '成就'], ['gratitude', 'heart', '感恩'], ['project', 'route', '项目']];
+const PLACEHOLDER: Record<CaptureType, string> = {task: '记一件任务，默认进收件箱（明天、#清单、@人、!高）', idea: '记一个想法（#标签）', note: '此刻想到了什么', achievement: '今天做成了什么', gratitude: '今天感谢什么', project: '新项目的名字'};
 const TOKENS = /周[一二三四五六日天]|#[^\s#@]+|@[^\s#@]+/g;
-export const CAPTURE_HTML = `<div id="capture" class="capture paper-strip" hidden><div id="capture-types" class="capture-types"></div><form id="capture-form"><input id="capture-input" aria-label="记一笔" autocomplete="off"><div id="capture-tokens"></div></form><button class="icon-button" data-action="capture-save" aria-label="记下">↵</button></div>`;
-const clean = s => String(s).replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || '未命名';
+const clean = (s: unknown) => String(s).replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || '未命名';
 
-export function createCapture({view, plugin}){
-  const root = view.root, $ = s => root.querySelector(s);
-  let open = false, type = 'task';
+/** 纸条的固定外壳（框只建一次，frame.ts 调用） */
+export function captureShell(){
+  return h('div', {id: 'capture', class: 'capture paper-strip', hidden: true},
+    h('div', {id: 'capture-types', class: 'capture-types'}),
+    h('form', {id: 'capture-form'}, h('input', {id: 'capture-input', 'aria-label': '记一笔', autocomplete: 'off'}), h('div', {id: 'capture-tokens'})),
+    h('button', {class: 'icon-button', 'data-action': 'capture-save', 'aria-label': '记下'}, '↵'));
+}
+// 类别按钮
+const typeButtons = (current: CaptureType) => TYPES.map(([t, ic, name]) => h('button', {type: 'button', 'data-capture-type': t, 'aria-label': name, 'aria-pressed': String(t === current)}, iconEl(ic), h('span', {class: 'capture-type-name', 'aria-hidden': 'true'}, name)));
+
+export function createCapture({view, plugin}: {view: CompassView; plugin: CompassPlugin}){
+  const root = view.root, $ = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  let open = false, type: CaptureType = 'task';
   function render(){
-    $('#capture-types').innerHTML = TYPES.map(([t, ic, name]) => `<button type="button" data-capture-type="${t}" aria-label="${name}" aria-pressed="${t === type}">${icon(ic)}<span class="capture-type-name" aria-hidden="true">${name}</span></button>`).join('');
+    setNodes($('#capture-types'), () => typeButtons(type));
     $('#capture').hidden = !open; $('#capture-toggle').setAttribute('aria-expanded', String(open));
-    $('#capture-input').placeholder = {task: '记一件任务，默认进收件箱（明天、#清单、@人、!高）', idea: '记一个想法（#标签）', note: '此刻想到了什么', achievement: '今天做成了什么', gratitude: '今天感谢什么', project: '新项目的名字'}[type];
+    $<HTMLInputElement>('#capture-input').placeholder = PLACEHOLDER[type];
     view.frames();
   }
-  function toggle(force){
+  function toggle(force?: boolean){
     open = force ?? !open;
     if (open) type = view.page === 'thought' && view.lower?.data?.ui?.lamp === false ? 'idea' : 'task';
     render(); if (open) $('#capture-input').focus();
   }
-  const exists = p => plugin.writer.exists?.(p);
-  const unique = (folder, title) => { let p = `${folder}/${clean(title)}.md`, n = 2; while (exists(p)) p = `${folder}/${clean(title)} ${n++}.md`; return p; };
+  const exists = (p: string) => plugin.writer.exists?.(p);
+  const unique = (folder: string, title: string) => { let p = `${folder}/${clean(title)}.md`, n = 2; while (exists(p)) p = `${folder}/${clean(title)} ${n++}.md`; return p; };
   // 往今天日记的某个二级标题下追加一行；返回撤销
-  async function appendDay(section, line){
+  async function appendDay(section: string, line: string){
     const path = `${FOLDERS.journal}/${plugin.clock().date}.md`;
     await plugin.writer.body(path, text => keepEol(text, s => {
       const lines = s.split('\n'), at = lines.findIndex(l => new RegExp('^##\\s+' + section + '\\s*$').test(l));
@@ -54,15 +71,15 @@ export function createCapture({view, plugin}){
       return lines.join('\n');
     }));
   }
-  async function save(raw){
+  async function save(raw: string){
     const text = raw.trim(); if (!text) return;
     const {date, time} = plugin.clock(), ix = plugin.index, tokens = text.match(TOKENS) || [];
     const words = text.replace(TOKENS, ' ').replace(/\s+/g, ' ').trim() || text;
-    let undo = null, label = words;
+    let undo: (() => unknown) | null = null, label = words;
     if (type === 'task') {
       // 与任务页输入框同一套识别（明天下午3点、!高、#清单 / 项目 / 标签、@人、每周三）；没写日期就不安排，留在收件箱
       const model = {lists: ix.config.lists.map(l => ({id: l.title, title: l.title, archived: l.archived})), projects: [...ix.projects.values()], people: [...ix.people.values()]};
-      const r = parseTask(text, model, date), title = r.title.replace(/\s+/g, ' ').trim() || words;
+      const r = parseTask(text, model, date) as unknown as ParsedTask, title = r.title.replace(/\s+/g, ' ').trim() || words;
       const project = r.projectId && ix.projects.get(r.projectId)?.title, people = (r.peopleIds || []).map(id => ix.people.get(id)?.name).filter(Boolean);
       const path = unique(FOLDERS.tasks, title);
       await plugin.writer.create(path, '---\n---\n');
@@ -76,23 +93,24 @@ export function createCapture({view, plugin}){
       undo = () => plugin.writer.trash(path); label = `想法：${first}`;
     } else if (type === 'note') { undo = await appendDay('随手记', `- ${time} ${text.replace(/\n+/g, ' ')}`); label = `随手记：${text}`; view.ui.journalFollow = true; }
     else if (type === 'achievement' || type === 'gratitude') { const sec = type === 'achievement' ? '成就' : '感恩'; undo = await appendDay(sec, `- ${text.replace(/\n+/g, ' ')}`); label = `${sec}：${text}`; }
-    else if (type === 'project') { const path = unique(FOLDERS.projects, words); await plugin.writer.create(path, '---\n---\n'); await plugin.writer.frontmatter(path, fm => { fm.status = 'planned'; }); undo = () => plugin.writer.trash(path); label = `项目：${words}`; }
-    view.frame.feedback(label, undo ? async () => { await undo(); } : null, 'check');
+    else { const path = unique(FOLDERS.projects, words); await plugin.writer.create(path, '---\n---\n'); await plugin.writer.frontmatter(path, fm => { fm.status = 'planned'; }); undo = () => plugin.writer.trash(path); label = `项目：${words}`; }
+    const u = undo;
+    view.frame.feedback(label, u ? async () => { await u(); } : null, 'check');
   }
-  function tokens(){ const v = $('#capture-input').value; $('#capture-tokens').innerHTML = (v.match(TOKENS) || []).map(t => `<span>${esc(t)}</span>`).join(''); }
-  async function submit(){ const input = $('#capture-input'), v = input.value; if (!v.trim()) { input.focus(); return; } input.value = ''; tokens(); open = false; render(); await save(v); }
+  function tokens(){ const v = $<HTMLInputElement>('#capture-input').value; setNodes($('#capture-tokens'), () => (v.match(TOKENS) || []).map(t => h('span', null, t))); }
+  async function submit(){ const input = $<HTMLInputElement>('#capture-input'), v = input.value; if (!v.trim()) { input.focus(); return; } input.value = ''; tokens(); open = false; render(); await save(v); }
 
   view.registerDomEvent(root, 'click', e => {
-    const b = e.target.closest('button'); if (!b) return;
+    const b = (e.target as Element).closest<HTMLElement>('button'); if (!b) return;
     if (b.id === 'capture-toggle') { e.stopPropagation(); toggle(); return; }
-    if (b.dataset.captureType) { e.stopPropagation(); type = b.dataset.captureType; render(); $('#capture-input').focus(); return; }
-    if (b.dataset.action === 'capture-save') { e.stopPropagation(); submit(); }
+    if (b.dataset.captureType) { e.stopPropagation(); type = b.dataset.captureType as CaptureType; render(); $('#capture-input').focus(); return; }
+    if (b.dataset.action === 'capture-save') { e.stopPropagation(); void submit(); }
   }, {capture: true});
-  view.registerDomEvent(root, 'submit', e => { if (e.target.id === 'capture-form') { e.preventDefault(); e.stopImmediatePropagation(); submit(); } }, {capture: true});
-  view.registerDomEvent(root, 'input', e => { if (e.target.id === 'capture-input') tokens(); });
+  view.registerDomEvent(root, 'submit', e => { if ((e.target as Element).id === 'capture-form') { e.preventDefault(); e.stopImmediatePropagation(); void submit(); } }, {capture: true});
+  view.registerDomEvent(root, 'input', e => { if ((e.target as Element).id === 'capture-input') tokens(); });
   view.registerDomEvent(root, 'keydown', e => { if (e.key === 'Escape' && open) { e.stopPropagation(); toggle(false); } });
   render();
   // 0.9.3：思索规划里点空着那天的虚线 +，打开“记录”（任务）并带上那天的日期，光标放在最前面
-  function openWith(text){ open = true; type = 'task'; render(); const i = $('#capture-input'); i.value = text || ''; i.focus(); i.setSelectionRange(0, 0); }
-  return {toggle, openWith, get open(){ return open; }, save: (t, text) => { type = t; return save(text); }};
+  function openWith(text?: string){ open = true; type = 'task'; render(); const i = $<HTMLInputElement>('#capture-input'); i.value = text || ''; i.focus(); i.setSelectionRange(0, 0); }
+  return {toggle, openWith, get open(){ return open; }, save: (t: CaptureType, text: string) => { type = t; return save(text); }};
 }

@@ -3,6 +3,8 @@
 // 第 3 期：DOM 构建（draw/dom.ts），不再拼 HTML 字符串。每个函数对应原来的一段模板，结构一一对应。
 import {inkEl, circleEl, iconEl, quillIconEl, INK, TICK} from './draw/ink.ts';
 import {h, svg, setNodes} from './draw/dom.ts';
+import {captureShell} from './ui/capture.ts';
+import {mapShell, searchShell} from './ui/map-search.ts';
 
 /** 侧栏的一项：[页名, 显示名, 图标] */
 export type NavItem = [id: string, name: string, icon: string];
@@ -41,23 +43,9 @@ const WEEKDAY = ['星期日', '星期一', '星期二', '星期三', '星期四'
 function isoWeek(date: string){ const d = new Date(date + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 4)); return 1 + Math.round((((d as unknown as number) - (y as unknown as number)) / 864e5 - 3 + ((y.getUTCDay() + 6) % 7)) / 7); }
 
 // —— 各页的固定外壳 ——
-// 与 pages/thought.js 的 THOUGHT_HTML、pages/ai.js 的 AI_HTML、ui/capture.js 的 CAPTURE_HTML、ui/map-search.js 的 MAP_HTML / SEARCH_HTML 逐个元素对应。
-// 那几个模块还没改成 DOM 构建（本期只许改它们的导入），字符串常量留在原处、已不再使用；改它们的那一期把这几个函数搬回去、删掉常量。
+// 与 pages/thought.js 的 THOUGHT_HTML、pages/ai.js 的 AI_HTML 逐个元素对应。那两个模块还没改成 DOM 构建，字符串常量留在原处、已不再使用；
+// 改它们的那一期把这两个函数搬回去、删掉常量。随手记、小地图、搜索三个外壳第 3c 期已搬回 ui/capture.ts、ui/map-search.ts。
 // 原模板里元素之间的换行（只在 THOUGHT_HTML 里）不再写出：它们落在块级元素之间，不占位置（等价性校验逐个量过，见 dev/compare/phase3a）。
-function mapShell(){ return h('div', {id: 'map', class: 'map paper-strip', hidden: true}); }
-function captureShell(){
-  return h('div', {id: 'capture', class: 'capture paper-strip', hidden: true},
-    h('div', {id: 'capture-types', class: 'capture-types'}),
-    h('form', {id: 'capture-form'}, h('input', {id: 'capture-input', 'aria-label': '记一笔', autocomplete: 'off'}), h('div', {id: 'capture-tokens'})),
-    h('button', {class: 'icon-button', 'data-action': 'capture-save', 'aria-label': '记下'}, '↵'));
-}
-function searchShell(){
-  return h('div', {id: 'search', class: 'global-search paper-strip hand-popup', hidden: true},
-    h('form', {class: 'line-form', role: 'search'},
-      h('input', {id: 'global-query', 'aria-label': '搜索任务、想法和提示词', autocomplete: 'off'}),
-      h('button', {class: 'icon-button', 'data-action': 'close-search', type: 'button', 'aria-label': '关闭搜索'}, '×')),
-    h('div', {id: 'search-results'}));
-}
 function thoughtShell(){
   return h('section', {id: 'thought', class: 'page thought', 'aria-label': '思索', hidden: true},
     h('div', {class: 'sky-interactions', id: 'sky-interactions'},

@@ -130,12 +130,12 @@ export function createGoals({core, view, render}){
   function remove(g){
     const hold = view.lower.hold, at = d.goals.indexOf(g), from = linked(g).map(p => p.id);
     d.goals.splice(at, 1); for (const p of d.projects) p.goalIds = (p.goalIds || []).filter(id => id !== g.id);
-    if (g.id.includes('/')) hold.add(g.id); markDeleted(d, [g.id]); d.ui.goal = null; rerender(); touch(); // 登记删除（P2-10）
+    if (g.id.includes('/')) hold.add(g.id); markDeleted(d, [g.id]); d.ui.goal = null; touch(); rerender(); // 登记删除（P2-10）
     let undone = false; const timer = setTimeout(() => { if (undone) return; hold.delete(g.id); touch(); }, 5300);
     announce('已删除目标 · ' + g.title, () => { undone = true; clearTimeout(timer); hold.delete(g.id); restoreDeleted(d, [g.id]);
       if (!d.goals.includes(g)) d.goals.splice(Math.min(at, d.goals.length), 0, g);
       for (const p of d.projects) if (from.includes(p.id) && !p.goalIds.includes(g.id)) p.goalIds.push(g.id);
-      d.ui.goal = g.id; core.render(); touch(); });
+      d.ui.goal = g.id; touch(); core.render(); });
   }
   const openNote = g => { const w = view.plugin?.writer; if (g.id.includes('/') && w && w.exists?.(g.id) !== false) w.open(g.id); else announce('这个目标的笔记还在写，稍等再试'); };
 
@@ -187,7 +187,7 @@ export function createGoals({core, view, render}){
     else if (ds.goalPick && p && b.closest('#projects .goal-pick')) { if (!p.goalIds.includes(ds.goalPick)) p.goalIds = [...p.goalIds, ds.goalPick]; d.ui.goalPickProject = null; }
     else if (ds.goalPickNew && p) { const g = create(ds.goalPickNew, false); if (g && !p.goalIds.includes(g.id)) p.goalIds = [...p.goalIds, g.id]; d.ui.goalPickProject = null; }
     else hit = false;
-    if (hit) { e.preventDefault(); e.stopImmediatePropagation(); d.ui.goalPickQuery = ''; projectRerender(); touch(); }
+    if (hit) { e.preventDefault(); e.stopImmediatePropagation(); d.ui.goalPickQuery = ''; touch(); projectRerender(); }
   }, true);
 
   // —— 输入：新目标名、标题、纸条搜索 ——
@@ -200,7 +200,7 @@ export function createGoals({core, view, render}){
     if (!e.target.matches?.('.goal-title')) return; const g = goalOf(d.ui.goal), v = e.target.value.trim().replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').slice(0, 80);
     if (!g || !v || v === g.title) { e.target.value = g?.title || ''; return; }
     if (d.goals.some(x => x !== g && x.title === v)) { announce('已经有叫“' + v + '”的目标'); e.target.value = g.title; return; }
-    g.title = v; render(); touch();
+    g.title = v; touch(); render();
   }, true);
   HOST.addEventListener('input', e => {
     if (e.target.matches?.('.goal-new input')) { d.ui.goalNewDraft = e.target.value; return; }

@@ -34,6 +34,8 @@ export function createPeople(view){
   const root = view.root, $ = s => root.querySelector(s);
   const data = () => view.lower?.data || null;
   const render = () => view.render(true), touch = () => view.lower?.touch?.();
+  // 改了模型之后：先记下要写回（touch），再重画（顺序反过来时，重画当中模型可能被按索引重建、冲掉刚做的修改）
+  const commit = () => { touch(); render(); };
   const announce = (msg, undo) => view.frame.feedback(msg, undo);
   const personOf = id => data()?.people.find(p => p.id === id);
   const onTasks = () => view.page === 'tasks' && !!data();
@@ -129,8 +131,8 @@ export function createPeople(view){
     const d = data(), tasks = ids.map(id => d.tasks.find(t => t.id === id)).filter(Boolean); if (!tasks.length) return;
     const before = tasks.map(t => [t.id, [...(t.peopleIds || [])], t.discuss]);
     for (const t of tasks) { t.peopleIds = [...new Set([...(t.peopleIds || []), p.id])]; t.discuss = true; }
-    render(); touch();
-    announce(`待沟通 · ${p.name}${tasks.length > 1 ? ' · ' + tasks.length + ' 项' : ''}`, () => { const dd = data(); for (const [id, ppl, disc] of before) { const t = dd.tasks.find(x => x.id === id); if (t) { t.peopleIds = ppl; t.discuss = disc; } } render(); touch(); });
+    commit();
+    announce(`待沟通 · ${p.name}${tasks.length > 1 ? ' · ' + tasks.length + ' 项' : ''}`, () => { const dd = data(); for (const [id, ppl, disc] of before) { const t = dd.tasks.find(x => x.id === id); if (t) { t.peopleIds = ppl; t.discuss = disc; } } commit(); });
   }
   HOST.personPickFor = ids => { const d = data(); if (!d) return; d.ui.personPick = {tasks: ids}; d.ui.personPickQuery = ''; d.ui.personNew = false; render(); focusPick(); };
   function remove(p){
@@ -141,13 +143,13 @@ export function createPeople(view){
     for (const t of d.tasks) if ((t.peopleIds || []).includes(p.id)) { t.peopleIds = t.peopleIds.filter(id => id !== p.id); if (!t.peopleIds.length) t.discuss = false; }
     for (const x of d.projects) x.peopleIds = (x.peopleIds || []).filter(id => id !== p.id);
     if (d.ui.taskFilter?.kind === 'person' && d.ui.taskFilter.id === p.id) d.ui.taskFilter = {kind: 'all'};
-    if (p.id.includes('/')) hold.add(p.id); markDeleted(d, [p.id]); render(); touch(); // 登记删除（P2-10）
+    if (p.id.includes('/')) hold.add(p.id); markDeleted(d, [p.id]); commit(); // 登记删除（P2-10）
     let undone = false; const timer = setTimeout(() => { if (undone) return; hold.delete(p.id); touch(); }, 5300);
     announce('已删除人物 · ' + p.name, () => { undone = true; clearTimeout(timer); hold.delete(p.id); const dd = data(); restoreDeleted(dd, [p.id]);
       if (!dd.people.some(x => x.id === p.id)) dd.people.splice(Math.min(at, dd.people.length), 0, p);
       for (const [id, ppl, disc] of tasks) { const t = dd.tasks.find(x => x.id === id); if (t) { t.peopleIds = ppl; t.discuss = disc; } }
       for (const id of projects) { const x = dd.projects.find(y => y.id === id); if (x && !x.peopleIds.includes(p.id)) x.peopleIds.push(p.id); }
-      show(p.id); render(); touch(); });
+      show(p.id); commit(); });
   }
   function rename(p, raw){
     const d = data(), v = cleanName(raw);
@@ -159,8 +161,8 @@ export function createPeople(view){
   function addLog(p, text){
     const d = data(), t = String(text || '').replace(/\s+/g, ' ').trim(); if (!t) return;
     const entry = {date: d.clock.date, text: t}; p.history = [...(p.history || []), entry]; d.ui.personLogDraft = '';
-    render(); touch();
-    announce('记下了 · ' + p.name, () => { const x = personOf(p.id); if (x) { const i = x.history.findLastIndex(h => h.date === entry.date && h.text === entry.text); if (i >= 0) x.history = x.history.filter((_, k) => k !== i); } render(); touch(); });
+    commit();
+    announce('记下了 · ' + p.name, () => { const x = personOf(p.id); if (x) { const i = x.history.findLastIndex(h => h.date === entry.date && h.text === entry.text); if (i >= 0) x.history = x.history.filter((_, k) => k !== i); } commit(); });
   }
   // 见面了：谈过的去掉这个人（没人了就不再待沟通），做完的完成（重复任务顺延并留一份完成记录），结论写进记录，跟进变成新任务
   function meet(p, form){
@@ -179,14 +181,14 @@ export function createPeople(view){
     for (const line of follow) { const task = {id: 'task-' + d.serial++, title: line, status: 'open', priority: 'medium', date: null, projectId: null, listId: null, peopleIds: [], discuss: false, tags: [], comments: []}; HOST.taskCreated?.(task, d); d.tasks.push(task); created.push(task); }
     const entry = {date: today, text: note ? '见面：' + note : '见面'}; p.history = [...(p.history || []), entry];
     d.ui.personMeet = null; d.ui.personMeetChoice = null; d.ui.personMeetNote = ''; d.ui.personMeetFollow = '';
-    render(); touch();
+    commit();
     const bits = [talked && `谈过 ${talked} 件`, done && `做完 ${done} 件`, follow.length && `跟进 ${follow.length} 件`].filter(Boolean).join('，');
     announce(`记下了与 ${p.name} 的见面${bits ? '：' + bits : ''}`, () => { const dd = data(), ids = new Set(created.map(t => t.id));
       for (const u of [...undos].reverse()) u(); // 完成的撤回（含完成记录、顺延、子任务）
       dropTasks(dd, [...ids]); // 拿掉跟进任务并登记删除（P2-10）
       for (const [id, v] of saved) { const t = dd.tasks.find(x => x.id === id); if (t) Object.assign(t, v); }
       const x = dd.people.find(y => y.id === p.id); if (x) { const i = x.history.findLastIndex(h => h.date === entry.date && h.text === entry.text); if (i >= 0) x.history = x.history.filter((_, k) => k !== i); }
-      render(); touch(); });
+      commit(); });
   }
   const openNote = p => { const w = view.plugin?.writer; if (p.id.includes('/') && w && w.exists?.(p.id) !== false) w.open(p.id); else announce('这个人的笔记还在写，稍等再试'); };
 
@@ -207,16 +209,16 @@ export function createPeople(view){
     const ds = b.dataset;
     if (view.page === 'projects') {
       const project = d.projects.find(x => x.id === (ds.project || ds.ppersonAdd || d.ui.personPickProject));
-      if (ds.ppersonUnlink && project) { stop(e); const who = personOf(ds.ppersonUnlink); project.peopleIds = project.peopleIds.filter(id => id !== ds.ppersonUnlink); render(); touch();
-        announce('不再关联 · ' + (who?.name || ''), () => { const x = data().projects.find(y => y.id === project.id); if (x && !x.peopleIds.includes(ds.ppersonUnlink)) x.peopleIds.push(ds.ppersonUnlink); render(); touch(); }); return; }
+      if (ds.ppersonUnlink && project) { stop(e); const who = personOf(ds.ppersonUnlink); project.peopleIds = project.peopleIds.filter(id => id !== ds.ppersonUnlink); commit();
+        announce('不再关联 · ' + (who?.name || ''), () => { const x = data().projects.find(y => y.id === project.id); if (x && !x.peopleIds.includes(ds.ppersonUnlink)) x.peopleIds.push(ds.ppersonUnlink); commit(); }); return; }
       if (ds.ppersonAdd) { stop(e); const open = d.ui.personPickProject !== ds.ppersonAdd; closePops(d); d.ui.personPickProject = open ? ds.ppersonAdd : null; render(); if (open) focusPick(); else $(`[data-pperson-add="${CSS.escape(ds.ppersonAdd)}"]`)?.focus({preventScroll: true}); return; }
-      if ((ds.personPick || ds.personPickNew) && project && b.closest('.project-people')) { stop(e); const who = ds.personPick ? personOf(ds.personPick) : create(ds.personPickNew); if (who && !project.peopleIds.includes(who.id)) project.peopleIds = [...project.peopleIds, who.id]; closePops(d); render(); touch(); $(`[data-pperson-add="${CSS.escape(project.id)}"]`)?.focus({preventScroll: true}); return; }
+      if ((ds.personPick || ds.personPickNew) && project && b.closest('.project-people')) { stop(e); const who = ds.personPick ? personOf(ds.personPick) : create(ds.personPickNew); if (who && !project.peopleIds.includes(who.id)) project.peopleIds = [...project.peopleIds, who.id]; closePops(d); commit(); $(`[data-pperson-add="${CSS.escape(project.id)}"]`)?.focus({preventScroll: true}); return; }
       return;
     }
     if (!onTasks()) return;
     if (ds.personPick || ds.personPickNew) { stop(e); const who = ds.personPick ? personOf(ds.personPick) : create(ds.personPickNew), pick = d.ui.personPick; closePops(d); if (!who) { render(); return; }
       if (pick?.tasks) assign(pick.tasks, who); else { show(who.id); keep(render); $('#person-paper')?.focus?.({preventScroll: true}); } return; }
-    if (ds.personCadence !== undefined) { stop(e); const p = personOf(d.ui.taskFilter.id); if (!p) return; p.cadence = Number(ds.personCadence) || 0; keep(render); touch(); return; }
+    if (ds.personCadence !== undefined) { stop(e); const p = personOf(d.ui.taskFilter.id); if (!p) return; p.cadence = Number(ds.personCadence) || 0; touch(); keep(render); return; }
     if (ds.personChoice) { stop(e); d.ui.personMeetChoice = {...(d.ui.personMeetChoice || {}), [ds.id]: ds.personChoice}; keep(render); return; }
     const act = ds.personAct; if (!act) return;
     stop(e);
@@ -239,13 +241,13 @@ export function createPeople(view){
     if (kind === 'new') { const v = f.elements.name.value; closePops(d); const who = v.trim() ? create(v) : null; if (who) { show(who.id); render(); $('#person-paper')?.focus?.({preventScroll: true}); $('.person-name')?.focus({preventScroll: true}); } else { render(); $('.cargo-person-add')?.focus({preventScroll: true}); } return; }
     if (!p) return;
     if (kind === 'name') { f.elements.name.blur(); return; }
-    if (kind === 'initial') { const v = f.elements.initial.value.trim().slice(0, 2); p.initial = v || p.name.slice(0, 1); d.ui.personInitial = null; render(); touch(); $('[data-person-act="initial"]')?.focus({preventScroll: true}); return; }
+    if (kind === 'initial') { const v = f.elements.initial.value.trim().slice(0, 2); p.initial = v || p.name.slice(0, 1); d.ui.personInitial = null; commit(); $('[data-person-act="initial"]')?.focus({preventScroll: true}); return; }
     if (kind === 'log') { addLog(p, f.elements.text.value); $('.person-log-form input')?.focus({preventScroll: true}); return; }
     if (kind === 'meet') { meet(p, f); $('#person-paper')?.setAttribute('tabindex', '-1'); $('[data-person-act="meet"]')?.focus({preventScroll: true}); }
   }, {capture: true});
   view.registerDomEvent(root, 'change', e => {
     if (!e.target.matches?.('.person-name')) return; const d = data(), p = personOf(d?.ui.taskFilter?.id); if (!p) return;
-    if (rename(p, e.target.value)) { render(); touch(); } else e.target.value = p.name;
+    if (rename(p, e.target.value)) { commit(); } else e.target.value = p.name;
   }, {capture: true});
   view.registerDomEvent(root, 'input', e => {
     const d = data(); if (!d) return; const t = e.target;

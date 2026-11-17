@@ -36,6 +36,8 @@ export function createTaskPlus(view){
   let allowRender = false, lastSheetKey = 0;
   const render = () => { allowRender = true; try { view.render(true); } finally { allowRender = false; } };
   const touch = () => view.lower?.touch?.();
+  // 改了模型之后：先记下要写回（touch，置 dirty），再重画。顺序反过来时，重画当中模型可能被按索引重建、冲掉刚做的修改
+  const commit = () => { touch(); render(); };
   const get = id => data()?.tasks.find(t => t.id === id);
   const recent = new Set(); // 这次打开以来完成 / 放弃的：留在底部“已完成”组里，能看见也能点回来
   const completing = new Set();
@@ -50,7 +52,7 @@ export function createTaskPlus(view){
 
   // ———— 撤销纸条 ————
   function feedback(message, undo, result){
-    view.frame.feedback(message, undo ? async () => { undo(); render(); touch(); } : null, result);
+    view.frame.feedback(message, undo ? async () => { undo(); commit(); } : null, result);
   }
   const current = t => data()?.tasks.find(x => x.id === t.id) || t;
   const snapshot = (tasks, keys) => { const saved = tasks.map(t => [t, Object.fromEntries(keys.map(k => [k, Array.isArray(t[k]) ? [...t[k]] : t[k]]))]); return () => { for (const [t, v] of saved) Object.assign(current(t), v); }; };
@@ -135,7 +137,7 @@ export function createTaskPlus(view){
     if (d.projects.some(x => x !== p && x.title === text)) { h.textContent = p.title; feedback('已有同名项目「' + text + '」，没有改名'); return; }
     const old = p.title, tasks = d.tasks.filter(t => t.projectId === p.id);
     p.title = text; for (const t of tasks) t.project = text;
-    view.render(true); touch();
+    touch(); view.render(true);
     feedback(`项目改名 · ${old} → ${text}`, () => { const n = data(), q = n.projects.find(x => x.title === text); if (!q) return; q.title = old; for (const t of n.tasks) if (t.projectId === q.id) t.project = old; });
   }
   function addProjectTask(form){
@@ -144,7 +146,7 @@ export function createTaskPlus(view){
     const task = {id: 'task-' + d.serial++, title: r.title, status: 'open', priority: r.priority || 'medium', date: r.date || null, time: r.time, repeat: r.repeat, projectId: p.id, project: p.title,
       listId: r.listId || null, peopleIds: r.peopleIds || [], discuss: !!r.peopleIds?.length, tags: r.tags || [], comments: [], order: siblings.length ? Math.max(...siblings.map(t => t.order ?? 0)) + 10 : 10};
     d.tasks.push(task); drafts.delete('ptask|' + p.id); input.value = ''; projectWanted = p.id;
-    render(); touch();
+    commit();
     feedback(`已加进项目「${p.title}」 · ${task.title}`, () => dropTask(task));
   }
   HOST.taskDetailHtml = (t, d) => sheetHtml(t, d, {draft, want, kids: childrenOf(t.id).length ? childrenOf(t.id) : d.tasks.filter(x => x.parentId === t.id), title: drafts.get('title|' + t.id), toolbar: !!d.ui.taskToolbar});
@@ -163,18 +165,18 @@ export function createTaskPlus(view){
     const d = data(); if (!t || !d) return;
     const {next, record, family, undo} = completeTask(d, t);
     if (record) recent.add(record.id); else { recent.add(t.id); for (const k of family) recent.add(k.id); }
-    render(); touch();
+    commit();
     feedback(next ? `已完成 · ${t.title}，下一次 ${md(t.date)}` : '已完成 · ' + t.title, () => { const id = record?.id; undo(); if (id) recent.delete(id); data().ui.taskDetail = t.id; data().cache.taskScrollRequest = t.id; }, 'check');
   }
   function reopen(t){
     const {undo} = reopenTask(data(), t);
-    render(); touch();
+    commit();
     feedback('重新打开 · ' + t.title, undo, 'circle');
   }
   function setStatus(list, status, label){
     const d = data(), restore = snapshot(list, FIELDS);
     for (const t of list) { t.status = status; t.completed = status === 'done' ? d.clock.date : undefined; if (status !== 'open') recent.add(t.id); }
-    render(); touch();
+    commit();
     feedback(label, restore, status === 'done' ? 'check' : null);
   }
 
@@ -191,7 +193,7 @@ export function createTaskPlus(view){
     markDeleted(d, all); // 登记删除（P2-10）；hold 里的等撤销纸条消失后才真的删
     if (d.ui.taskSelection) d.ui.taskSelection = d.ui.taskSelection.filter(id => !all.has(id));
     if (all.has(d.ui.taskDetail)) d.ui.taskDetail = null;
-    render(); touch();
+    commit();
     let undone = false;
     const timer = setTimeout(() => { if (undone) return; for (const id of all) hold.delete(id); touch(); }, 5300);
     view.frame.feedback(`已删除 · ${removed.length > 1 ? removed.length + ' 项' : removed[0][0].title}`, async () => {
@@ -200,13 +202,13 @@ export function createTaskPlus(view){
       for (const id of all) hold.delete(id);
       restoreDeleted(now, all);
       now.ui.taskDetail = removed[0][0].id; now.cache.taskScrollRequest = removed[0][0].id;
-      render(); touch();
+      commit();
     });
   }
   function duplicate(t){
     const d = data(), copy = {...t, id: 'task-' + d.serial++, status: 'open', completed: undefined, peopleIds: [...(t.peopleIds || [])], tags: [...(t.tags || [])], comments: [], order: t.order != null ? t.order + .5 : undefined};
     d.tasks.splice(d.tasks.indexOf(t) + 1, 0, copy); d.ui.taskDetail = copy.id; d.cache.taskScrollRequest = copy.id;
-    render(); touch();
+    commit();
     feedback('已创建副本 · ' + t.title, () => { dropTask(copy); data().ui.taskDetail = t.id; });
   }
 
@@ -220,16 +222,16 @@ export function createTaskPlus(view){
     if (a === 'delete') { remove([t.id]); return; }
     if (a === 'duplicate') { duplicate(t); return; }
     if (a === 'link') { navigator.clipboard?.writeText(`[[${t.title}]]`).catch(() => {}); view.frame.feedback('已复制链接 · [[' + t.title + ']]'); return; }
-    if (a === 'checkitem') { syncBody(); const {desc, items} = splitChecklist(t.markdown ?? t.description), it = items[Number(v)]; if (!it) return; it.done = !it.done; setBody(t, joinChecklist(desc, items)); render(); touch(); return; }
+    if (a === 'checkitem') { syncBody(); const {desc, items} = splitChecklist(t.markdown ?? t.description), it = items[Number(v)]; if (!it) return; it.done = !it.done; setBody(t, joinChecklist(desc, items)); commit(); return; }
     const restore = snapshot([t], FIELDS);
-    if (a === 'mode') { syncBody(); t.mode = t.mode === 'checklist' ? undefined : 'checklist'; render(); touch(); feedback(t.mode ? '改成检查项 · ' + t.title : '切回文本 · ' + t.title, restore); return; }
+    if (a === 'mode') { syncBody(); t.mode = t.mode === 'checklist' ? undefined : 'checklist'; commit(); feedback(t.mode ? '改成检查项 · ' + t.title : '切回文本 · ' + t.title, restore); return; }
     if (a === 'priority') { t.priority = v; feedback('优先级' + PRIORITIES.find(p => p[0] === v)[1] + ' · ' + t.title, restore); }
     else if (a === 'pin') { t.pinned = !t.pinned || undefined; feedback((t.pinned ? '已置顶 · ' : '取消置顶 · ') + t.title, restore); }
     else if (a === 'cancel') { if (t.status === 'cancelled') { t.status = 'open'; feedback('已恢复 · ' + t.title, restore); } else { setStatus([t], 'cancelled', '已放弃 · ' + t.title); return; } }
     else if (a === 'unperson') { t.peopleIds = (t.peopleIds || []).filter(x => x !== v); if (!t.peopleIds.length) t.discuss = false; feedback('不再待沟通 · ' + (data().people.find(p => p.id === v)?.name || ''), restore); }
     else if (a === 'untag') { t.tags = (t.tags || []).filter(x => x !== v); feedback('去掉标签 #' + v, restore); }
     else if (a === 'uncomment') { t.comments = (t.comments || []).filter((_, i) => i !== Number(v)); feedback('删掉一条评论', restore); }
-    render(); touch();
+    commit();
   }
   function enterInput(input){
     const d = data(), t = get(input.dataset.id), text = input.value.trim(), kind = input.dataset.tpInput;
@@ -247,7 +249,7 @@ export function createTaskPlus(view){
       feedback('加上子任务 · ' + child.title, () => dropTask(child));
     }
     pendingFocus = {selector: `[data-tp-input="${kind}"][data-id="${CSS.escape(t.id)}"]`};
-    render(); touch();
+    commit();
   }
 
   // ———— 日期纸条：快捷日期、时刻、提醒、重复（日历上标出重复落在哪几天）————
@@ -278,7 +280,7 @@ export function createTaskPlus(view){
     t.remind = t.time ? form.elements.remind?.value || undefined : undefined;
     t.repeat = rule || undefined;
     d.ui.taskDate = null; d.cache.taskScrollRequest = t.id;
-    render(); touch();
+    commit();
     feedback(t.title + ' · ' + ([t.date ? md(t.date) : '移出计划', t.time, t.repeat].filter(Boolean).join(' ')), restore);
   }
   // task-pickers.js 的日历会问：这个月里哪些天落在重复规则上
@@ -321,7 +323,7 @@ export function createTaskPlus(view){
       if (act === 'priority') t.priority = value;
       if (act === 'move') moveTo(t, value);
     }
-    render(); touch();
+    commit();
     feedback(`已处理 ${sel.length} 项`, restore);
   }
   function moveTo(t, value){
@@ -354,7 +356,7 @@ export function createTaskPlus(view){
       if (!target || target.id === t.id) return;
       t.parentId = target.id; const kids = d.tasks.filter(x => x.parentId === target.id && x !== t); t.order = kids.length ? Math.max(...kids.map(x => x.order ?? 0)) + 10 : 10;
     }
-    pendingFocus = {row: t.id}; render(); touch();
+    pendingFocus = {row: t.id}; commit();
     feedback((outward ? '移出子任务 · ' : '作为子任务 · ') + t.title, restore);
   }
   function key(e){
@@ -395,10 +397,10 @@ export function createTaskPlus(view){
     else if (e.key === ' ' || (mod && e.key === 'Enter')) { if (targets.length > 1) batch('done'); else complete(targets[0].id); stop(e); }
     else if (e.key === 'Delete' || (e.key === 'Backspace' && mod)) { remove(targets.map(t => t.id)); stop(e); }
     else if (e.key === 'Enter' && targets.length === 1 && inList) { focusBody(targets[0].id); stop(e); }
-    else if (e.altKey && /^[1-4]$/.test(e.key)) { const v = ['low', 'medium', 'high', 'highest'][Number(e.key) - 1]; const restore = snapshot(targets, FIELDS); targets.forEach(t => { t.priority = v; }); render(); touch(); feedback('优先级' + PRIORITIES.find(p => p[0] === v)[1], restore); stop(e); }
+    else if (e.altKey && /^[1-4]$/.test(e.key)) { const v = ['low', 'medium', 'high', 'highest'][Number(e.key) - 1]; const restore = snapshot(targets, FIELDS); targets.forEach(t => { t.priority = v; }); commit(); feedback('优先级' + PRIORITIES.find(p => p[0] === v)[1], restore); stop(e); }
     else if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && targets.length === 1) { indent(targets[0], e.key === 'ArrowLeft'); stop(e); }
     else if (e.key === 'n' && !mod && !e.altKey) { const input = root.querySelector('#cargo-task-input'); if (input) input.focus(); else root.querySelector('#tasks [data-p2="task-compose"]')?.click(); stop(e); }
-    else if (e.key === 'p' && !mod && !e.altKey) { const restore = snapshot(targets, FIELDS); const on = !targets.every(t => t.pinned); targets.forEach(t => { t.pinned = on || undefined; }); render(); touch(); feedback(on ? '已置顶' : '取消置顶', restore); stop(e); }
+    else if (e.key === 'p' && !mod && !e.altKey) { const restore = snapshot(targets, FIELDS); const on = !targets.every(t => t.pinned); targets.forEach(t => { t.pinned = on || undefined; }); commit(); feedback(on ? '已置顶' : '取消置顶', restore); stop(e); }
   }
   const stop = e => { e.preventDefault(); e.stopImmediatePropagation(); };
   const caretEnd = el => { if ('value' in el && el.setSelectionRange) { const n = el.value.length; try { el.setSelectionRange(n, n); } catch {} } else if (el.isContentEditable) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } };
@@ -463,7 +465,7 @@ export function createTaskPlus(view){
     const before = {...d.ui.taskFilter};
     d.lists.push({id: title, title, archived: false}); navAdd = null;
     d.ui.taskFilter = {kind: 'list', id: title}; d.ui.taskArchive = false;
-    render(); touch();
+    commit();
     feedback('新建清单 · ' + title, () => { const n = data(); if (n.tasks.some(t => t.listId === title)) return; n.lists = n.lists.filter(l => l.id !== title); if (n.ui.taskFilter.kind === 'list' && n.ui.taskFilter.id === title) n.ui.taskFilter = before; });
   }
   function openRename(listId, anchor){
@@ -487,14 +489,14 @@ export function createTaskPlus(view){
     list.id = title; list.title = title; for (const t of moved) t.listId = title;
     for (const v of d.savedViews) if (v.filter?.kind === 'list' && v.filter.id === old) v.filter.id = title;
     if (d.ui.taskFilter.kind === 'list' && d.ui.taskFilter.id === old) d.ui.taskFilter = {kind: 'list', id: title};
-    closeRename(false); render(); touch();
+    closeRename(false); commit();
     feedback(`清单改名 · ${old} → ${title}`, undo);
   }
   function toggleArchive(){
     const d = data(), list = d.lists.find(l => l.id === rename?.id); if (!list) return;
     const before = list.archived; list.archived = !list.archived;
     if (list.archived && d.ui.taskFilter.kind === 'list' && d.ui.taskFilter.id === list.id) d.ui.taskFilter = {kind: 'all'};
-    closeRename(false); render(); touch();
+    closeRename(false); commit();
     const name = list.title; feedback((list.archived ? '已归档清单 · ' : '已取出清单 · ') + name, () => { const l = data().lists.find(x => x.id === name); if (l) l.archived = before; });
   }
 
@@ -520,15 +522,15 @@ export function createTaskPlus(view){
     const t = get(el.dataset.tpTitle); if (!t) return;
     const text = el.textContent.replace(/\s+/g, ' ').trim(); drafts.delete('title|' + t.id);
     if (toBody) pendingFocus = t.mode === 'checklist' ? {selector: `[data-tp-input="check"][data-id="${CSS.escape(t.id)}"]`} : {body: t.id};
-    if (text && text !== t.title) { const restore = snapshot([t], FIELDS); t.title = text; render(); touch(); feedback('改名 · ' + text, restore); }
+    if (text && text !== t.title) { const restore = snapshot([t], FIELDS); t.title = text; commit(); feedback('改名 · ' + text, restore); }
     else { if (!text) el.textContent = t.title; if (toBody) render(); }
   }
   // 检查项模式：描述和每一条都直接改；回车在下面加一条，空行退格删掉
   function editChecklist(id, fn){ const t = get(id); if (!t) return null; const {desc, items} = splitChecklist(t.markdown ?? t.description); const r = fn(items, desc); setBody(t, joinChecklist(r?.desc ?? desc, items)); return t; }
   function itemKey(e, input){
     const id = input.dataset.id, i = Number(input.dataset.tpItem);
-    if (e.key === 'Enter') { stop(e); editChecklist(id, items => { items.splice(i + 1, 0, {done: false, text: ''}); }); pendingFocus = {selector: `[data-tp-item="${i + 1}"][data-id="${CSS.escape(id)}"]`}; render(); touch(); return true; }
-    if (e.key === 'Backspace' && !input.value) { stop(e); editChecklist(id, items => { items.splice(i, 1); }); pendingFocus = {selector: i > 0 ? `[data-tp-item="${i - 1}"][data-id="${CSS.escape(id)}"]` : `[data-tp-desc="${CSS.escape(id)}"]`}; render(); touch(); return true; }
+    if (e.key === 'Enter') { stop(e); editChecklist(id, items => { items.splice(i + 1, 0, {done: false, text: ''}); }); pendingFocus = {selector: `[data-tp-item="${i + 1}"][data-id="${CSS.escape(id)}"]`}; commit(); return true; }
+    if (e.key === 'Backspace' && !input.value) { stop(e); editChecklist(id, items => { items.splice(i, 1); }); pendingFocus = {selector: i > 0 ? `[data-tp-item="${i - 1}"][data-id="${CSS.escape(id)}"]` : `[data-tp-desc="${CSS.escape(id)}"]`}; commit(); return true; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { stop(e); const next = root.querySelector(`#tasks [data-tp-item="${i + (e.key === 'ArrowDown' ? 1 : -1)}"][data-id="${CSS.escape(id)}"]`) || (e.key === 'ArrowDown' ? root.querySelector(`#tasks [data-tp-input="check"][data-id="${CSS.escape(id)}"]`) : null); next?.focus(); return true; }
     return false;
   }
@@ -664,7 +666,7 @@ export function createTaskPlus(view){
       siblings.splice(Math.max(0, at), 0, ...moving);
       siblings.forEach((t, i) => { t.order = (i + 1) * 10; });
       d.ui.taskDetail = moving[0].id; pendingFocus = {row: moving[0].id};
-      render(); touch();
+      commit();
       feedback(child ? `作为「${target.title}」的子任务` : `已移动 · ${moving.length > 1 ? moving.length + ' 项' : moving[0].title}`, restore);
       return;
     }
@@ -676,7 +678,7 @@ export function createTaskPlus(view){
     e.preventDefault(); e.stopImmediatePropagation(); d.ui.drag2 = null; cleanupDrag();
     const restore = snapshot(moving, FIELDS);
     for (const t of moving) moveTo(t, value);
-    render(); touch();
+    commit();
     const what = moving.length > 1 ? `${moving.length} 项` : moving[0].title;
     if (value.startsWith('project:')) { feedback(`已归入项目「${d.projects.find(p => p.id === value.slice(8))?.title || ''}」 · ${moving.length > 1 ? moving.length + ' 项' : moving[0].title}`, restore); return; }
     feedback(({'done:': '已完成 · ', 'date:none': '移出计划 · ', 'pin:': '已置顶 · ', 'cancel:': '已放弃 · '})[value] ? ({'done:': '已完成 · ', 'date:none': '移出计划 · ', 'pin:': '已置顶 · ', 'cancel:': '已放弃 · '})[value] + what : '已移动 · ' + what, restore, value === 'done:' ? 'check' : null);
@@ -825,12 +827,12 @@ export function createTaskPlus(view){
   function menuAct(button){
     const d = data(), act = button.dataset.tm, v = button.dataset.value, tasks = menu.ids.map(get).filter(Boolean), one = tasks[0];
     // 标签：点了不收起，接着勾别的
-    if (act === 'tagtoggle' && one) { const restore = snapshot([one], FIELDS), on = !one.tags?.includes(v); one.tags = on ? [...(one.tags || []), v] : (one.tags || []).filter(x => x !== v); menu.focus = `[data-tm="tagtoggle"][data-value="${CSS.escape(v)}"]`; render(); touch(); feedback((on ? '加上标签 #' : '去掉标签 #') + v, restore); return; }
+    if (act === 'tagtoggle' && one) { const restore = snapshot([one], FIELDS), on = !one.tags?.includes(v); one.tags = on ? [...(one.tags || []), v] : (one.tags || []).filter(x => x !== v); menu.focus = `[data-tm="tagtoggle"][data-value="${CSS.escape(v)}"]`; commit(); feedback((on ? '加上标签 #' : '去掉标签 #') + v, restore); return; }
     const fromSheet = menu.kind !== 'row';
     closeMenu(false);
     if (!tasks.length) return;
     if (act === 'child' && fromSheet) { want.child = one.id; pendingFocus = {selector: `[data-tp-input="child"][data-id="${CSS.escape(one.id)}"]`}; render(); return; }
-    if (act === 'project') { const restore = snapshot(tasks, FIELDS), p = d.projects.find(x => x.id === v); for (const t of tasks) { t.projectId = p?.id || null; t.project = p?.title; } render(); touch(); feedback(p ? '关联项目 · ' + p.title : '不再关联项目 · ' + one.title, restore); return; }
+    if (act === 'project') { const restore = snapshot(tasks, FIELDS), p = d.projects.find(x => x.id === v); for (const t of tasks) { t.projectId = p?.id || null; t.project = p?.title; } commit(); feedback(p ? '关联项目 · ' + p.title : '不再关联项目 · ' + one.title, restore); return; }
     if (act === 'date' && v === 'other') { d.ui.taskDetail = one.id; d.ui.taskDate = one.id; d.cache.taskScrollRequest = one.id; render(); root.querySelector('#tasks .cargo-date-editor input')?.focus(); return; }
     if (act === 'child') { d.ui.taskDetail = one.id; d.ui.taskSelection = null; want.child = one.id; pendingFocus = {selector: `[data-tp-input="child"][data-id="${CSS.escape(one.id)}"]`}; render(); return; }
     if (act === 'delete') { remove(tasks.map(t => t.id)); return; }
@@ -847,12 +849,12 @@ export function createTaskPlus(view){
     else if (act === 'discuss' && v.startsWith('person:') && tasks.every(t => t.discuss && t.peopleIds?.includes(v.slice(7)))) { const pid = v.slice(7); for (const t of tasks) { t.peopleIds = t.peopleIds.filter(x => x !== pid); if (!t.peopleIds.length) t.discuss = false; } message = '不再待沟通 · ' + (d.people.find(p => p.id === pid)?.name || ''); } // 0.9：已勾上的再点一次就去掉
     else if (act === 'move' || act === 'discuss') { for (const t of tasks) moveTo(t, v); const name = v.startsWith('list:') ? v.slice(5) : v.startsWith('person:') ? d.people.find(p => p.id === v.slice(7))?.name : '收件箱'; message = (act === 'move' ? '已移到 ' : '待沟通 · ') + name; }
     d.cache.taskScrollRequest = one.id;
-    render(); touch();
+    commit();
     feedback(message, restore);
   }
   function addTag(raw){
     const tag = String(raw || '').trim().replace(/^#/, '').replace(/\s+/g, ''), t = menu && get(menu.anchor); if (!tag || !t) return;
-    if (!t.tags?.includes(tag)) { const restore = snapshot([t], FIELDS); t.tags = [...(t.tags || []), tag]; menu.focus = '[data-tm-input="tag"]'; render(); touch(); feedback('加上标签 #' + tag, restore); }
+    if (!t.tags?.includes(tag)) { const restore = snapshot([t], FIELDS); t.tags = [...(t.tags || []), tag]; menu.focus = '[data-tm-input="tag"]'; commit(); feedback('加上标签 #' + tag, restore); }
   }
   function filterMenu(input){
     const q = input.value.trim().toLowerCase(), box = input.closest('.task-ctx');

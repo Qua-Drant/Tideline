@@ -95,6 +95,19 @@ export function createPersist(writer: Writer){
   return {
     // 模型刚从笔记建好时调用：以此为准
     reset(d: Model){ last = capture(d); },
+    // 模型里有没有还没写回的改动（与上次快照逐项比较：条目、标题、属性、正文、配置、季度）。按索引重建模型之前用它判断会不会冲掉刚做的修改
+    // hold：撤销期内删掉的条目（快照里留着、模型里已经拿掉）不算改动
+    pending(d: Model, {hold}: {hold?: Set<string>} = {}): boolean{
+      if (!last) return false;
+      const now = capture(d);
+      if (now.config !== last.config || now.quarter !== last.quarter) return true;
+      for (const kind of Object.keys(specs(d)) as EntityKind[]) {
+        const a = now[kind], b = last[kind];
+        for (const [id, x] of a) { const y = b.get(id); if (!y || y.title !== x.title || y.fm !== x.fm || y.body !== x.body) return true; }
+        for (const id of b.keys()) if (!a.has(id) && !hold?.has(id)) return true;
+      }
+      return false;
+    },
     // 每次操作之后调用：把变化写回笔记。返回写了几处
     // 删除只认 d.trash 里登记过的 id（P2-10，trash.ts）
     // hold：刚删掉、撤销纸条还在的 id。它们先不进回收站，快照里也留着，纸条消失后下一次 commit 再删

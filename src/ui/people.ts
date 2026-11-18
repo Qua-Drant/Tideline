@@ -11,8 +11,8 @@
 // 第 3d 期：转 TypeScript。邮包、人物纸、见面纸、项目的相关人员都还嵌在任务页 / 项目页的 HTML 模板里（paper-tasks.js、paper-projects.js 还没改），
 // 这几处的字符串版原样保留；只有纸条搜索时换下的那一段（可选的人）改成节点版，不再借一个临时元素解析 HTML。
 // 第 3e 期：货舱模板（paper-tasks.ts）转成节点构建，邮包、名单纸条、人物纸、见面纸改成节点版，字符串版删去；
-// 项目页的相关人员（projectPeople 与它的名单纸条 picker）还嵌在 paper-projects.js 的模板里，字符串版原样保留。
-import {esc, icon, circle, iconEl, circleEl, inkEl, TICK} from '../draw/ink.ts';
+// 项目页的相关人员（projectPeople 与它的名单纸条）第 4a 期起也是节点版（项目页改成节点构建），字符串版 picker / initialMark 删去。
+import {iconEl, circleEl, inkEl, TICK} from '../draw/ink.ts';
 import {h, svg, replaceWithNodes} from '../draw/dom.ts';
 import {dayText} from './day-text.ts';
 import {HOST} from '../host.ts';
@@ -47,8 +47,7 @@ const cleanName = (v: string | null | undefined) => String(v || '').replace(/[\\
 const cadenceText = (n: number) => CADENCE.find(c => c[0] === n)?.[1] || `每 ${n} 天`;
 // 输入横线下的墨线（节点版，每次新建）
 const underlineEl = () => svg('svg', {viewBox: '0 0 160 6', preserveAspectRatio: 'none', 'aria-hidden': 'true'}, inkEl([[0, 4], [80, 3.6], [160, 4]], .9, TICK));
-const initialMark = (p: {initial?: string; name: string}) => `<span class="person-initial">${`<svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">${circle(14, 14, 12, 1.2)}</svg>`}<span>${esc(p.initial || p.name.slice(0, 1))}</span></span>`;
-// 节点版（纸条搜索时换下的那一段用）
+// 人名首字的圆圈（第 4a 期：项目页也改成节点构建，字符串版 initialMark 删去）
 const initialMarkEl = (p: ModelPerson) => h('span', {class: 'person-initial'}, svg('svg', {viewBox: '0 0 28 28', width: 28, height: 28, 'aria-hidden': 'true'}, circleEl(14, 14, 12, 1.2)), h('span', null, p.initial || p.name.slice(0, 1)));
 
 export function createPeople(view: CompassView){
@@ -100,25 +99,18 @@ export function createPeople(view: CompassView){
     const name = cleanName(q), create = name && !d.people.some(p => p.name === name) ? name : '';
     return {people, create};
   }
-  function picker(d: Model, where: string, project: ModelProject | null = null){
-    const ui = uiOf(d), {people, create: name} = pickerItems(d, project);
-    const items = people.map(({p, due, n}) => `<button type="button" role="option" data-person-pick="${esc(p.id)}">${initialMark(p)}<span>${esc(p.name)}</span>${due?.over ? '<small class="overdue">该联系了</small>' : n ? `<small>${n} 件</small>` : ''}</button>`);
-    const create = name ? `<button type="button" role="option" data-person-pick-new="${esc(name)}">${icon('plus', 15)}<span>新建人物“${esc(name)}”</span></button>` : '';
-    const label = ui.personPick?.tasks ? `交给谁（${ui.personPick.tasks.length} 项）` : project ? '关联人物' : '挑一个人';
-    return `<div class="goal-pick person-pick ${where === 'cargo' ? 'person-pop' : ''} hand-popup" role="listbox" aria-label="${label}"><label class="goal-pick-search">${icon('search', 15)}<input data-person-pick-query value="${esc(ui.personPickQuery || '')}" placeholder="搜索或新建人物" aria-label="${label}：搜索或新建人物" autocomplete="off"></label><div class="goal-pick-items">${items.join('') + create || '<p>没有别的人物</p>'}</div></div>`;
-  }
   function pickerItemsEl(d: Model, project: ModelProject | null){
     const {people, create} = pickerItems(d, project);
     const items = people.map(({p, due, n}) => h('button', {type: 'button', role: 'option', 'data-person-pick': p.id}, initialMarkEl(p), h('span', null, p.name), due?.over ? h('small', {class: 'overdue'}, '该联系了') : n ? h('small', null, `${n} 件`) : null));
     return h('div', {class: 'goal-pick-items'}, items.length || create ? [items, create ? h('button', {type: 'button', role: 'option', 'data-person-pick-new': create}, iconEl('plus', 15), h('span', null, `新建人物“${create}”`)) : null] : h('p', null, '没有别的人物'));
   }
 
-  // 货舱顶上的名单纸条（节点版；项目页的还嵌在项目页模板里，用上面的字符串版 picker）
-  function pickerEl(d: Model){
-    const ui = uiOf(d), label = ui.personPick?.tasks ? `交给谁（${ui.personPick.tasks.length} 项）` : '挑一个人';
-    return h('div', {class: 'goal-pick person-pick person-pop hand-popup', role: 'listbox', 'aria-label': label},
+  // 名单纸条：货舱顶上的（where = 'cargo'）与项目详情里的（'project'，第 4a 期起也是节点版；class 中间的两个空格照原来的模板）
+  function pickerEl(d: Model, where = 'cargo', project: ModelProject | null = null){
+    const ui = uiOf(d), label = ui.personPick?.tasks ? `交给谁（${ui.personPick.tasks.length} 项）` : project ? '关联人物' : '挑一个人';
+    return h('div', {class: `goal-pick person-pick ${where === 'cargo' ? 'person-pop' : ''} hand-popup`, role: 'listbox', 'aria-label': label},
       h('label', {class: 'goal-pick-search'}, iconEl('search', 15), h('input', {'data-person-pick-query': true, value: ui.personPickQuery || '', placeholder: '搜索或新建人物', 'aria-label': `${label}：搜索或新建人物`, autocomplete: 'off'})),
-      pickerItemsEl(d, null));
+      pickerItemsEl(d, project));
   }
 
   // —— 人物纸（任务页右栏，筛选到这个人时）——
@@ -166,9 +158,9 @@ export function createPeople(view: CompassView){
   // —— 项目详情：相关人员的 × 与 + ——
   HOST.projectPeople = (p, d, B) => {
     const ui = uiOf(d);
-    const chips = (p.peopleIds || []).map(id => { const who = d.people.find(x => x.id === id); if (!who) return '';
-      return `<span class="pd-goal pd-person">${B('open-object', id, `${initialMark(who)}<span>${esc(who.name)}</span>`, '打开 ' + who.name + ' 的人物纸', 'data-kind="person" class="project-person"')}<button type="button" class="pd-person-x" data-pperson-unlink="${esc(id)}" data-project="${esc(p.id)}" aria-label="不再关联 ${esc(who.name)}">×</button></span>`; }).join('');
-    return chips + `<span class="pd-person-add-wrap"><button type="button" class="pd-person-add" data-pperson-add="${esc(p.id)}" aria-expanded="${ui.personPickProject === p.id}" aria-label="关联人物">${icon('plus', 15)}</button>${ui.personPickProject === p.id ? picker(d, 'project', p) : ''}</span>`;
+    const chips = (p.peopleIds || []).map(id => { const who = d.people.find(x => x.id === id); if (!who) return null;
+      return h('span', {class: 'pd-goal pd-person'}, B('open-object', id, [initialMarkEl(who), h('span', null, who.name)], '打开 ' + who.name + ' 的人物纸', {'data-kind': 'person', class: 'project-person'}), h('button', {type: 'button', class: 'pd-person-x', 'data-pperson-unlink': id, 'data-project': p.id, 'aria-label': '不再关联 ' + who.name}, '×')); });
+    return [chips, h('span', {class: 'pd-person-add-wrap'}, h('button', {type: 'button', class: 'pd-person-add', 'data-pperson-add': p.id, 'aria-expanded': String(ui.personPickProject === p.id), 'aria-label': '关联人物'}, iconEl('plus', 15)), ui.personPickProject === p.id ? pickerEl(d, 'project', p) : null)];
   };
 
   // —— 改动 ——

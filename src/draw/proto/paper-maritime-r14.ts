@@ -3,6 +3,7 @@
 // 字符串版（页面模板还在用：复盘页的小画、项目页的卷筒）与描述版（…V，风景用，见 scene.ts）都从同一列 op 出，字符串版与原来逐字相同。
 // 第 3b2 期：云的字符串版只有已删的旧版海图（r14）用，删去，只留描述版。
 // 远岸、完成态的海景、灯塔光束、海鸟只在风景里用，只有描述版。
+// 第 4a 期：复盘页的小画、项目页的卷筒改成描述版，字符串版（tower / house / rock / plant / E）没有调用方，删去；现在只有描述版。
 import type {Point} from '../ink.ts';
 import type {Attrs} from '../dom.ts';
 import {sh, parts} from '../scene.ts';
@@ -14,6 +15,7 @@ export type Pen = (points: Point[], size?: number, color?: string, attrs?: strin
 export type PenV = (points: Point[], size?: number, color?: string, attrs?: Attrs | null) => Shape | null;
 /** 画笔：ink 是直线笔（L），curve 是曲线笔（C，没有时用 ink）；…V 是对应的描述版；drawV 是带 data-draw-path 的笔（完成态海景用，没有时用 inkV） */
 export interface MaritimePens {
+  /** 字符串画笔：第 4a 期起不再读（调用方 pages/lower.js、r12 还会传，忽略） */
   ink?: Pen; curve?: Pen;
   inkV?: PenV; curveV?: PenV; drawV?: PenV;
 }
@@ -34,24 +36,17 @@ const cloudOps = (col: string): Op[] => [['C', CLOUD_TOP, .8, col], ['C', [[5, 1
 const ellipsePoints = (x: number, y: number, rx: number, ry: number): Point[] => Array.from({length: 49}, (_, i): Point => [x + Math.cos(i * Math.PI / 24) * rx, y + Math.sin(i * Math.PI / 24) * ry]);
 
 export function maritimeArt(a: MaritimePens){
- // 字符串版与描述版的画笔都只在用到时取：只画字符串的使用者不必给描述版画笔，反之亦然
- const L: Pen = (...x) => (a.ink ?? missing('ink'))(...x), C: Pen = (...x) => (a.curve || a.ink || missing('ink'))(...x);
+ // 描述版画笔只在用到时取（第 4a 期：字符串版全部删去，a.ink / a.curve 不再读）
  const LV: PenV = (...x) => (a.inkV ?? missing('inkV'))(...x), CV: PenV = (...x) => (a.curveV ?? a.inkV ?? missing('inkV'))(...x);
- const str = (ops: Op[]) => { let s = ''; for (const op of ops) s += op[0] === 'F' ? `<path d="${fillD(op[1])}" fill="${P}"/>` : (op[0] === 'L' ? L : C)(op[1], op[2], op[3]); return s; };
  const shapes = (ops: Op[]): Parts[] => ops.map(op => op[0] === 'F' ? sh('path', {d: fillD(op[1]), fill: P}) : (op[0] === 'L' ? LV : CV)(op[1], op[2], op[3]));
  const at = (x: number, y: number, k: number) => `translate(${x} ${y}) scale(${k})`;
  const F = (p: Point[]) => sh('path', {d: fillD(p), fill: P});
- // —— 字符串版与描述版共用一列 op ——
- const E = (x: number, y: number, rx: number, ry: number, size = 1, col = I) => C(ellipsePoints(x, y, rx, ry), size, col);
+ // —— 描述版（每种物件是一列 op）——
  const EV = (x: number, y: number, rx: number, ry: number, size = 1, col = I) => CV(ellipsePoints(x, y, rx, ry), size, col);
  const cloudV = (x: number, y: number, k = 1, col = T) => sh('g', {transform: at(x, y, k)}, shapes(cloudOps(col)));
- const tower = (x: number, y: number, k = 1) => `<g transform="${at(x, y, k)}">${str(TOWER)}</g>`;
  const towerV = (x: number, y: number, k = 1) => sh('g', {transform: at(x, y, k)}, shapes(TOWER));
- const house = (x: number, y: number, k = 1) => `<g transform="${at(x, y, k)}">${str(HOUSE)}</g>`;
  const houseV = (x: number, y: number, k = 1) => sh('g', {transform: at(x, y, k)}, shapes(HOUSE));
- const rock = (x: number, y: number, k = 1) => `<g transform="${at(x, y, k)}">${str(ROCK)}</g>`;
  const rockV = (x: number, y: number, k = 1) => sh('g', {transform: at(x, y, k)}, shapes(ROCK));
- const plant = (x: number, y: number, k = 1) => `<g transform="${at(x, y, k)}">${str(PLANT)}</g>`;
  const plantV = (x: number, y: number, k = 1) => sh('g', {transform: at(x, y, k)}, shapes(PLANT));
  // —— 只在风景里用（描述版） ——
  function birdV(x: number, y: number, k = 1){return sh('g', {'data-seabird': true, transform: `translate(${x} ${y - 3}) scale(${k})`},
@@ -82,6 +77,6 @@ export function maritimeArt(a: MaritimePens){
    sh('stop', {offset: '0', 'stop-color': '#FFF4C9', 'stop-opacity': night ? .75 : .65}), sh('stop', {offset: '.3', 'stop-color': '#FFF5D4', 'stop-opacity': night ? .31 : .3}), sh('stop', {offset: '1', 'stop-color': '#FFF9E8', 'stop-opacity': '0'}))); }
   for (const side of [-1, 1]) { const end = side < 0 ? x - Math.min(440, w * .4) : w + 34; paths.push(sh('path', {'data-lens-beam': true, 'data-beam-side': side, d: `M${x},${y - 2} L${end},${y + 12} Q${end + side * 8},${y + 39} ${end},${y + 70} L${x},${y + 3}Z`, fill: `url(#r15-lens-${side})`})); }
   return parts(sh('defs', null, defs), paths);}
- return {tower, house, rock, plant, E, cloudV, towerV, houseV, rockV, plantV, birdV, leftCoastV, completedV, beamV};
+ return {EV, cloudV, towerV, houseV, rockV, plantV, birdV, leftCoastV, completedV, beamV};
 }
 function missing(name: string): never { throw new Error('maritimeArt：画风景要给描述版画笔 ' + name); }

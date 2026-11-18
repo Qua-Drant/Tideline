@@ -14,7 +14,7 @@ import {h, setNodes, insertNodes} from './draw/dom.ts';
 import {sameParts, buildParts} from './draw/scene.ts';
 import type {Part} from './draw/scene.ts';
 import {createR12Art} from './draw/proto/paper-r12-art.ts';
-import {createHandFont} from './draw/proto/paper-handfont-r28.js';
+import {createHandFont} from './draw/proto/paper-handfont-r28.ts';
 import {createMore} from './ui/more.ts';
 import {createFocusGuard} from './ui/focus-guard.ts';
 import {createEmptyStates} from './ui/empty-states.ts';
@@ -37,7 +37,7 @@ import type {Index} from './data/index.ts';
 import {changesSince} from './changes.ts';
 import './draw/proto/paper-transition-r37.js';
 import {wrapAmbient} from './ui/ambient.ts';
-import './draw/proto/paper-help-r39.js'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37）：装上 HOST.transition
+import './draw/proto/paper-help-r39.ts'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37）：装上 HOST.transition
 import type CompassPlugin from './main.ts';
 import type {DayView, Model} from './data/types.ts';
 import type {ChangeEntry} from './plugin-types.ts';

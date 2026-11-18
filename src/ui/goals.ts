@@ -5,13 +5,13 @@
 //   项目页 › 项目详情 › 关联目标：标签后面有 ×，末尾 + 打开可搜索的目标纸条（没有同名的就“新建目标”）。
 //   项目页点目标：回到规划并打开它的详情纸，那一格闪一下。
 // 关联只写在项目笔记的 goals 里（目标笔记不存项目），改动都在 d 上，由 persist.js 写回。
-// 第 3d 期：转 TypeScript；思索页里的一排与详情纸改成 DOM 构建（draw/dom.ts）。项目页的关联目标（HOST.projectGoalChips）还嵌在
-// 项目页的 HTML 模板里（paper-projects.js 还没改），那条路径的字符串版（picker、flag）原样保留；纸条搜索时换下的那一段改成节点版。
-import {esc, icon, ink, iconEl, inkEl, smearProgressEl, TICK} from '../draw/ink.ts';
+// 第 3d 期：转 TypeScript；思索页里的一排与详情纸改成 DOM 构建（draw/dom.ts）。
+// 第 4a 期：项目页改成节点构建，项目详情的关联目标（HOST.projectGoalChips）也返回节点，字符串版（picker、flag）删去。
+import {iconEl, inkEl, smearProgressEl, TICK} from '../draw/ink.ts';
 import {h, svg, setNodes, insertNodes, replaceWithNodes} from '../draw/dom.ts';
 import type {Child} from '../draw/dom.ts';
 import {HOST} from '../host.ts';
-import type {ProtoButton} from '../host.ts';
+import type {ProtoButtonEl} from '../host.ts';
 import {markDeleted, restoreDeleted} from '../data/trash.ts';
 import type {Model, ModelGoal, ModelProject, UIState} from '../data/types.ts';
 import type {CompassView} from '../view.ts';
@@ -33,7 +33,6 @@ const validDate = (v: string | null | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(v
 const STATUS: [string, string][] = [['active', '进行中'], ['paused', '暂停'], ['done', '达成']];
 const hours = (n: number) => (Math.round(n * 100) / 100) + 'h';
 // 手绘的小勾与小旗（达成、截止）
-const flag = `<svg class="goal-flag" viewBox="0 0 14 14" aria-hidden="true">${ink([[3, 13], [3, 1.5]], 1.2)}${ink([[3, 2], [11, 3.6], [3, 7.2]], 1.1)}</svg>`; // 字符串版：项目页的目标纸条用
 const tickEl = () => svg('svg', {class: 'goal-tick', viewBox: '0 0 16 16', 'aria-hidden': 'true'}, inkEl([[3, 8.5], [6.5, 12], [13, 4]], 1.5));
 const flagEl = () => svg('svg', {class: 'goal-flag', viewBox: '0 0 14 14', 'aria-hidden': 'true'}, inkEl([[3, 13], [3, 1.5]], 1.2), inkEl([[3, 2], [11, 3.6], [3, 7.2]], 1.1));
 const underlineEl = () => svg('svg', {viewBox: '0 0 160 6', preserveAspectRatio: 'none', 'aria-hidden': 'true'}, inkEl([[0, 4], [80, 3.6], [160, 4]], .9, TICK));
@@ -89,15 +88,7 @@ export function createGoals({core, view, render}: {core: GoalsCore; view: Compas
         return h('button', {type: 'button', 'data-goal-day': date, 'aria-label': date, 'aria-pressed': String(date === value), 'aria-current': date === today() ? 'date' : null}, i + 1); })),
       h('div', {class: 'goal-cal-foot'}, h('button', {type: 'button', 'data-goal-day': today()}, '今天'), value ? h('button', {type: 'button', 'data-goal-day': ''}, kind === 'due' ? '不设截止' : '不定日期') : null));
   }
-  // 挑选纸条（kind: 'project' 给目标挑项目，'goal' 给项目挑目标）。字符串版给项目页的模板（HOST.projectGoalChips）用，与原来逐字相同
-  function picker(kind: string, g: Holder){
-    const q = (ui.goalPickQuery || '').trim(), has = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
-    const items = kind === 'project'
-      ? d.projects.filter(p => !(p.goalIds || []).includes(g.id!) && has(p.title)).sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done')).map(p => `<button type="button" role="option" data-goal-pick="${esc(p.id)}">${icon('route', 15)}<span>${esc(p.title)}</span>${p.status === 'done' ? '<small>已完成</small>' : ''}</button>`)
-      : d.goals.filter(x => !(g.goalIds || []).includes(x.id) && has(x.title)).map(x => `<button type="button" role="option" data-goal-pick="${esc(x.id)}">${flag}<span>${esc(x.title)}</span>${x.status === 'done' ? '<small>已达成</small>' : ''}</button>`);
-    const create = kind === 'goal' && q && !d.goals.some(x => x.title === q) ? `<button type="button" role="option" data-goal-pick-new="${esc(q)}">${icon('plus', 15)}<span>新建目标“${esc(q)}”</span></button>` : '';
-    return `<div class="goal-pick hand-popup" role="listbox" aria-label="${kind === 'project' ? '关联项目' : '关联目标'}"><label class="goal-pick-search">${icon('search', 15)}<input data-goal-pick-query value="${esc(ui.goalPickQuery || '')}" placeholder="${kind === 'project' ? '搜索项目' : '搜索或新建目标'}" aria-label="${kind === 'project' ? '搜索项目' : '搜索或新建目标'}" autocomplete="off"></label><div class="goal-pick-items">${items.join('') + create || `<p>${kind === 'project' ? '没有可关联的项目' : '没有可关联的目标'}</p>`}</div></div>`;
-  }
+  // 挑选纸条（kind: 'project' 给目标挑项目，'goal' 给项目挑目标）。第 4a 期：项目页改成节点构建，字符串版 picker 删去
   // 节点版：可选的条目（.goal-pick-items）
   function pickerItemsEl(kind: string, g: Holder){
     const q = (ui.goalPickQuery || '').trim(), has = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
@@ -217,11 +208,12 @@ export function createGoals({core, view, render}: {core: GoalsCore; view: Compas
     if (onThoughtClick(b)) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
 
-  // —— 项目详情：关联目标的 × 与 + ——（项目页的模板还是字符串，这里给它字符串）
-  HOST.projectGoalChips = (p: ModelProject, dd: Model, B: ProtoButton) => {
+  // —— 项目详情：关联目标的 × 与 + ——（第 4a 期：项目页改成节点构建，这里返回节点）
+  HOST.projectGoalChips = (p: ModelProject, dd: Model, B: ProtoButtonEl) => {
     const pui = dd.ui as UIState & GoalUI;
-    const chips = (p.goalIds || []).map(id => { const g = dd.goals.find(x => x.id === id); if (!g) return ''; return `<span class="pd-goal">${B('open-object', id, esc(g.title), g.title, 'data-kind="goal" class="pd-chip"')}<button type="button" class="pd-goal-x" data-pgoal-unlink="${esc(id)}" data-project="${esc(p.id)}" aria-label="取消关联 ${esc(g.title)}">×</button></span>`; }).join('');
-    return chips + `<span class="pd-goal-add-wrap"><button type="button" class="pd-goal-add" data-pgoal-add="${esc(p.id)}" aria-expanded="${pui.goalPickProject === p.id}" aria-label="关联目标">${icon('plus', 15)}</button>${pui.goalPickProject === p.id ? picker('goal', p) : ''}</span>`;
+    const chips = (p.goalIds || []).map(id => { const g = dd.goals.find(x => x.id === id); if (!g) return null;
+      return h('span', {class: 'pd-goal'}, B('open-object', id, g.title, g.title, {'data-kind': 'goal', class: 'pd-chip'}), h('button', {type: 'button', class: 'pd-goal-x', 'data-pgoal-unlink': id, 'data-project': p.id, 'aria-label': '取消关联 ' + g.title}, '×')); });
+    return [chips, h('span', {class: 'pd-goal-add-wrap'}, h('button', {type: 'button', class: 'pd-goal-add', 'data-pgoal-add': p.id, 'aria-expanded': String(pui.goalPickProject === p.id), 'aria-label': '关联目标'}, iconEl('plus', 15)), pui.goalPickProject === p.id ? pickerEl('goal', p) : null)];
   };
   const projectRerender = (focusQuery = false) => { core.render(); if (focusQuery) { const q = $<HTMLInputElement>('#projects [data-goal-pick-query]'); if (q) { q.focus({preventScroll: true}); q.setSelectionRange(q.value.length, q.value.length); } } view.frames(); };
   HOST.addEventListener('click', e => {

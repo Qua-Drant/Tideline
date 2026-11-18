@@ -1,0 +1,25 @@
+import {HOST} from '../../host.ts';
+import type {Model,ModelTask} from '../../data/types.ts';
+// Rendered Markdown remains editable in place; drafts live in the shared data object.
+// 第 4a 期：转 TypeScript。原来的 html(t) / title(t) 拼出任务正文的阅读块、编辑块与标题（HTML 字符串，正文来自 paper-task-markdown 的 taskMarkdown），
+// 只给原型自己的任务详情用；插件里任务详情由 task-plus.ts 画，第 3e 期删掉那段死分支后两者都没有调用方，本期删去（taskMarkdown 一并删去）。
+// 其余（草稿、开始 / 结束编辑、按钮动作、监听）照旧保留：监听只认 [data-task-edit-*]，动作只认 task-edit*，行为不变。
+interface EditDraft {title: string; markdown: string; original: string; dirty: boolean}
+/** 本模块用到的 api（phase2.js 的 api 的一部分） */
+interface EditorApi {d: Model; update: () => void; announce?: (message: string, undo: () => void) => void}
+type EditUI=Model['ui']&{taskEdits?: Record<string,EditDraft>};
+const tgt=(e: Event)=>e.target as HTMLElement;
+export function inlineTaskEditor(a: EditorApi){
+ const{d}=a,ui=d.ui as EditUI;
+ const text=(n: Node): string=>n.nodeType===3?n.nodeValue!:[...n.childNodes].map(inline).join('');
+ function inline(n: Node): string{if(n.nodeType===3)return n.nodeValue!;if(n.nodeType!==1)return '';const el=n as Element,t=el.tagName,s=text(n);if(el.matches('button.markdown-check'))return el.getAttribute('aria-pressed')==='true'?'[x] ':'[ ] ';if(el.matches('.markdown-link'))return '[['+el.textContent+']]';if(t==='BR')return '\n';if(t==='STRONG'||t==='B')return '**'+s+'**';if(t==='EM'||t==='I')return '*'+s+'*';if(t==='DEL'||t==='S')return '~~'+s+'~~';if(t==='CODE')return '`'+s+'`';if(t==='A')return '['+s+']('+el.getAttribute('href')+')';return s;}
+ function blocks(root: Element): string{return [...root.childNodes].map(n=>{if(n.nodeType===3)return n.nodeValue!.trim();if(n.nodeType!==1)return '';const el=n as Element,t=el.tagName;if(/^H[1-6]$/.test(t))return '#'.repeat(+t[1])+' '+text(n);if(t==='UL'||t==='OL')return [...el.children].map((li,i)=>(t==='OL'?(i+1)+'. ':'- ')+[...li.childNodes].map(c=>c.nodeType===1&&/^(UL|OL)$/.test((c as Element).tagName)?'\n'+blocks(c as Element).split('\n').map(l=>'  '+l).join('\n'):inline(c)).join('').trim()).join('\n');if(t==='BLOCKQUOTE')return blocks(el).split('\n').map(l=>'> '+l).join('\n');if(t==='PRE')return '```\n'+el.textContent.replace(/\n$/,'')+'\n```';if(t==='TABLE'){const rows=[...el.querySelectorAll('tr')].map(r=>[...r.children].map(c=>text(c).replaceAll('|','\\|')));return rows.map((r,i)=>'| '+r.join(' | ')+' |'+(i===0?'\n| '+r.map(()=>'---').join(' | ')+' |':'')).join('\n');}if(t==='HR')return '---';return text(n);}).filter(Boolean).join('\n\n');}
+ function draft(t: ModelTask|undefined){return t?ui.taskEdits?.[t.id]:undefined;}
+ function start(t: ModelTask){ui.taskEdits??={};ui.taskEdits[t.id]??={title:t.title,markdown:t.markdown??t.description??'',original:t.markdown??t.description??'',dirty:false};a.update();const el=HOST.querySelector('[data-task-edit-body="'+t.id+'"]') as HTMLElement|null;el?.focus();}
+ function end(id: string,save: boolean){const t=d.tasks.find(t=>t.id===id)!,e=ui.taskEdits?.[id];if(!e)return;if(save){const before={title:t.title,markdown:t.markdown,description:t.description};t.title=e.title.trim()||t.title;t.markdown=e.markdown;t.description=e.markdown.split('\n\n')[0].replace(/^#+\s*/, '');delete ui.taskEdits![id];a.update();a.announce?.(t.title,()=>{Object.assign(t,before);a.update();});}else{delete ui.taskEdits![id];a.update();}(HOST.querySelector('[data-p2="task-edit"][data-id="'+id+'"]') as HTMLElement|null)?.focus({preventScroll:true});}
+ HOST.addEventListener('click',e=>{const el=tgt(e).closest<HTMLElement>('[data-task-edit-start]');if(el&&!tgt(e).closest('button,a'))start(d.tasks.find(t=>t.id===el.dataset.taskEditStart)!);});
+ HOST.addEventListener('input',e=>{const title=tgt(e).closest<HTMLElement>('[data-task-edit-title]'),body=tgt(e).closest<HTMLElement>('[data-task-edit-body]');if(title){draft(d.tasks.find(t=>t.id===title.dataset.taskEditTitle))!.title=title.textContent;}if(body){const edit=draft(d.tasks.find(t=>t.id===body.dataset.taskEditBody))!;edit.markdown=blocks(body);edit.dirty=true;}});
+ HOST.addEventListener('paste',e=>{if(!tgt(e).closest('[data-task-edit-body],[data-task-edit-title]'))return;e.preventDefault();(document as {execCommand(c: string,u: boolean,v: string): boolean}).execCommand('insertText',false,(e as ClipboardEvent).clipboardData!.getData('text/plain'));});
+ HOST.addEventListener('keydown',e=>{const ke=e as KeyboardEvent,el=tgt(e).closest<HTMLElement>('[data-task-edit-body],[data-task-edit-title]');if(!el)return;const id=(el.dataset.taskEditBody||el.dataset.taskEditTitle)!;if(ke.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();end(id,false);}else if((ke.ctrlKey||ke.metaKey)&&ke.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();end(id,true);}else if(el.dataset.taskEditTitle&&ke.key==='Enter'){e.preventDefault();(HOST.querySelector('[data-task-edit-body]') as HTMLElement|null)?.focus();}},true);
+ return{action(key: string,id: string){if(key==='task-edit'){start(d.tasks.find(t=>t.id===id)!);return true;}if(key==='task-edit-save'||key==='task-edit-cancel'){end(id,key==='task-edit-save');return true;}return false;}};
+}

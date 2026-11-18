@@ -1,7 +1,7 @@
 // 今日以外的七页：思索、指引，以及下方五页（任务／货舱、项目／海图、复盘、知识库、大脑）。
 // 画面与交互直接用原型的页面模块（src/draw/proto/，从原型复制并改成只作用于插件视图；当时的同步脚本没有随仓库发布，现在直接维护这些文件），
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
-import {createPhase2} from '../draw/proto/phase2.js';
+import {createPhase2} from '../draw/proto/phase2.ts';
 import {ink, circle, icon, star, esc, inkV, circleV} from '../draw/ink.ts';
 import {parts} from '../draw/scene.ts';
 import {createR12Art} from '../draw/proto/paper-r12-art.ts';

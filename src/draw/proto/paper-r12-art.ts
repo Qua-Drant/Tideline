@@ -1,15 +1,16 @@
 import {HOST} from '../../host.ts';
 import {svg} from '../dom.ts';
 import type {Attrs} from '../dom.ts';
-import {inkEl, iconEl, inkV, circleV} from '../ink.ts';
+import {inkEl, iconEl, inkV, circleV, circleEl} from '../ink.ts';
 import type {Point} from '../ink.ts';
-import {sh, parts} from '../scene.ts';
+import {sh, parts, partNodes} from '../scene.ts';
 import type {Shape, Part, Parts} from '../scene.ts';
 import {maritimeArt} from './paper-maritime-r14.ts';
 import type {Pen} from './paper-maritime-r14.ts';
 import {createGuidanceArt,GUIDANCE_H,GUIDANCE_HORIZON,GUIDANCE_FLAGS,GUIDANCE_CENTER,GUIDANCE_SPAN} from './paper-guidance-art-r19.ts';
 // 第 3b 期转成 TypeScript：风景（远岸、小船、水面、思索页的海岸与灯塔、指引页的桅杆）改为描述版（…V，见 scene.ts），字符串版删去；
 // 页面模板还在用的 L、C、symbol、flag 保留字符串版，输出与原来逐字相同。
+// 第 4a 期：指引页改成节点构建，symbol / flag 的字符串版没有调用方，删去（旗子的节点版 flagEl）；L、C 只剩 pages/lower.js 传给 maritimeArt。
 
 /** 天空的缓存：一张 1600×320 的画布与它的像素 */
 interface SkyCache { key: string; canvas: HTMLCanvasElement; width: number; height: number; pixels: Uint8ClampedArray; palette: {top: number[]; bottom: number[]; dim: number} }
@@ -24,6 +25,7 @@ export interface R12Data {
 interface R12Args {
  data: R12Data;
  ink: Pen;
+ /** 第 4a 期起不再用（symbol / flag 的字符串版删去）；调用方还会传 */
  circle: (x: number, y: number, r: number, size?: number, color?: string) => string;
  icon: (type: string, size?: number, color?: string) => string;
  esc: (s: unknown) => string;
@@ -31,7 +33,7 @@ interface R12Args {
 type Rgb = [number, number, number];
 
 export function createR12Art(a: R12Args){
- const {data:d,ink:raw,circle,icon}=a,INK='#1C2A35',PAPER='#F4F5F2',SECONDARY='#687B83',TICK='#B4C2C6',NOW='#C8206A';
+ const {data:d,ink:raw}=a,INK='#1C2A35',PAPER='#F4F5F2',SECONDARY='#687B83',TICK='#B4C2C6',NOW='#C8206A';
  // 折线按 5 个单位一段补点（L 的几何；字符串版、节点版、描述版都用它）
  const dense=(points: Point[]): Point[]=>{const p: Point[]=[];for(let i=1;i<points.length;i++){const v=points[i-1],u=points[i],n=Math.max(1,Math.ceil(Math.hypot(u[0]-v[0],u[1]-v[1])/5));for(let j=0;j<n;j++)p.push([v[0]+(u[0]-v[0])*j/n,v[1]+(u[1]-v[1])*j/n]);}p.push(points.at(-1) as Point);return p;};
  const L=(points: Point[],size=1.3,color=INK,attrs='')=>raw(dense(points),size,color,attrs);
@@ -39,17 +41,20 @@ export function createR12Art(a: R12Args){
  // 描述版画笔：与 L、C 同样的几何与默认值（raw 就是 ink.ts 的 ink，描述版直接用 inkV）
  const LV=(points: Point[],size=1.3,color=INK,attrs?: Attrs|null)=>inkV(dense(points),size,color,attrs);
  const CV=(p: Point[],size=1.2,color=INK,attrs?: Attrs|null)=>inkV(p,size,color,attrs);
- const F=(p: Point[],color=PAPER,opacity=1)=>`<path d="M${p.map(q=>q.join(',')).join('L')}Z" fill="${color}" opacity="${opacity}"/>`;
  const FV=(p: Point[],color=PAPER,opacity=1)=>sh('path',{d:`M${p.map(q=>q.join(',')).join('L')}Z`,fill:color,opacity});
  const marine=maritimeArt({ink:L,curve:C,inkV:LV,curveV:CV});
- // 第 3 期：每种符号是几笔（['L'|'C', 点, 粗细]）；symbol 输出字符串（与原来逐字相同），symbolEl 用 ink.ts 的节点版建同样的结构
+ // 第 3 期：每种符号是几笔（['L'|'C', 点, 粗细]）；（第 4a 期起只有节点版）symbolEl 用 ink.ts 的节点版建同样的结构
  type SymbolPart=['L'|'C',Point[],number];
  function symbolParts(type: string): SymbolPart[]|null{const P: SymbolPart[]=[],l=(p: Point[],w: number)=>{P.push(['L',p,w]);},c=(p: Point[],w: number)=>{P.push(['C',p,w]);};if(type==='writing')l([[12,1],[15,9],[23,12],[15,15],[12,23],[9,15],[1,12],[9,9],[12,1]],1.4);else if(type==='code')c([[4,21],[13,12],[12,8],[15,3],[21,2],[18,7],[20,10],[15,14],[12,13],[5,22],[4,21]],1.45);else if(type==='data'){l([[12,2],[23,21],[1,21],[12,2]],1.4);l([[7,17],[9,13],[12,16],[15,9],[18,17]],1.1);}else if(type==='clean'){l([[5,6],[19,6],[18,22],[6,22],[5,6]],1.4);l([[3,4],[21,4]],1.4);l([[9,1],[15,1],[16,4]],1.1);l([[10,9],[10,19]],1.1);l([[14,9],[14,19]],1.1);}else if(type==='send')l([[2,11],[22,2],[16,22],[11,14],[2,11],[22,2],[11,14]],1.5);else if(type==='chat'){l([[3,3],[22,3],[22,17],[10,17],[4,23],[4,17],[3,17],[3,3]],1.35);l([[7,8],[18,8]],1);l([[7,12],[15,12]],1);}else if(type==='copy'){l([[7,3],[22,3],[22,20],[7,20],[7,3]],1.3);l([[3,7],[3,23],[18,23]],1.2);}else if(type==='checklist'){for(const y of [5,12,19]){l([[2,y],[4,y+2],[7,y-2]],1.2);l([[11,y],[23,y]],1.2);}}else return null;return P;}
- function symbol(type: string,size=22): string{const P=symbolParts(type);if(!P)return icon(type,size);let s='';for(const[k,p,w]of P)s+=k==='L'?L(p,w):C(p,w);return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${s}</svg>`;}
  function symbolEl(type: string,size=22): SVGSVGElement{const P=symbolParts(type);if(!P)return iconEl(type,size);return svg('svg',{viewBox:'0 0 24 24',width:size,height:size,'aria-hidden':'true'},P.map(([k,p,w])=>inkEl(k==='L'?dense(p):p,w,INK)));}
  // R17: tension folds radiate from the four corners and stop short of the central symbol box (23–54, 48–79).
- function clothShade(){let s='';const cx=38.5,cy=63.5;for(const [x,y] of [[8,23],[71,18],[70,102],[8,111]])for(const [spread,len] of [[-.32,.3],[0,.38],[.32,.26]]){const a=Math.atan2(cy-y,cx-x)+spread,dist=Math.hypot(cx-x,cy-y)*len,ex=x+Math.cos(a)*dist,ey=y+Math.sin(a)*dist,mx=x+Math.cos(a)*dist*.5+Math.sin(a)*1.2,my=y+Math.sin(a)*dist*.5-Math.cos(a)*1.2;s+=C([[x+Math.cos(a)*2,y+Math.sin(a)*2],[mx,my],[ex,ey]],spread?.42:.55,spread?TICK:SECONDARY,'opacity=".85"');}return s;}
- function flag(p: {category: string},selected: boolean){const color=selected?NOW:INK,shape: Point[]=[[6,20],[28,23],[73,14],[72,105],[52,102],[26,110],[5,115],[6,20]];return `<svg viewBox="0 0 80 124" data-guidance-flag aria-hidden="true">${F(shape)}${C(shape,1.45,color)}${circle(8,22,1.6,.95)}${circle(71,17,1.6,.95)}${C([[8,27],[14,45],[10,76]],.6,TICK)}${C([[67,24],[60,42],[65,94]],.6,TICK)}${C([[10,108],[24,99],[35,103]],.65,TICK)}${clothShade()}<g transform="translate(23 48) scale(1.3)">${symbol(p.category,24).replace(/^<svg[^>]*>|<\/svg>$/g,'')}</g>${selected?circle(6,20,4,2.8,NOW):''}</svg>`;}
+ // 第 4a 期：旗子的节点版（指引页改成节点构建）。布纹几笔的几何与原来字符串版的 clothShade 相同
+ function clothLines(): [Point[],number,string][]{const out: [Point[],number,string][]=[];const cx=38.5,cy=63.5;for(const [x,y] of [[8,23],[71,18],[70,102],[8,111]])for(const [spread,len] of [[-.32,.3],[0,.38],[.32,.26]]){const a=Math.atan2(cy-y,cx-x)+spread,dist=Math.hypot(cx-x,cy-y)*len,ex=x+Math.cos(a)*dist,ey=y+Math.sin(a)*dist,mx=x+Math.cos(a)*dist*.5+Math.sin(a)*1.2,my=y+Math.sin(a)*dist*.5-Math.cos(a)*1.2;out.push([[[x+Math.cos(a)*2,y+Math.sin(a)*2],[mx,my],[ex,ey]],spread?.42:.55,spread?TICK:SECONDARY]);}return out;}
+ function flagEl(p: {category: string},selected: boolean): SVGSVGElement{const color=selected?NOW:INK,shape: Point[]=[[6,20],[28,23],[73,14],[72,105],[52,102],[26,110],[5,115],[6,20]],P=symbolParts(p.category);
+  return svg('svg',{viewBox:'0 0 80 124','data-guidance-flag':true,'aria-hidden':'true'},partNodes([FV(shape)]),inkEl(shape,1.45,color),circleEl(8,22,1.6,.95),circleEl(71,17,1.6,.95),inkEl([[8,27],[14,45],[10,76]],.6,TICK),inkEl([[67,24],[60,42],[65,94]],.6,TICK),inkEl([[10,108],[24,99],[35,103]],.65,TICK),
+   clothLines().map(([q,w,c])=>inkEl(q,w,c,{opacity:'.85'})),
+   svg('g',{transform:'translate(23 48) scale(1.3)'},P?P.map(([k,q,w])=>inkEl(k==='L'?dense(q):q,w,INK)):[...iconEl(p.category,24).childNodes]),
+   selected&&circleEl(6,20,4,2.8,NOW));}
  // R19: the plane fills the box height and is centred on the box; the 600-unit core (mast to last flag) always fits.
  function geometry(){const el=HOST.querySelector('.mast-scene')!,b=el.getBoundingClientRect(),w=b.width||570,h=b.height||750,scale=Math.min(h/GUIDANCE_H,w/GUIDANCE_SPAN),tx=w/2-GUIDANCE_CENTER*scale,ty=h-GUIDANCE_H*scale;return{w,h,scale,tx,ty,anchors:d.prompts!.map((_p,i)=>{const f=GUIDANCE_FLAGS[i]||GUIDANCE_FLAGS.at(-1)!,k=f.k,x=f.x-5*k,y=f.y-14*k;return{x,y,k,width:80*k,height:124*k,left:tx+x*scale,top:ty+y*scale,screenWidth:80*k*scale,screenHeight:124*k*scale};})};}
  const fineGuidance=createGuidanceArt({LV,CV,circleV});
@@ -96,5 +101,5 @@ ctx.putImageData(im,0,0);d.cache.r12Sky={key,canvas:c,width,height,pixels:im.dat
  function thoughtCoastV(w: number): Shape{const ridge: Point[]=[[0,220],[w*.025,217],[w*.055,212],[w*.075,213],[w*.102,208],[w*.135,216],[w*.17,215],[w*.21,221],[w*.3,224],[w*.53,224],[w*.62,220],[w*.665,214],[w*.69,213],[w*.73,218],[w*.77,211],[w*.795,207],[w*.83,211],[w*.875,204],[w*.9,203],[w*.94,211],[w,214]];const s: Parts[]=[CV(ridge,.95,INK),CV([[0,225],[w*.16,223],[w*.35,226],[w*.6,224],[w*.79,221],[w,221]],1.1)];for(const p of [[[.02,219],[.065,220],[.105,218]],[[.08,215],[.11,217],[.15,217]],[[.16,218],[.19,221],[.235,222]],[[.66,220],[.7,217],[.735,221]],[[.77,215],[.8,212],[.825,214]],[[.87,214],[.91,209],[.95,216]]])s.push(CV(p.map(([x,y]): Point=>[x*w,y]),.45,SECONDARY));for(let i=0;i<9;i++)s.push(CV([[w*(.025+i*.095),230+i%2*3],[w*(.06+i*.095),229+i%2*3],[w*(.105+i*.095),230+i%2*3]],.5,TICK));return sh('g',{'data-morph':'horizon','data-r12-coast':true},s);}
  function shipV(x: number,y: number): Shape{const p: Point[]=[[4,44],[11,50],[44,50],[54,44],[4,44]],left: Point[]=[[28,6],[10,40],[28,40],[28,6]],right: Point[]=[[32,14],[46,40],[32,40],[32,14]];return sh('g',{'data-morph':'boat','data-r12-boat':true,transform:`translate(${x-29} ${y-48})`},FV(p,NOW,.95),FV(left,NOW,.9),FV(right,NOW,.74),LV(p,1.4,NOW),LV(left,1.15,NOW),LV(right,1.05,NOW),LV([[30,2],[30,44]],1.4,NOW),LV([[15,40],[27,11]],.8,PAPER),LV([[33,17],[43,38]],.65,PAPER));}
  function waterV(w: number,y: number,x: number,done: boolean): Part[]{const s: Parts[]=[marine.leftCoastV(w,y)];for(const[xx,yy,k]of [[w*.18,y-42,1],[w*.25,y-61,.8],[w*.7,y-45,.65]])s.push(CV([[xx-12*k,yy],[xx-5*k,yy-4*k],[xx,yy],[xx+7*k,yy-4*k],[xx+15*k,yy]],1,SECONDARY));const reflection: Parts[]=[];for(let i=0;i<10;i++){const yy=y+5+i*3.7,span=12+(i%4)*3.5,cx=x+Math.sin(i*1.7)*4;reflection.push(CV([[cx-span,yy],[cx,yy-.7],[cx+span*.7,yy]],i%3?1:1.6,i<6?NOW:SECONDARY,{opacity:i<6?.24:.25}));}s.push(sh('g',{'data-r12-reflection':true},reflection));for(let i=0;i<16;i++){const start=(i*89+17)%(w*.68),yy=y+11+(i%5)*8.1;s.push(CV([[start,yy],[start+19+(i%3)*8,yy-.5],[start+43+(i%4)*8,yy+.3]],.65,TICK,{opacity:'.72'}));}if(done)for(let i=0;i<9;i++){const xx=w*.82+Math.sin(i*.9)*w*.035,yy=y+8+i*6;s.push(CV([[xx-15-i*3,yy],[xx+5,yy-1],[xx+36+i*2,yy]],.9,SECONDARY,{opacity:'.5'}));}return parts(s);}
- return{L,C,LV,CV,symbol,symbolEl,flag,geometry,guidanceV,sky,skyPixel,skyInk,lighthouseV,thoughtCoastV,shipV,waterV};
+ return{L,C,LV,CV,symbolEl,flagEl,geometry,guidanceV,sky,skyPixel,skyInk,lighthouseV,thoughtCoastV,shipV,waterV};
 }

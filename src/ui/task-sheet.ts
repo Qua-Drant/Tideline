@@ -5,14 +5,13 @@
 //   底部：所在清单（点开可搜索、切换清单或项目）………… 文本样式 A、评论、更多 ⋯
 // 这里只搭结构；按钮的行为在 task-plus.ts（data-tp / data-ts / data-tf），正文编辑器在 task-md-editor.ts。
 // 第 3e 期：转 TypeScript；小图标、插入菜单的图改成节点版（每次调用新建一份）。
-import {ink, inkEl, circleEl} from '../draw/ink.ts';
+import {inkEl, circleEl} from '../draw/ink.ts';
 import type {Point} from '../draw/ink.ts';
 import {h, svg} from '../draw/dom.ts';
 import type {Child} from '../draw/dom.ts';
 import {PRIORITIES, REMINDERS} from './task-parse.ts';
 import type {Model, ModelTask} from '../data/types.ts';
 
-const svgStr = (body: string, w = 18, hh = w) => `<svg viewBox="0 0 ${w} ${hh}" width="${w}" height="${hh}" aria-hidden="true">${body}</svg>`;
 /** 18×18 的小图（节点版） */
 export const sv = (kids: Child, w = 18, hh = w) => svg('svg', {viewBox: `0 0 ${w} ${hh}`, width: w, height: hh, 'aria-hidden': 'true'}, kids);
 const md = (date: string | null | undefined) => date ? `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日` : '';
@@ -22,8 +21,6 @@ const REMIND_LABEL = Object.fromEntries(REMINDERS);
 // 手绘小图标（自己画的，不用滴答清单的图标）
 const BOX: Point[] = [[3,3.4],[15,3],[15.2,15],[3.2,15.2],[3,3.4]];
 const FLAG: Point[] = [[4,3],[14,3.4],[11.5,6.5],[14.4,10],[4,10]];
-/** 项目详情里“添加任务”横线前的小方框（字符串版：还嵌在项目页的模板里，见 task-plus.ts 的 HOST.projectTaskAdd） */
-export const BOX_HTML = svgStr(ink(BOX,1.3));
 /** 小图标的节点版：每个都是返回新 <svg> 的函数 */
 export const SG = {
   box: () => sv(inkEl(BOX,1.3)),

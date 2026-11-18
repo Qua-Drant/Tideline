@@ -3,8 +3,8 @@ import type {ProtoButtonEl} from '../../host.ts';
 import {cargoR16} from './paper-cargo-r16.ts';
 import {cargoR18} from './paper-cargo-r18.ts';
 import {cargoR23} from './paper-cargo-r23.ts';
-import {inlineTaskEditor} from './paper-inline-editor-r15.js';
-import {taskMarkdown,seedTaskMarkdown} from './paper-task-markdown.js';
+import {inlineTaskEditor} from './paper-inline-editor-r15.ts';
+import {seedTaskMarkdown} from './paper-task-markdown.ts';
 import {h,svg,setNodes} from '../dom.ts';
 import type {Attrs,Child} from '../dom.ts';
 import {iconEl} from '../ink.ts';
@@ -47,7 +47,7 @@ export const buttonEl: ProtoButtonEl=(action,id,body,label,attrs=null)=>h('butto
 const field=(f: HTMLFormElement,name: string)=>f.elements.namedItem(name) as HTMLInputElement;
 export function taskPage(a: ProtoApi){
  const {d,$,fmt,project,person}=a,B=buttonEl,r16=cargoR16(a),art={...r16,...cargoR18(a,r16),...cargoR23(a,r16)},ui=d.ui as Model['ui']&CargoUI;
- seedTaskMarkdown(d);ui.cargoDraft??='';const editor=inlineTaskEditor(a,taskMarkdown);
+ seedTaskMarkdown(d);ui.cargoDraft??='';const editor=inlineTaskEditor(a);
  // phase2 的 svg(s,w,h)：<svg viewBox aria-hidden>（不写宽高）
  const svgP=(k: Parts,w=20,hh=w,preserve?: string)=>svg('svg',{preserveAspectRatio:preserve,viewBox:`0 0 ${w} ${hh}`,'aria-hidden':'true'},partNodes(parts(k)));
  // phase2 的 glyph：本页用到的几种（lines、corner、bookmark、left 是 phase2 自己画的；其余交给 icon）

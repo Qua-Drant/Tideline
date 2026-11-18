@@ -319,6 +319,7 @@ export function createAIController({view, plugin, provider}){
       decorate();
     }
   });
-  return {send, thread, decorate, close(){ saveNow(); closeSession(); conv = null; mo.disconnect(); }, get busy(){ return !!conv?.busy; },
+  // 第 4a 期：指引页（paper-guidance-r28.ts）改成节点构建，对话区的 HTML 由这里写进它建好的 .native-thread（本文件第 4b 批再改）
+  return {send, thread, fillThread(el, d){ el.innerHTML = thread(d); }, decorate, close(){ saveNow(); closeSession(); conv = null; mo.disconnect(); }, get busy(){ return !!conv?.busy; },
     clearList(){ try { plugin.localStore.save(STORE, []); } catch {} renderPanel(); }};
 }

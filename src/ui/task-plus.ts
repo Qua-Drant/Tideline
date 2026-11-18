@@ -11,12 +11,12 @@
 // 事件都在插件根的捕获阶段处理：原型的监听器挂在冒泡阶段，所以这里先拿到，需要时拦下。
 import {Notice} from 'obsidian';
 import {HOST} from '../host.ts';
-import {esc, inkEl, circleEl, iconEl} from '../draw/ink.ts';
+import {inkEl, circleEl, iconEl} from '../draw/ink.ts';
 import type {Point} from '../draw/ink.ts';
 import {h, svg, setNodes, insertNodes} from '../draw/dom.ts';
 import type {Child} from '../draw/dom.ts';
 import {parseTask, nextRepeat, repeatDays, activeToken, suggestions, PRIORITIES, REMINDERS, REPEATS, addDays, addMonths} from './task-parse.ts';
-import {sheetNodes, splitChecklist, joinChecklist, SLASH, SG, BOX_HTML, sv} from './task-sheet.ts';
+import {sheetNodes, splitChecklist, joinChecklist, SLASH, SG, sv} from './task-sheet.ts';
 import {completeTask, reopenTask} from '../data/complete.ts';
 import {dropTasks, markDeleted, restoreDeleted} from '../data/trash.ts';
 import {createMdEditor} from './task-md-editor.ts';
@@ -77,8 +77,6 @@ export function createTaskPlus(view: CompassView){
   const childrenOf = (id: string) => info.children.get(id) || [];
   // 详情里几个输入框的草稿与焦点：写回引起整页重画时不丢正在打的字
   const drafts = new Map<string, string>(); let inputWanted: string | null = null;
-  // 字符串版（项目详情的新建任务横线还嵌在项目页的模板里，见 HOST.projectTaskAdd）
-  const draft = (kind: string, id: string) => esc(drafts.get(kind + '|' + id) || '');
   let pendingFocus: Focus | null = null, suggest: {input: HTMLInputElement; token: ActiveToken; items: Suggestion[]; index: number} | null = null, drag: Drag | null = null, rename: {id: string} | null = null, ticker = 0, composerWanted = false;
   const notified = new Set<string>();
 
@@ -148,7 +146,8 @@ export function createTaskPlus(view: CompassView){
   const OPEN_PROJECT = (p: ModelProject) => ['active', 'planned', 'paused'].includes(p.status);
   HOST.taskNavProject = p => OPEN_PROJECT(p);
   HOST.taskProjectCount = (p, d) => d.tasks.filter(t => t.projectId === p.id && !closed(t)).length;
-  HOST.projectTaskAdd = p => `<form class="project-task-add" data-tl-form="project-task" data-id="${esc(p.id)}"><span class="project-task-add-box" aria-hidden="true">${BOX_HTML}</span><input name="title" value="${draft('ptask', p.id)}" placeholder="添加任务，回车（明天、!高、#标签）" aria-label="给 ${esc(p.title)} 添加任务" autocomplete="off"></form>`;
+  // 项目详情的新建任务横线（第 4a 期：项目页改成节点构建，这里返回节点；草稿照旧从 drafts 补回）
+  HOST.projectTaskAdd = p => h('form', {class: 'project-task-add', 'data-tl-form': 'project-task', 'data-id': p.id}, h('span', {class: 'project-task-add-box', 'aria-hidden': 'true'}, SG.box()), h('input', {name: 'title', value: drafts.get('ptask|' + p.id) || '', placeholder: '添加任务，回车（明天、!高、#标签）', 'aria-label': `给 ${p.title} 添加任务`, autocomplete: 'off'}));
   let projectWanted: string | null = null;
   // 项目详情（0.7）：标题直接改——回车或离开就改名（笔记跟着改文件名，任务里的项目名一起换），Esc 放弃；
   // 任务栏标题旁加一个“+”，点了把光标放进下面的新建横线。重画后按草稿和焦点补回

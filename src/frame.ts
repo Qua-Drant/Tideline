@@ -14,7 +14,7 @@ export const NAV: NavItem[] = [['thought', '思索', 'star'], ['ai', '指引', '
 export const ANGLE: Record<string, number> = {thought: 0, ai: 45, today: 90, tasks: 108, projects: 126, review: 144, library: 162, brain: 180};
 const READY = new Set(['thought', 'ai', 'today', 'tasks', 'projects', 'review', 'library', 'brain']); // 已经做好的页；其余在侧栏里置灰
 
-/** 手写字（原型 paper-handfont-r28.js 的 createHandFont）：框只用它写“记录”两个字 */
+/** 手写字（原型 paper-handfont-r28.ts 的 createHandFont）：框只用它写“记录”两个字 */
 export interface HandFont {
   /** 一行手写字（svg.hand-text） */
   textEl(str: string, options?: {size?: number; color?: string; weight?: number; gap?: number}): SVGSVGElement;

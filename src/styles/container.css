@@ -624,3 +624,16 @@
 .compass-root[data-theme="night"] .tideline-support-qr img[data-qr-theme="paper"],
 .compass-root:not([data-theme="night"]) .tideline-support-qr img[data-qr-theme="night"]{display:none}
 .compass-root .tideline-support-qr form{margin-top:16px}
+
+/* Measured event-caption lanes: keep the buoy at its actual time. */
+.compass-root .timeline #events .event{width:28px;overflow:visible}
+.compass-root .timeline #events .event-copy{position:absolute;display:flex;align-items:baseline;gap:10px;margin-left:0;padding-top:0;white-space:nowrap;line-height:24px;background:var(--paper);z-index:2;box-sizing:border-box}
+.compass-root .timeline #events .event-copy time{flex:none;margin-right:0}
+.compass-root .timeline #events .event-copy.is-measuring{width:max-content!important;max-width:none!important}
+.compass-root .timeline #events .event-title{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compass-root .timeline #events .event::after{content:"";position:absolute;pointer-events:none;left:14px;top:68px;height:calc(var(--timeline-caption-top,106px) - 68px);border-left:1px dashed var(--tick);opacity:.5}
+.compass-root .timeline #events .event-anchor-number,.compass-root .timeline #events .event-caption-number{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border:1px solid currentColor;border-radius:50%;background:var(--paper);font:11px/1 var(--mono);box-sizing:border-box}
+.compass-root .timeline #events .event-anchor-number{position:absolute;left:5px;top:-6px;z-index:3}
+.compass-root .timeline #events .event:is(:hover,:focus-visible)::after{opacity:1;border-left-style:solid;border-left-color:var(--ink)}
+.compass-root .timeline #events .event:is(:hover,:focus-visible) .event-copy{text-decoration:underline;text-underline-offset:4px}
+.compass-root .timeline #events .event:is(:hover,:focus-visible) .event-anchor-number{outline:2px solid var(--ink);outline-offset:2px}

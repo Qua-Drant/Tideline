@@ -5,6 +5,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const timeline = spawnSync(process.execPath, [path.join(root, 'tools/test-timeline-labels.mjs')], {stdio: 'inherit', cwd: root});
+if (timeline.status !== 0) process.exit(timeline.status ?? 1);
 const runner = path.join(root, 'dev/tools/test.mjs');
 if (!fs.existsSync(runner)) {
   console.log('没有 dev/tools/test.mjs：测试工具不随公开仓库发布，跳过。');

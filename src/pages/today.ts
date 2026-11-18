@@ -10,6 +10,7 @@ import type {Child} from '../draw/dom.ts';
 import {sh, parts} from '../draw/scene.ts';
 import type {Part, Parts, Shape} from '../draw/scene.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
+import {layoutTimelineLabels} from './timeline-labels.ts';
 import type {createR12Art} from '../draw/proto/paper-r12-art.ts';
 import {walkVisible} from '../ui/visible.ts';
 import type {DayQuestion, DayView, IndexEvent, IndexTask} from '../data/types.ts';
@@ -161,23 +162,9 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
     dialCache.set(key, el); return el.cloneNode(true);
   }
 
-  // 浮标旁的“时刻 名称”给下一个浮标让位（原型只有相隔很远的两个日程；接上日历订阅后会挨得很近）：
-  // 放得下就照原样；放不下名称就截短加省略号；连名称的开头都放不下就只留时刻；时刻也放不下就只留浮标。完整内容悬停时在浮标详情里看。
-  let labelKey = '';
+  // 浮标保留真实时间位置；标签按实际宽度分排，避免密集日程相互覆盖。
   function labels(){
-    const copies = $$('#events .event-copy'); if (!copies.length) { labelKey = ''; return; }
-    const W = $('#events')!.getBoundingClientRect(), key = W.width + '|' + copies.map(c => c.textContent).join('|') + '|' + sec.classList.contains('all-done');
-    if (key === labelKey) return; labelKey = key;
-    for (const c of copies) { c.classList.remove('is-clipped', 'is-terse', 'is-bare'); c.style.maxWidth = ''; }
-    const m = copies.map(c => { const r = c.getBoundingClientRect(), icon = c.parentElement!.querySelector('.event-icon')!.getBoundingClientRect(); return {c, left: r.left, width: c.scrollWidth, icon: icon.left, time: c.querySelector('time')!.getBoundingClientRect().width + 10}; });
-    const order = [...m].sort((a, b) => a.icon - b.icon);
-    order.forEach((x, i) => {
-      const room = (order[i + 1] ? order[i + 1].icon - 12 : W.right + 8) - x.left;
-      if (x.width <= room) return;
-      if (room >= x.time + 36) { x.c.classList.add('is-clipped'); x.c.style.maxWidth = Math.floor(room) + 'px'; }
-      else if (room >= x.time - 6) x.c.classList.add('is-terse');
-      else x.c.classList.add('is-bare');
-    });
+    layoutTimelineLabels($('#timeline')!);
   }
   // 版式测量之后的几件事（原型 fitJournalViewport / fitOtherTasks / drawTrail）：都在同一帧里先读后写
   function fit(box: SheetBox){

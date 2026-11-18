@@ -637,3 +637,5 @@
 .compass-root .timeline #events .event:is(:hover,:focus-visible)::after{opacity:1;border-left-style:solid;border-left-color:var(--ink)}
 .compass-root .timeline #events .event:is(:hover,:focus-visible) .event-copy{text-decoration:underline;text-underline-offset:4px}
 .compass-root .timeline #events .event:is(:hover,:focus-visible) .event-anchor-number{outline:2px solid var(--ink);outline-offset:2px}
+.compass-root .timeline #events .event.is-journal .event-icon svg{width:22px;height:22px;margin-top:22px;margin-left:3px}
+.compass-root .timeline #events .event-kind{flex:none;font-size:11px;color:var(--secondary)}

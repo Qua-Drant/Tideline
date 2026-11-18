@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {transform} from 'esbuild';
+const {code} = await transform(await readFile(new URL('../src/pages/timeline-entries.ts',import.meta.url),'utf8'),{loader:'ts',format:'esm'});
+const {timelineEntries} = await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+const events=[{id:'meeting',date:'2026-11-18',time:'14:00',title:'Meeting',description:''}];
+const journal=[{id:'1',time:'15:30',text:'1:1 conversation until 17:30'},{id:'2',time:'13:20',text:'Paused study'},{id:'3',time:'',text:'Undated reflection'},{id:'4',time:'24:30',text:'Invalid time'},{id:'5',time:'9:05',text:'Morning note'},{id:'6',time:'12:99',text:'Invalid minute'},{id:'7',time:'14:00',text:'A note at the same time as the meeting'}];
+const before=JSON.stringify({events,journal});
+const result=timelineEntries('2026-11-18',events,journal);
+assert.deepEqual(result.map(x=>x.time),['09:05','13:20','14:00','14:00','15:30']);
+assert.equal(result.filter(x=>x.kind==='journal').length,4);
+assert.equal(new Set(result.map(x=>x.id)).size,result.length);
+assert.equal(result.at(-1).title,journal[0].text);
+assert.equal(JSON.stringify({events,journal}),before);
+assert.deepEqual(timelineEntries('2026-11-18',events,journal),result);
+assert.deepEqual(timelineEntries('2026-11-18',[],[]),[]);
+console.log('PASS: timed journal captions, chronology, same-time events, normalized time, invalid/untimed filtering, distinct IDs, no source mutation');

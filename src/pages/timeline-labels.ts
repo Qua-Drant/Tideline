@@ -46,6 +46,15 @@ export function layoutTimelineLabels(timeline: HTMLElement) {
     width: copy.getBoundingClientRect().width,
   }));
   const packed = packTimelineLabels(measured, bounds.width);
+  const anchorBadges = packTimelineLabels(measured.map(item => ({anchor: item.anchor - 33, width: 18})), bounds.width);
+  for (const label of anchorBadges.labels) {
+    const event = copies[label.index].parentElement!;
+    const badge = event.querySelector<HTMLElement>('.event-anchor-number')!;
+    badge.style.left = `${label.left - (event.getBoundingClientRect().left - bounds.left)}px`;
+    badge.style.top = `${-6 - label.lane * 24}px`;
+  }
+  // Reserve space above the waterline for stacked anchor badges too.
+  timeline.style.marginTop = `${Math.max(22, (anchorBadges.lanes - 1) * 24 + 14)}px`;
   const rowHeight = Math.max(34, ...copies.map(copy => Math.ceil(copy.getBoundingClientRect().height) + 10));
   for (const label of packed.labels) {
     const copy = copies[label.index], event = copy.parentElement!;

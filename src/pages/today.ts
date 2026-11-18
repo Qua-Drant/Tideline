@@ -11,6 +11,7 @@ import {sh, parts} from '../draw/scene.ts';
 import type {Part, Parts, Shape} from '../draw/scene.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
 import {layoutTimelineLabels} from './timeline-labels.ts';
+import {timelineEntries} from './timeline-entries.ts';
 import type {createR12Art} from '../draw/proto/paper-r12-art.ts';
 import {walkVisible} from '../ui/visible.ts';
 import type {DayQuestion, DayView, IndexEvent, IndexTask} from '../data/types.ts';
@@ -82,7 +83,8 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
   function render(v: DayView){
     const open = ui.detail;
     if (drawnView === v && drawnDetail === open && drawnChooser === ui.chooseFocus) return;
-    events = v.events;
+    const entries = timelineEntries(v.date, v.events, v.journal);
+    events = entries;
     const selected = open ? (v.focus.find(t => t.id === open) || v.other.find(t => t.id === open) || v.trail.find(t => t.id === open)) : undefined;
     sec.classList.toggle('all-done', v.allDone);
     // 这一天的日记、往年今日那篇日记的路径（示例笔记的淡墨要用，见 ui/examples.js）
@@ -121,8 +123,8 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
       return [h('div', {class: 'other-tasks-mark'}, art.symbolEl('checklist', 19), h('span', null, '其他任务')), h('div', {class: 'other-task-items'}, body)];
     });
     // 时间轴
-    put('events', v.events, $('#events')!, () => v.events.map(e => h('button', {class: 'event', 'data-event': e.id, style: `left:${ratio(e.time) * 100}%`, 'aria-label': `${e.time} ${e.title}`},
-      h('span', {class: 'event-icon'}, buoyEl()), h('span', {class: 'event-copy'}, h('time', null, e.time), h('span', {class: 'event-title'}, e.title)))));
+    put('events', entries, $('#events')!, () => entries.map(e => h('button', {class: `event${e.kind === 'journal' ? ' is-journal' : ''}`, 'data-event': e.id, style: `left:${ratio(e.time) * 100}%`, 'aria-label': `${e.kind === 'journal' ? '随手记：' : ''}${e.time} ${e.title}`},
+      h('span', {class: 'event-icon'}, e.kind === 'journal' ? iconEl('note') : buoyEl()), h('span', {class: 'event-copy'}, h('time', null, e.time), e.kind === 'journal' ? h('span', {class:'event-kind'}, '随记') : null, h('span', {class: 'event-title'}, e.title)))));
     put('ticks', 1, $('#time-ticks')!, () => [6, 12, 18, 24].map((n, i) => h('span', {style: `left:${i / 3 * 100}%`}, n)));
     // 航迹、往年今日
     put('trail', [v.trail, v.nextUp, open], $('#trail')!, () => {

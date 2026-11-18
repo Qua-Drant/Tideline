@@ -1,5 +1,6 @@
 // 原型模块眼里的“页面”：原型直接用 document / window，插件里换成插件根元素（复制原型模块时把其中的 document.… 改成了 HOST.…；当时的同步脚本没有随仓库发布，现在直接维护 src/draw/proto/ 里的文件）。
 // 同一时刻只有一个潮线视图在用（打开命令会复用已有的那个），视图打开时 attach，关闭时 detach 并摘掉原型模块挂的事件。
+// 第 4b 期：HostAI 的 thread（返回 HTML）与 fillThread 换成节点版 threadInto；指引页注释里的 pages/ai.js、controller.js 改成 .ts。
 import type {Clock, Model, ModelPerson, ModelProject, ModelTask} from './data/types.ts';
 import type {dropTasks} from './data/trash.ts';
 import type {Attrs, Child} from './draw/dom.ts';
@@ -38,14 +39,12 @@ export interface HostTransitionApi {
   forget(): void;
 }
 
-/** 指引页的 AI 对话（src/ai/controller.js 的 createAIController；pages/ai.js 装上，关闭时摘掉） */
+/** 指引页的 AI 对话（src/ai/controller.ts 的 createAIController；pages/ai.ts 装上，关闭时摘掉） */
 export interface HostAI {
   /** 发出一句（草稿已在 d.ai.draft 里取出） */
   send(text: string, d: Model): void;
-  /** 对话列表的 HTML */
-  thread(d: Model): string;
-  /** 把对话列表写进 el（第 4a 期：指引页改成节点构建后，对话区的 HTML 仍由 controller 写，第 4b 批再改） */
-  fillThread(el: HTMLElement, d: Model): void;
+  /** 把对话填进 el（指引页建好的 .native-thread；整段重建）。第 4b 期：原来的 thread（返回 HTML）与 fillThread（写 innerHTML）合成这一个，建的是节点 */
+  threadInto(el: HTMLElement, d: Model): void;
   decorate(): void;
   close(): void;
   readonly busy: boolean;
@@ -88,7 +87,7 @@ export interface Host {
   monthEnd(date: string): string;
 
   // —— 插件模块往原型里接的钩子（没装时原型走自己的写法）——
-  /** 指引页（pages/ai.js） */
+  /** 指引页（pages/ai.ts） */
   ai?: HostAI | null;
   /** 开着的 AI 供应商：id → [名称, 模型菜单] */
   aiProviders?: () => Record<string, [name: string, models: string[]]>;

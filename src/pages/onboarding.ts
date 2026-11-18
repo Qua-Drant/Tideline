@@ -9,6 +9,7 @@
 // 第 3d 期：转 TypeScript；整页改成 DOM 构建（draw/dom.ts），不再拼 HTML 字符串。每个函数对应原来的一段模板，结构、属性及其先后一一对应；
 // 插画（paper-onboarding-art-r31.ts）给的是描述，用 partNodes 建节点。重画仍是“整张起航纸换成新的一张”（redraw：replaceWithNodes，原来是 outerHTML），
 // 新纸带 is-still、过场时带 is-arriving，和原来一样；导览卡、完成卡、导览提示同样改成节点（导览提示与导览卡原来用 document.createElement 建，\n// 这里在视图所在的 document 里建；放进 root 之后两者一样）。
+// 第 4b 期：pages/ai.js 转成 ai.ts，modelsOf 有了类型，去掉这里的类型断言（ModelOption 也不必再引）。
 import {createVoyageArt} from '../draw/proto/paper-onboarding-art-r31.ts';
 import {inkEl, circleEl, iconEl} from '../draw/ink.ts';
 import {h, svg, setNodes, insertNodes, replaceWithNodes, within} from '../draw/dom.ts';
@@ -18,8 +19,7 @@ import type {Parts} from '../draw/scene.ts';
 import {FOLDERS} from '../data/index.ts';
 import {EXAMPLES, EXAMPLE_DATE} from '../data/examples.ts';
 import {PROVIDERS} from '../ai/acp.ts';
-import {modelsOf, defaultModelOf} from './ai.js';
-import type {ModelOption} from '../ai/types.ts';
+import {modelsOf, defaultModelOf} from './ai.ts';
 import type {HandFont} from '../frame.ts';
 import type {CompassView} from '../view.ts';
 import type CompassPlugin from '../main.ts';
@@ -131,9 +131,9 @@ export function createOnboarding({view, plugin, hand}: {view: CompassView; plugi
    h('div',{class:'ob-ai-row'},h('b',null,'自动附带当前页'),h('button',{class:'ob-mark','data-ob':'aiattach','aria-checked':String(O.aiAttach)},dot(O.aiAttach),h('span',null,O.aiAttach?'开':'关')),h('small',null,'日记正文不会自动附带')),
    h('p',{class:'ob-small'},'保护名单、各家的模型与密钥在 设置 › 指引 里改。'));}
  // 默认模型：这一家报过模型清单（或是 Claude 的三个预设）就给选；没读到时说明在哪里读
- function modelRow(seg: AiSeg){const O=cur(),ms=modelsOf(plugin,O.aiProv) as ModelOption[] | null | undefined; // pages/ai.js 是 JS：按模型清单看
+ function modelRow(seg: AiSeg){const O=cur(),ms=modelsOf(plugin,O.aiProv);
   if(!ms?.length)return h('div',{class:'ob-ai-row'},h('b',null,'默认模型'),h('small',null,'用它自己的默认；以后在 设置 › 指引 点“读取”，从它报的模型里挑'));
-  if(O.aiModel===undefined)O.aiModel=defaultModelOf(plugin,O.aiProv) as string | null | undefined; // 同上：JS 给的默认模型
+  if(O.aiModel===undefined)O.aiModel=defaultModelOf(plugin,O.aiProv);
   const list: Option[]=[['','代理默认'],...ms.slice(0,8).map((m): Option=>[m.value,m.name])];return h('div',{class:'ob-ai-row'},h('b',null,'默认模型'),seg('aiModel',list),ms.length>8?h('small',null,`还有 ${ms.length-8} 个在 设置 › 指引 里`):null);}
  // 知识库的文献来源：装了 Zotero Integration 就读它的导入文件夹（0.7）
  function zoteroRow(): Child{const O=cur(),z=plugin.zotero?.();if(!z)return null;

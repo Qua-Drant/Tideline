@@ -1,6 +1,7 @@
 // 潮线的主视图：一整张纸。
 // 一次渲染分三步，都在同一帧里：①数据 → 各区域 DOM（没变的区域不动）②量版式、补随手记窗口和航迹 ③风景（按版式缓存）与手绘框。
 // 索引改动、时钟走到下一分钟、窗口改尺寸，都只排一次渲染（requestAnimationFrame 合并）。
+// 第 4b 期：不再给 createR12Art 传 esc（ink.ts 已删去）；下方各页的 ai（指引页）按 pages/ai.ts 的 createAI 看（原来只写了 refresh）。
 import {ItemView} from 'obsidian';
 import type {WorkspaceLeaf} from 'obsidian';
 import {buildFrame} from './frame.ts';
@@ -9,7 +10,7 @@ import {createToday} from './pages/today.ts';
 import {dayView} from './data/day.ts';
 import {todayActions} from './data/write.ts';
 import {completeTask, reopenTask} from './data/complete.ts';
-import {ink, circle, icon, esc, inkEl, circleEl, buttonFrameEl, popupFrameEl, pillFrameEl} from './draw/ink.ts';
+import {ink, circle, icon, inkEl, circleEl, buttonFrameEl, popupFrameEl, pillFrameEl} from './draw/ink.ts';
 import {h, setNodes, insertNodes} from './draw/dom.ts';
 import {sameParts, buildParts} from './draw/scene.ts';
 import type {Part} from './draw/scene.ts';
@@ -20,6 +21,7 @@ import {createFocusGuard} from './ui/focus-guard.ts';
 import {createEmptyStates} from './ui/empty-states.ts';
 import {HOST} from './host.ts';
 import {createLower, PAGES} from './pages/lower.js';
+import type {createAI} from './pages/ai.ts';
 import {createSettingsPage} from './pages/settings.ts';
 import {createOnboarding} from './pages/onboarding.ts';
 import {createCapture} from './ui/capture.ts';
@@ -84,7 +86,7 @@ interface SceneCache { w: number; h: number; scene: readonly Part[] }
 type LowerPages = Omit<ReturnType<typeof createLower>, 'data' | 'model' | 'ai' | 'scenery'> & {
   readonly data: Model | null;
   model(): Model;
-  readonly ai: {refresh(): void} | null;
+  readonly ai: ReturnType<typeof createAI> | null;
   /** 当前页的风景（描述） */
   scenery(box: DOMRect | null): readonly Part[];
 };
@@ -181,7 +183,7 @@ export class CompassView extends ItemView {
     HOST.paper = {ready: true, data: {get ui(){ return {...(view.lower?.data?.ui || {}), page: view.page}; },get settingsR27(){ return {motion: view.plugin.local?.device?.motion || 'full'}; }, get clock(){ return view.plugin.clock(); },
       get tasks(){ return view.lower?.data?.tasks || [...view.plugin.index.tasks.values()]; }}};
     this.hand = createHandFont();
-    this.art = createR12Art({data: {clock: p.clock(), ui: {}, cache: {}}, ink, circle, icon, esc});
+    this.art = createR12Art({data: {clock: p.clock(), ui: {}, cache: {}}, ink, circle, icon});
     this.frame = buildFrame(this.root, this.hand);
     this.today = createToday({root: this.root, art: this.art, ui: this.ui});
     this.todayReward = createTodayReward();

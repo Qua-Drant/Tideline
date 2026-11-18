@@ -9,8 +9,9 @@
 // 第 3d 期：转 TypeScript；整页改成 DOM 构建（draw/dom.ts），不再拼 HTML 字符串、不再整段 outerHTML 替换。每个函数对应原来的一段模板，
 // 结构、属性及其先后一一对应；用户写的文字（清单项、订阅名、文件夹……）直接成为文本节点或属性值。
 // 重画仍是“整张设置纸换成新的一张”（refresh：replaceWithNodes），保留滚动位置、is-still、密钥框、手绘框的重画与输入框聚焦，和原来一样。
+// 第 4b 期：pages/ai.js 转成 ai.ts，模型清单与默认模型有了类型，去掉这里的类型断言和自写的 ModelOption（已用不着）。
 import {PRESETS, PROVIDERS} from '../ai/acp.ts';
-import {providerName, modelsOf, defaultModelOf} from './ai.js';
+import {providerName, modelsOf, defaultModelOf} from './ai.ts';
 import {SecretComponent} from 'obsidian';
 import {inkEl, circleEl, iconEl} from '../draw/ink.ts';
 import {h, svg, insertNodes, replaceWithNodes} from '../draw/dom.ts';
@@ -33,8 +34,6 @@ interface SettingsState {
   report: {groups: [string, [string, string][]][]; total: number} | null; rebuilding: boolean; conflicts: string[] | null; open: string | null;
   checking?: string | null; advanced?: boolean; subError?: string; busy?: string | null; busyAt?: number;
 }
-/** pages/ai.js（还没转 TypeScript）给的模型清单的一项 */
-interface ModelOption { value: string; name: string }
 /** ai.ts 的 mcp() 给的一项 */
 interface McpItem { name: string; status: string }
 type ListKind = 'habits' | 'questions' | 'wheel';
@@ -77,13 +76,13 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
   function enableRow(){ return row('启用 AI 助手', [mark('ai.enabled', A().enabled, '启用 AI 助手'), note('关掉后指引页只留桅顶和提示词库，不启动程序、不联网。开启后，对话里提到的、AI 读到的笔记内容会经由你选的 ACP 代理发给对应的服务商（Claude Agent → Anthropic，Codex → OpenAI，Gemini CLI → Google，CodeBuddy → 腾讯云，DeepSeek Harness → DeepSeek）。')], '本机'); }
   // 每家的默认模型：清单是代理自己报的（点“检查”时读）；“代理默认”= 不改它自己的默认
   function modelRow(id: string, checking: boolean): Child{
-    const ms = modelsOf(plugin, id) as ModelOption[] | null | undefined, cur = defaultModelOf(plugin, id) as string | null | undefined; // pages/ai.js 是 JS：按这两种类型看
+    const ms = modelsOf(plugin, id), cur = defaultModelOf(plugin, id);
     if (!ms?.length) return [meta(checking ? '正在读取模型清单…' : '还没读到模型清单'), mini(`detect|${id}`, [refreshIcon(), h('span', null, '读取')]), note('读取时会让代理开一个空会话，不发消息、不花用量')];
     const opts: Option[] = [['', '代理默认'], ...ms.map((m): Option => [m.value, m.name])];
     return [h('span', {class: 'set-seg set-models'}, opts.map(([v, l]) => h('button', {type: 'button', role: 'radio', 'data-set': `ai.providers.${id}.model|${v}`, 'aria-checked': String(String(cur) === String(v) || (!cur && !v))}, l))), note('指引页的模型菜单里也可以为一段对话另选')];
   }
   function providerCard(id: string): Child{
-    const a = A(), P = a.providers || {}, conf = P[id] || {} as Partial<typeof P[string]>, info = plugin.aiProviderInfo(id), st = plugin.ai.status?.[id], open = S.open === id, checking = S.checking === id, name = providerName(plugin, id) as string;
+    const a = A(), P = a.providers || {}, conf = P[id] || {} as Partial<typeof P[string]>, info = plugin.aiProviderInfo(id), st = plugin.ai.status?.[id], open = S.open === id, checking = S.checking === id, name = providerName(plugin, id);
     const state: Child = !conf.on ? h('span', null, '关') : checking ? h('span', null, '检查中…') : !st ? h('span', null, '还没检查') : !st.ok ? h('span', {class: 'is-bad'}, st.error || '没有回应') : [h('span', null, st.name || ''), h('span', {class: 'mono'}, st.version || '')];
     const preset = PRESETS[id];
     const body: Child = open ? h('div', {class: 'sp-body'},
@@ -104,7 +103,7 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
     const a = A(); if (!a.enabled) return null;
     if (tab === 'vendor') {
       // 0.3：经 ACP（Agent Client Protocol）接入。每家一张卡：开关、启动命令与参数、安装与登录办法、API 密钥、握手检查
-      const P = a.providers || {}, on = PROVIDERS.filter(id => P[id]?.on), name = (id: string) => providerName(plugin, id) as string;
+      const P = a.providers || {}, on = PROVIDERS.filter(id => P[id]?.on), name = (id: string) => providerName(plugin, id);
       return [h('h4', {class: 'set-sub'}, '供应商'), row('接入方式', meta('ACP 客户端：在这台电脑上启动各家的 ACP 代理程序，代理与登录都由你自己安装和保存'), '本机'),
         row('默认供应商', on.length ? seg('ai.provider', on.map((id): Option => [id, name(id)]), on.includes(a.provider) ? a.provider : on[0]) : meta('先在下面打开一家'), '本机'),
         row('默认思考强度', [seg('ai.effort', [['low', '低'], ['medium', '中'], ['high', '高'], ['xhigh', '很高'], ['max', '最高']], a.effort), note('代理支持时生效')], '本机'),
@@ -120,7 +119,7 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
         h('li', null, h('b', null, 'Codex、CodeBuddy'), '：开对话时潮线把代理切到“改动先问”的模式，改动、运行命令经潮线的三档与名单决定；代理自己读文件通常不问，“读取前先问”不一定拦得到。'),
         h('li', null, h('b', null, 'Gemini CLI、DeepSeek Harness、自定义'), '：只有代理主动请求许可、或请潮线代读代写文件时才拦得到；其余取决于代理自己的设置。')), ''),
       row('改动可以回退', meta('经 ACP 接入时，代理改过的文件不能由潮线还原；改前改后的对照卡仍会先问你'), '本机')];
-    if (tab === 'context') { const mcp = (view.lower?.ai as {mcp?(): McpItem[]} | null | undefined)?.mcp?.() || []; // 指引页（pages/ai.js）是 JS：mcp() 按 McpItem 看
+    if (tab === 'context') { const mcp = (view.lower?.ai as {mcp?(): McpItem[]} | null | undefined)?.mcp?.() || []; // 指引页（pages/ai.ts）的 createAI 并没有 mcp()（原有问题，第 4b 期只记录），照旧按可选的看
       const STATUS: Record<string, string> = {connected: '已连接', failed: '连不上', 'needs-auth': '要登录', pending: '连接中', disabled: '关了'};
       return [row('自动附带当前页的内容', [mark('ai.attach', (a as typeof a & {attach?: boolean}).attach, '自动附带当前页的内容'), note('日记正文不会自动附带')], '本机'),
         row('工作说明', [h('span', {class: 'set-code'}, 'CLAUDE.md · AGENTS.md'), plugin.writer.exists?.('CLAUDE.md') ? fold('CLAUDE.md', '工作说明') : note('仓库里还没有这两篇')], '仓库本身'),

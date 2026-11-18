@@ -4,6 +4,7 @@
 // 用 dom.ts 建 SVG 元素）。两者共用同一份几何计算（strokeD、iconParts、popupFramePoints……），字符串版的输出与改动前逐字相同。
 // 只剩节点版的（浮标、羽毛笔、手绘框）：字符串版已无人用，第 3b2 期删去。
 // 风景另有描述版（inkV、circleV，见 scene.ts）：先描述、比较过再建节点；轮廓与节点版共用同一份记忆。
+// 第 4b 期：HTML 转义 esc 删去——最后的调用方（AI 对话区、回答的 Markdown）改成节点构建后，全仓只剩把它当参数转手传递、没人调用。
 import {getStroke} from 'perfect-freehand';
 import {svg, setAttrs} from './dom.ts';
 import type {Attrs} from './dom.ts';
@@ -14,8 +15,6 @@ import type {Shape} from './scene.ts';
 export type Point = [x: number, y: number];
 
 export const INK='#1C2A35', PAPER='#F4F5F2', SECONDARY='#5B6871', TICK='#B6C0C5';
-/** HTML 转义：& < > " ' 五个字符；null / undefined 当空串（只给字符串版用；节点版的文字不解析，不要转义） */
-export const esc=(s: unknown): string=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as Record<string, string>)[c]);
 /** Catmull-Rom 插值：把稀疏的折线点补成平滑的密点（首尾不变） */
 export function smooth(points: Point[]): Point[]{const out: Point[]=[];for(let i=0;i<points.length-1;i++){const a=points[Math.max(0,i-1)],b=points[i],c=points[i+1],d=points[Math.min(points.length-1,i+2)],steps=Math.max(4,Math.ceil(Math.hypot(c[0]-b[0],c[1]-b[1])/3));for(let j=0;j<steps;j++){const t=j/steps,t2=t*t,t3=t2*t;out.push([.5*(2*b[0]+(-a[0]+c[0])*t+(2*a[0]-5*b[0]+4*c[0]-d[0])*t2+(-a[0]+3*b[0]-3*c[0]+d[0])*t3),.5*(2*b[1]+(-a[1]+c[1])*t+(2*a[1]-5*b[1]+4*c[1]-d[1])*t2+(-a[1]+3*b[1]-3*c[1]+d[1])*t3)]);}}out.push(points.at(-1) as Point);return out;}
 /** 一笔笔压线的轮廓：path 的 d（M…Z）。points 至少两点 */

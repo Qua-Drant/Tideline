@@ -1,5 +1,6 @@
 // AI 助手的类型：权限判断（policy.ts）、供应商与 ACP 会话（acp.ts）、对照（diff.ts）。
 // 只有类型，不产生任何代码。
+// 第 4b 期：controller.js 转成 controller.ts 后按它实际的用法补两处：rewindFiles 的参数、create 的 resumeAt。
 import type {PolicyLists} from '../data/types.ts';
 
 // —— 权限（policy.ts） ——
@@ -171,7 +172,7 @@ export interface AcpSessionOptions {
   files: VaultFiles;
 }
 
-/** 一段对话（controller.js 只认这些） */
+/** 一段对话（controller.ts 只认这些） */
 export interface AcpSession {
   allowed: Set<string>;
   caps: {rewind: boolean};
@@ -182,7 +183,8 @@ export interface AcpSession {
   models(): Promise<ModelOption[]>;
   commands(): Promise<{name: string; description: string; argumentHint: string}[]>;
   mcp(): Promise<unknown[]>;
-  rewindFiles(): Promise<{canRewind: boolean; filesChanged: string[]; error: string}>;
+  /** 还原某句话之后改过的文件（dryRun：只查改过哪些）。ACP 接入时不支持；测试工具的假 Claude 支持，还多给加删行数 */
+  rewindFiles(uuid?: string, dryRun?: boolean): Promise<{canRewind: boolean; filesChanged: string[]; error: string}>;
   interrupt(): Promise<void>;
   close(): void;
 }
@@ -190,5 +192,6 @@ export interface AcpSession {
 /** 插件交给 controller 的 AI 供应商：按 providerId 开一段对话 */
 export interface AIProviderFactory {
   caps: {rewind: boolean};
-  create(o: Omit<AcpSessionOptions, 'provider' | 'files'> & {providerId: string}): AcpSession;
+  /** resumeAt：接着以前的会话时截到哪一句（回退后用；ACP 接入时不用） */
+  create(o: Omit<AcpSessionOptions, 'provider' | 'files'> & {providerId: string; resumeAt?: string}): AcpSession;
 }

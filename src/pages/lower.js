@@ -1,13 +1,14 @@
 // 今日以外的七页：思索、指引，以及下方五页（任务／货舱、项目／海图、复盘、知识库、大脑）。
 // 画面与交互直接用原型的页面模块（src/draw/proto/，从原型复制并改成只作用于插件视图；当时的同步脚本没有随仓库发布，现在直接维护这些文件），
 // 这里只做三件事：给它们一份由笔记建出来的数据（model.js）；把原型 paper.js 的“核心”接口接到插件视图上；改动后写回笔记（persist.js）。
+// 第 4b 期：只改两处——指引页改成 pages/ai.ts（import 路径）；ink.ts 删去了 esc，不再取它、不再往 api 与 createR12Art 里传（没有模块读它）。
 import {createPhase2} from '../draw/proto/phase2.ts';
-import {ink, circle, icon, star, esc, inkV, circleV} from '../draw/ink.ts';
+import {ink, circle, icon, star, inkV, circleV} from '../draw/ink.ts';
 import {parts} from '../draw/scene.ts';
 import {createR12Art} from '../draw/proto/paper-r12-art.ts';
 import {maritimeArt} from '../draw/proto/paper-maritime-r14.ts';
 import {createThought} from './thought.ts';
-import {createAI} from './ai.js';
+import {createAI} from './ai.ts';
 import {buildModel} from '../data/model.ts';
 import {createPersist} from '../data/persist.ts';
 import {FOLDERS} from '../data/index.ts';
@@ -110,7 +111,7 @@ export function createLower(view){
   }, {capture: true});
   const core = {
     get data(){ return model(); },
-    ink, circle, icon, star, esc, inkV, circleV, // inkV / circleV：风景的描述版画笔（draw/scene.ts）
+    ink, circle, icon, star, inkV, circleV, // inkV / circleV：风景的描述版画笔（draw/scene.ts）
     render: () => view.render(true),
     navigate: page => view.go(page),
     drawScenery: () => view.drawScenery(),
@@ -135,7 +136,7 @@ export function createLower(view){
     render(page, nav, width, height){
       model(); p2 ??= createPhase2(core);
       // r14 只给思索页画灯塔光束（beamV）；原来那支带 data-draw-path 的笔只有完成态海景用，这里用不到，第 3b 期删去
-      if (!art) { const r12 = createR12Art({data: d, ink, circle, icon, esc});
+      if (!art) { const r12 = createR12Art({data: d, ink, circle, icon});
         art = {r12, r14: maritimeArt({ink: r12.L, curve: ink, inkV: r12.LV, curveV: inkV})}; }
       thought ??= createThought({core, r12Art: art.r12, r14Marine: art.r14, view});
       ai ??= createAI({core, r12Art: art.r12, view, aiEnabled: plugin.settings?.ai?.enabled});

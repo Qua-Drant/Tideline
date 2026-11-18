@@ -1,11 +1,13 @@
 // 固定的框：侧栏、顶部条（日期、记录、罗盘）、纸（风景 + 各页）、反馈条。只建一次；之后只改当前页、日期时刻、指针角度。
 // 结构和类名照原型 index.html，样式由 prototype.css 接管。
 // 第 3 期：DOM 构建（draw/dom.ts），不再拼 HTML 字符串。每个函数对应原来的一段模板，结构一一对应。
+// 第 4b 期：指引页的外壳 aiShell 搬回 pages/ai.ts（原来的 AI_HTML 常量一并删去），这里改为引用。
 import {inkEl, circleEl, iconEl, quillIconEl, INK, TICK} from './draw/ink.ts';
 import {h, svg, setNodes} from './draw/dom.ts';
 import {captureShell} from './ui/capture.ts';
 import {mapShell, searchShell} from './ui/map-search.ts';
 import {thoughtShell} from './pages/thought.ts';
+import {aiShell} from './pages/ai.ts';
 
 /** 侧栏的一项：[页名, 显示名, 图标] */
 export type NavItem = [id: string, name: string, icon: string];
@@ -43,26 +45,7 @@ const WEEKDAY = ['星期日', '星期一', '星期二', '星期三', '星期四'
 function isoWeek(date: string){ const d = new Date(date + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 4)); return 1 + Math.round((((d as unknown as number) - (y as unknown as number)) / 864e5 - 3 + ((y.getUTCDay() + 6) % 7)) / 7); }
 
 // —— 各页的固定外壳 ——
-// 与 pages/ai.js 的 AI_HTML 逐个元素对应。那个模块还没改成 DOM 构建，字符串常量留在原处、已不再使用；改它的那一期把这个函数搬回去、删掉常量。
-// 随手记、小地图、搜索三个外壳第 3c 期已搬回 ui/capture.ts、ui/map-search.ts；思索页的外壳第 3d 期搬回 pages/thought.ts。
-function aiShell(){
-  return h('section', {id: 'ai', class: 'page ai', 'aria-label': '指引', hidden: true},
-    h('div', {class: 'mast-scene'}, h('div', {id: 'flags', class: 'flags'})),
-    h('div', {class: 'ai-window'},
-      h('div', {id: 'connection'}), h('div', {id: 'privacy'}),
-      h('div', {class: 'native-workspace'},
-        h('div', {class: 'native-library'},
-          h('form', {class: 'line-form prompt-search', role: 'search'},
-            h('span', {id: 'search-icon'}),
-            h('input', {id: 'prompt-query', 'aria-label': '搜索提示词', placeholder: '搜索提示词…', autocomplete: 'off'})),
-          h('div', {id: 'prompts'})),
-        h('div', {id: 'native-content'})),
-      h('form', {id: 'handoff-form', class: 'line-form handoff'},
-        svg('svg', {id: 'handoff-outline', viewBox: '0 0 601 83', preserveAspectRatio: 'none', 'aria-hidden': 'true'}),
-        h('textarea', {id: 'handoff-input', placeholder: '写下问题，或补充你的思路…（@ 提到笔记）', 'aria-label': '对话草稿', rows: 2}),
-        h('button', {id: 'native-send', type: 'submit', 'aria-label': '发送对话草稿'})),
-      h('div', {id: 'native-error', role: 'status', hidden: true})));
-}
+// 随手记、小地图、搜索三个外壳第 3c 期已搬回 ui/capture.ts、ui/map-search.ts；思索页的外壳第 3d 期搬回 pages/thought.ts；指引页的外壳第 4b 期搬回 pages/ai.ts。
 
 // —— 框本身 ——
 function moduleButton([id, name, ic]: NavItem){

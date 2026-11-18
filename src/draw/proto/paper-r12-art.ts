@@ -28,7 +28,7 @@ interface R12Args {
  /** 第 4a 期起不再用（symbol / flag 的字符串版删去）；调用方还会传 */
  circle: (x: number, y: number, r: number, size?: number, color?: string) => string;
  icon: (type: string, size?: number, color?: string) => string;
- esc: (s: unknown) => string;
+ /* 第 4b 期：esc（HTML 转义）删去：本模块早已不用，ink.ts 也不再导出，调用方不再传 */
 }
 type Rgb = [number, number, number];
 

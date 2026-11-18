@@ -17,10 +17,11 @@ import type {createR12Art} from './paper-r12-art.ts';
 //   “自动接受改动” or the current page is attached automatically, and opens settings.
 // 第 4a 期：转 TypeScript，各块（#connection、#privacy、#flags、#prompts、#native-content、#native-error、#native-send、#handoff-outline、#search-icon）
 // 改成节点构建（setNodes 整块换掉，与原来 innerHTML 一样每次重画整块）；提示词标题、副标题、正文、笔记名、模型名、错误一律是文本节点或属性值。
-// 对话区里的消息仍是 src/ai/controller.js 拼的 HTML：由 HOST.ai.fillThread 写进这里建好的 .native-thread（第 4b 批再改）。
+// 对话区里的消息由 src/ai/controller.ts 建：HOST.ai.threadInto 把节点填进这里建好的 .native-thread。
+// 第 4b 期：controller 也改成节点构建，fillThread（写 innerHTML）换成 threadInto，只改这一处调用。
 // 原来没转义就拼进去的几处（模型名 data-model 与选项文字、提示词 id 的 data-guidance-prompt / data-flag）现在原样成为属性值 / 文字。
 type R12Art=ReturnType<typeof createR12Art>;
-/** 设置 › 指引（pages/ai.js 的 syncSettings 写进 d.settingsR27.ai） */
+/** 设置 › 指引（pages/ai.ts 的 syncSettings 写进 d.settingsR27.ai） */
 interface GuidanceSettings {enabled: boolean; provider: string; permission: string; send: string; cards: Record<string,{on?: boolean}>|null}
 /** 本页用到的 AI 状态（d.ai 上的几项） */
 interface GuidanceAIState {model: string; draft: string; thread: unknown[]; error: string; attachedNote: {title: string}|null; models: string[]; agent: string}
@@ -71,7 +72,7 @@ export function createGuidance({data,art,announce,update,openSettings,currentNot
   warn&&h('button',{class:'g-warn','data-guidance':'connect','aria-label':`提醒：${SA().permission==='auto'?'默认权限是自动接受改动':'自动附带当前页已打开'}，打开设置`},svg('svg',{viewBox:'0 0 30 40','aria-hidden':'true'},L([[4,2],[4,38]],1.6),L([[4,4],[26,10],[4,18],[4,4]],1.3),L([[13,8],[13,12]],1.4),svg('circle',{cx:'13',cy:'14.6',r:'.9',fill:'#1C2A35'})))]);
  const matches=d.prompts.filter(p=>(p.title+p.subtitle+p.body).includes(ui.query||''));
  setNodes($('#prompts')!,()=>matches.length?matches.map(p=>h('button',{class:'native-prompt','data-guidance-prompt':p.id,'aria-pressed':String(p.id===ui.prompt)},art.symbolEl(p.category,24),h('span',null,h('strong',null,p.title),h('small',null,p.subtitle)))):h('button',{class:'native-empty','data-guidance':'clear','aria-label':'清除搜索'},iconEl('search')));
- setNodes($('#native-content')!,()=>{if(ui.aiView==='chat'){const box=h('div',{class:'native-thread',role:'log','aria-label':'对话'});if(ai.thread.length)HOST.ai?.fillThread(box,d);else box.append(h('div',{class:'native-chat-empty'},art.symbolEl('chat',42)));return box;}
+ setNodes($('#native-content')!,()=>{if(ui.aiView==='chat'){const box=h('div',{class:'native-thread',role:'log','aria-label':'对话'});if(ai.thread.length)HOST.ai?.threadInto(box,d);else box.append(h('div',{class:'native-chat-empty'},art.symbolEl('chat',42)));return box;}
   return h('article',{class:'native-preview'},h('div',{class:'native-prompt-title'},art.symbolEl(p.category,30),h('h2',null,p.title)),h('p',{class:'native-subtitle'},p.subtitle),h('div',{class:'native-prompt-body'},p.body.split('\n').map(s=>h('p',null,s))),
    h('div',{class:'native-scope','aria-label':`操作范围：${['读取','追加','修改','删除'].filter((_,i)=>p.scope[i]).join('、')}`},['book','plus','route','box'].map((ic,i)=>h('span',{style:`opacity:${p.scope[i]?1:.18}`},iconEl(ic,20)))),
    h('div',{class:'native-prompt-actions'},h('button',{class:'outline','data-guidance':'copy','aria-label':'复制提示词'},copyFace(ui.promptCopied===p.id)),on&&h('button',{class:'outline','data-guidance':'use','aria-label':'带入对话'},art.symbolEl('chat',17),h('span',null,'带入对话'))));});

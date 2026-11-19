@@ -34,8 +34,6 @@ interface SettingsState {
   report: {groups: [string, [string, string][]][]; total: number} | null; rebuilding: boolean; conflicts: string[] | null; open: string | null;
   checking?: string | null; advanced?: boolean; subError?: string; busy?: string | null; busyAt?: number;
 }
-/** ai.ts 的 mcp() 给的一项 */
-interface McpItem { name: string; status: string }
 type ListKind = 'habits' | 'questions' | 'wheel';
 
 export function createSettingsPage({view, plugin}: {view: CompassView; plugin: CompassPlugin}){
@@ -119,7 +117,7 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
         h('li', null, h('b', null, 'Codex、CodeBuddy'), '：开对话时潮线把代理切到“改动先问”的模式，改动、运行命令经潮线的三档与名单决定；代理自己读文件通常不问，“读取前先问”不一定拦得到。'),
         h('li', null, h('b', null, 'Gemini CLI、DeepSeek Harness、自定义'), '：只有代理主动请求许可、或请潮线代读代写文件时才拦得到；其余取决于代理自己的设置。')), ''),
       row('改动可以回退', meta('经 ACP 接入时，代理改过的文件不能由潮线还原；改前改后的对照卡仍会先问你'), '本机')];
-    if (tab === 'context') { const mcp = (view.lower?.ai as {mcp?(): McpItem[]} | null | undefined)?.mcp?.() || []; // 指引页（pages/ai.ts）的 createAI 并没有 mcp()（原有问题，第 4b 期只记录），照旧按可选的看
+    if (tab === 'context') { const mcp = view.lower?.ai?.mcp() || []; // 疑似问题批 F3：原来读的 ai.mcp() 在 createAI 里并不存在（列表永远为空）；现在由 pages/ai.ts 交出 controller 握手时记下的 MCP 服务，按正式类型调用
       const STATUS: Record<string, string> = {connected: '已连接', failed: '连不上', 'needs-auth': '要登录', pending: '连接中', disabled: '关了'};
       return [row('自动附带当前页的内容', [mark('ai.attach', (a as typeof a & {attach?: boolean}).attach, '自动附带当前页的内容'), note('日记正文不会自动附带')], '本机'),
         row('工作说明', [h('span', {class: 'set-code'}, 'CLAUDE.md · AGENTS.md'), plugin.writer.exists?.('CLAUDE.md') ? fold('CLAUDE.md', '工作说明') : note('仓库里还没有这两篇')], '仓库本身'),

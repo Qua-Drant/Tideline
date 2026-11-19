@@ -99,8 +99,11 @@ export function createAI({core, r12Art, view}: {core: AICore; r12Art: R12Art; vi
   async function detect(){ if (detected || !plugin.settings.ai?.enabled || !('detectAI' in plugin)) return; detected = true; await plugin.detectAI(); syncSettings(d, plugin); if (d.ui.page === 'ai') { guidance.render(); view.drawScenery(); } }
   return {
     render(){ syncSettings(d, plugin); guidance.render(); void detect(); },
-    refresh(){ detected = false; controller.close(); syncSettings(d, plugin, true); if (d.ui.page === 'ai') { guidance.render(); view.drawScenery(); } void detect(); },
+    // 疑似问题批 F2：close() 断开了顶部的观察器，随即重新 watch，不然要等发出一句话或重开视图才补上“存成笔记 · 对话”和两个开关
+    refresh(){ detected = false; controller.close(); controller.watch(); syncSettings(d, plugin, true); if (d.ui.page === 'ai') { guidance.render(); view.drawScenery(); } void detect(); },
     scenery(box: {left: number; top: number}): Part[]{ return r12Art.guidanceV(box); },
+    /** 疑似问题批 F3：设置 › 指引 › 上下文 里列出的 MCP 服务（controller 握手时记下的） */
+    mcp(){ return controller.mcp(); },
     close(){ controller.close(); if (HOST.ai === controller) HOST.ai = null; },
   };
 }

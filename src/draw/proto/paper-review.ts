@@ -67,7 +67,8 @@ export function reviewPage(a: ReviewApi){
  const score=(r: Day)=>{const v=r.questions.filter(x=>x!==null);return v.length?v.reduce((n,x)=>n+x,0)/v.length:null;};
  // Small habit glyphs: water drop, a stretch, an open book, the moon.（描述，建节点时每次新建）
  const HABIT_GLYPH: Parts[][]=[[ink([[7,1.5],[3.2,7.5],[3.6,10.6],[7,12.6],[10.4,10.6],[10.8,7.5],[7,1.5]],1.05)],[circle(7,2.6,1.5,1),ink([[7,4.4],[7,8.6]],1.1),ink([[3,5.6],[7,6.4],[11,5.6]],1),ink([[7,8.6],[4.6,12.4]],1),ink([[7,8.6],[9.4,12.4]],1)],[ink([[1.5,3.5],[7,4.6],[12.5,3.5],[12.5,11.5],[7,12.4],[1.5,11.5],[1.5,3.5]],1),ink([[7,4.6],[7,12.4]],.9)],[ink([[9.6,1.8],[6.2,2.6],[3.6,5.6],[3.4,9.2],[5.8,12],[9.4,12.4],[12,10.6],[8.6,10],[6.6,7.6],[7,4.2],[9.6,1.8]],1)]];
- function weekTrend(){const t=d.review.trend,Wd=440,H=104,x0=30,x1=330,top=12,base=80,max=Math.ceil(Math.max(...t)/10)*10,X=(i: number)=>x0+i*(x1-x0)/(t.length-1),Y=(v: number)=>base-v/max*(base-top);
+ // 疑似问题批 F6：近 12 周完成数全为 0 时 max = 0，Y() 原来是 0/0 = NaN（<text y="NaN">、点的 cy 与位置都是 NaN）；刻度至少到 10，全 0 时点画在基线上
+ function weekTrend(){const t=d.review.trend,Wd=440,H=104,x0=30,x1=330,top=12,base=80,max=Math.max(10,Math.ceil(Math.max(...t)/10)*10),X=(i: number)=>x0+i*(x1-x0)/(t.length-1),Y=(v: number)=>base-v/max*(base-top);
  const s: Parts[]=[];for(const v of [0,max/2,max]){s.push(ink([[x0-4,Y(v)],[x1+6,Y(v)]],.45,a.TICK),txt({x:x0-9,y:Y(v)+3,'text-anchor':'end',class:'ax'},v));}
  s.push(ink(t.map((v,i): Point=>[X(i),Y(v)]),1.35));t.forEach((v,i)=>{s.push(i===t.length-1?[sh('circle',{cx:X(i),cy:Y(v),r:'3.4',fill:'#C8206A'}),txt({x:X(i)+2,y:Y(v)-8,class:'now','text-anchor':'middle'},v)]:sh('circle',{cx:X(i),cy:Y(v),r:'2.2',fill:a.INK}));s.push(txt({x:X(i),y:base+16,'text-anchor':'middle',class:'ax'},33+i));});
  s.push(txt({x:x1+12,y:base+16,class:'ax'},'周'),sh('g',{transform:`translate(${Wd-62} ${base+4})`},m.towerV(0,0,.5),m.rockV(-30,0,.6),m.rockV(26,1,.45)),curve([[x1+30,base+5],[Wd-80,base+3],[Wd-40,base+6],[Wd-2,base+4]],.6,a.SECONDARY),curve([[x1+44,base+10],[Wd-30,base+10]],.45,a.TICK));
@@ -107,8 +108,8 @@ export function reviewPage(a: ReviewApi){
  run:[ink([[2,9],[16,9]],1.2),ink([[4,6],[4,12]],1.6),ink([[14,6],[14,12]],1.6),ink([[1.5,7.6],[1.5,10.4]],1.2),ink([[16.5,7.6],[16.5,10.4]],1.2)],moon:[ink([[12.4,2.4],[7.6,3.4],[4.4,7.4],[4.6,12],[8,15],[12.6,15],[15.4,12.6],[11,12],[8.4,9],[9,5],[12.4,2.4]],1.05)],
  heart:[ink([[9,15.4],[3.2,9.6],[2.4,6],[4.4,3.4],[7.4,3.4],[9,5.6],[10.6,3.4],[13.6,3.4],[15.6,6],[14.8,9.6],[9,15.4]],1.05)],flask:[ink([[7,2.4],[11,2.4]],1.1),ink([[7.6,2.6],[7.6,7.4],[3.4,14.6],[4.4,16],[13.6,16],[14.6,14.6],[10.4,7.4],[10.4,2.6]],1.05),ink([[5.2,12],[12.8,12]],.8,a.SECONDARY)],
  home:[ink([[2.4,8.6],[9,3],[15.6,8.6]],1.1),ink([[4,7.4],[4,15.6],[14,15.6],[14,7.4]],1.05),ink([[7.6,15.6],[7.6,11],[10.4,11],[10.4,15.6]],.9)]};
- // 原来 svg(QG[k])：认不得的 k 会把“undefined”写进 svg（照旧）
- const qg=(k: unknown)=>h('span',{class:'q-glyph'},svgP(QG[k as string]??'undefined',18,18));
+ // 疑似问题批 F7：原来 svg(QG[k])，认不得的 k（季度笔记里没写或写错的 icon）会把文字 “undefined” 写进 svg；改为不画图标，照近旁 stateMarkEl / habitMark 的惯例留一个空的 svg
+ const qg=(k: unknown)=>h('span',{class:'q-glyph'},svgP(typeof k==='string'&&Object.hasOwn(QG,k)?QG[k]:[],18,18));
  function voyage(){const Wd=900,H=96,P=(t: number): Point=>[70+t*760,64-Math.sin(t*Math.PI)*34],months: [string,number][]=[['10月',.17],['11月',.5],['12月',.83]],now=(29)/92;
  const s: Parts[]=[curve(Array.from({length:41},(_,i)=>P(i/40)),1.2)];for(const[label,t]of months){const[x,y]=P(t);s.push(circle(x,y,3.6,1.2),txt({x,y:y+20,'text-anchor':'middle',class:'ax-m'},label));}
  const[nx,ny]=P(now);s.push(sh('circle',{cx:nx,cy:ny,r:'4.2',fill:'#C8206A'}),ink([[nx,ny-6],[nx,ny-22]],1.1,'#C8206A'),ink([[nx,ny-22],[nx+9,ny-18],[nx,ny-14]],1,'#C8206A'));
@@ -189,7 +190,8 @@ export function reviewPage(a: ReviewApi){
  const win: Parts[]=[inkV([[cx-r,cy+14],[cx+r,cy+14]],1.1),a.curveV([[cx-r,cy+14],[cx-32,cy+6],[cx-18,cy+1],[cx-4,cy+9],[cx+6,cy+14]],.9,a.SECONDARY)];
  for(let i=0;i<6;i++){const yy=cy+22+i*7,len=12+i*4;for(let k=0;k<3;k++){const xx=cx-r+14+k*r*.66+((i*17)%19);win.push(a.curveV([[xx,yy],[xx+len/2,yy-.6],[xx+len,yy]],.55,i%2?a.TICK:a.SECONDARY));}}
  for(const[xx,yy,k]of [[cx-32,cy-30,.5],[cx+8,cy-40,.4]])win.push(a.curveV([[xx,yy],[xx+10*k,yy-6*k],[xx+24*k,yy-7*k],[xx+36*k,yy-2*k],[xx+50*k,yy]],.6,a.TICK));
- win.push(skyDiscV(cx+22,cy-8));port.push(sh('defs',null,sh('clipPath',{id:'review-window-clip'},sh('circle',{cx,cy,r:r-1}))),sh('g',{'clip-path':'url(#review-window-clip)'},win));s.push(sh('g',{'data-morph':'porthole'},port));
+ // 疑似问题批 F5：视图不可见时船舱宽 cw = 0，舷窗半径 r = 0，剪裁圆原来写出 r="-1"；夹到 0
+ win.push(skyDiscV(cx+22,cy-8));port.push(sh('defs',null,sh('clipPath',{id:'review-window-clip'},sh('circle',{cx,cy,r:Math.max(0,r-1)}))),sh('g',{'clip-path':'url(#review-window-clip)'},win));s.push(sh('g',{'data-morph':'porthole'},port));
  // Curtain rod over the porthole and one drape on the far side, swept back by a rope tie; the lantern keeps the
  // near side. Folds converge on the tie and fan out again below it.
  const rod=top+24,rl=cx-r-14,rr=w-4,c: Parts[]=[inkV([[rl,rod],[rr,rod]],1.4),circle(rl-2,rod,2.6,1)];
@@ -236,7 +238,8 @@ if(cw>=190){const rx=mx+40,ry=desk-7;s.push(F([[rx,ry-6],[rx+46,ry-8],[rx+47,ry+
  function quillV(x: number,y: number,k: number){const P=a.PAPER,F=(p: Point[],c=P)=>sh('path',{d:`M${p.map(q=>q.map(v=>+v.toFixed(1)).join(',')).join('L')}Z`,fill:c}),s: Parts[]=[];
  const Wd=24*k,H=30*k,N=9*k,body: Point[]=[[x-Wd,y],[x-Wd-2*k,y-H*.55],[x-Wd+3*k,y-H],[x-N,y-H-4*k],[x-N,y-H-10*k],[x+N,y-H-10*k],[x+N,y-H-4*k],[x+Wd-3*k,y-H],[x+Wd+2*k,y-H*.55],[x+Wd,y]];
  const Bz=(t: number): Point=>{const u=1-t,c0=[x+2*k,y-H-6*k],c1=[x+10*k,y-150*k],c2=[x+46*k,y-218*k];return[u*u*c0[0]+2*u*t*c1[0]+t*t*c2[0],u*u*c0[1]+2*u*t*c1[1]+t*t*c2[1]];};
- const pts=Array.from({length:41},(_,i)=>Bz(i/40)),nrm=(i: number)=>{const p=pts[Math.max(0,i-1)],q=pts[Math.min(40,i+1)],l=Math.hypot(q[0]-p[0],q[1]-p[1]);return[(q[1]-p[1])/l,-(q[0]-p[0])/l];};
+ // 疑似问题批 F5：视图不可见时船舱宽 cw = 0，缩放 k = 0，羽杆缩成一点，相邻两点重合 l = 0，原来 0/0 得 NaN（羽片三条路径 “MNaN,NaN…”、羽枝 “M0.0,-38.0QNaN…”）；重合时法线取 0
+ const pts=Array.from({length:41},(_,i)=>Bz(i/40)),nrm=(i: number)=>{const p=pts[Math.max(0,i-1)],q=pts[Math.min(40,i+1)],l=Math.hypot(q[0]-p[0],q[1]-p[1]);return l?[(q[1]-p[1])/l,-(q[0]-p[0])/l]:[0,0];};
  const vane=(side: number,wd: number)=>pts.map((p,i): Point=>{const t=i/40,f=t<.3?0:Math.pow(Math.sin(Math.PI*Math.min(1,(t-.3)/.7)),.75)*(t>.93?.6:1),gap=(side<0&&Math.abs(t-.62)<.02)||(side>0&&Math.abs(t-.48)<.02)?.55:1,[nx,ny]=nrm(i);return[p[0]+nx*wd*k*f*gap*side,p[1]+ny*wd*k*f*gap*side];});
  const L1=vane(-1,17),R1=vane(1,10);s.push(F([...L1.slice(12),...R1.slice(12).reverse()]),a.curveV(L1.slice(11),1),a.curveV(R1.slice(11),.9));
  let barbs='';for(let i=13;i<39;i++){for(const[side,V]of [[-1,L1],[1,R1]] as [number,Point[]][]){const j=Math.min(40,i+2),p=pts[i],q=V[j];barbs+=`M${p[0].toFixed(1)},${p[1].toFixed(1)}Q${((p[0]+q[0])/2+(side<0?-1:1)*1.2*k).toFixed(1)},${((p[1]+q[1])/2+1.5*k).toFixed(1)} ${q[0].toFixed(1)},${q[1].toFixed(1)}`;}}

@@ -260,7 +260,9 @@ export function createAIController({view, plugin, provider}: {view: CompassView;
     view.frames();
   }
   // 原型的指引模块会重画顶部（换模型、开关菜单时），重画后再补上
-  const mo = new MutationObserver(() => { if (view.page === 'ai') { mo.disconnect(); decorate(); watch(); } });
+  // 疑似问题批 F2：原来只在视图停在指引页时补。设置里开关 AI（refreshAI）与握手结束（detect）时，顶部可能在别的页上被重画，
+  // 回到指引页时页面原样复用、不再重画，按钮就一直缺着；现在不论停在哪一页都补（decorate 只在 AI 开着时插入，已有就不再插）
+  const mo = new MutationObserver(() => { mo.disconnect(); decorate(); watch(); });
   const watch = () => { for (const s of ['#connection', '#privacy']) { const el = $(s); if (el) mo.observe(el, {childList: true}); } };
   watch();
 
@@ -465,5 +467,10 @@ export function createAIController({view, plugin, provider}: {view: CompassView;
     /** 把对话填进 el（指引页建好的 .native-thread）：整段重建 */
     threadInto(el: HTMLElement, d: Model){ draw(el, d as ChatModel, false); },
     decorate, close(){ saveNow(); closeSession(); conv = null; drawn = null; mo.disconnect(); }, get busy(){ return !!conv?.busy; },
+    // 疑似问题批 F2：close() 断开了观察器；设置里开关 AI（refreshAI → close）之后由 pages/ai.ts 调这里重新盯住顶部，进指引页时按钮立刻补上。
+    // 对同一节点再 observe 只是替换原来的登记，反复开关不会多出回调；回调里先 disconnect 再 decorate，不会因自己插入按钮而循环
+    watch(){ watch(); },
+    // 疑似问题批 F3：握手（init 事件）报来的 MCP 服务，交给设置页显示；还没握手时是空的
+    mcp(): readonly McpInfo[]{ return mcpCache || []; },
     clearList(){ try { plugin.localStore.save(STORE, []); } catch { /* 本机存储写不进去：照常刷新面板 */ } renderPanel(); }};
 }

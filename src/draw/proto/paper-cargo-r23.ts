@@ -67,7 +67,9 @@ export function cargoR23(a: ProtoApi,r16: ReturnType<typeof cargoR16>){
  function sackV(x: number,person: {id: string; initial?: string|null},pressed: boolean,s: number){const ox=x-SACK.w/2,oy=SACK.top,k=SACK.k;const o: Parts[]=[CV([[38,-6],[38,6]],1),EV(38,9,4,3,1.1)];const ruff: Point[]=[[30,21],[27,17],[28,14],[32,13],[35,15],[38,12.5],[41,15],[44,13],[48,14],[49,17],[46,21]];o.push(FV(ruff),CV([...ruff,ruff[0]],1.05));for(const k of [33,38,43])o.push(CV([[k,15],[k+.4,18],[k,20.5]],.45,M));
  const body: Point[]=[[30,22],[19,34],[10,54],[7,74],[12,90],[26,97],[50,97],[64,90],[69,74],[66,54],[57,34],[46,22]];o.push(FV(body),CV([...body,body[0]],1.5),CV([[28,21],[38,25],[48,21]],1.6),CV([[29,24],[38,27.5],[47,24]],1));
  for(const p of [[[33,28],[24,48],[21,72]],[[44,28],[53,48],[56,70]],[[16,74],[20,86],[30,93]]] as Point[][])o.push(CV(p,.55,M));for(let i=0;i<7;i++){const k=58+i*1.5;o.push(CV([[k,40+i*3.4],[k+.8,62+i],[k,84-i*1.5]],.4,M,{opacity:'.7'}));}
- const tag: Point[]=[[26,44],[50,43],[51,69],[27,70]];o.push(LV([[38,27],[38,44]],.7),FV(tag),OV(tag,1),circleV(38,47,1,.6));const fs=12/s/k;
+ const tag: Point[]=[[26,44],[50,43],[51,69],[27,70]];o.push(LV([[38,27],[38,44]],.7),FV(tag),OV(tag,1),circleV(38,47,1,.6));
+ // 疑似问题批（扫描新发现）：视图不可见时宽 0，缩放 s = 0，字号 12/s 原来是 Infinity（<text> 的 y、font-size 写出 “Infinity”）；这时整组缩成 0，字号取 0
+ const fs=s>0?12/s/k:0;
  o.push(sh('text',{x:'38.5',y:fmt(57+fs*.36),'font-size':fmt(fs),'text-anchor':'middle',fill:I,style:'font-family:var(--sans)','text-decoration':pressed?'underline':null},person.initial==null?'':String(person.initial)));if(pressed)o.push(LV([[31,63.5],[46,63.5]],.9));
  return sh('g',{'data-cargo-sack':`${person.id}`,transform:`translate(${ox} ${oy}) scale(${k})`},o);}
  // Hanging coil: a cleat, loops hung from it back to front, two lashing turns round the neck and a tail.

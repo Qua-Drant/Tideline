@@ -21,7 +21,7 @@
   .compass-root .scenery{inset:0 auto auto 0}
   .compass-root .today{padding-top:20px;padding-bottom:48px}
 
-  .compass-root #today .above{grid-template-columns:3fr 2fr;gap:28px;max-height:none!important;overflow:visible!important;padding-right:0}
+  .compass-root #today .above{grid-template-columns:3fr 2fr;gap:28px;max-height:none;overflow:visible;padding-right:0}
   /* 其他任务不撑高这一排：高度跟聚焦栏走（至少 200），多出的照常在栏里滚动、“还有 N 项” */
   .compass-root .other-tasks{margin-top:0;height:0;min-height:100%}
   .compass-root .focus-name{font-size:30px}
@@ -30,9 +30,9 @@
   .compass-root #today .task-project{white-space:nowrap}
   .compass-root .today .timeline{margin-top:18px;height:140px}
 
-  .compass-root #today .below{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto auto;column-gap:32px;row-gap:30px!important;
-    height:auto!important;min-height:0;padding-bottom:0;margin-top:6px}
-  .compass-root #today .below > div{display:contents!important}
+  .compass-root #today .below{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto auto;column-gap:32px;row-gap:30px;
+    height:auto;min-height:0;padding-bottom:0;margin-top:6px}
+  .compass-root #today .below > div{display:contents}
   .compass-root #today .below .today-subsection{display:flex;flex-direction:column;min-width:0}
   .compass-root #today .below [data-today-group="trail"]{grid-area:1/1}
   .compass-root #today .below [data-today-group="habits"]{grid-area:1/2}
@@ -45,7 +45,7 @@
   .compass-root .journal{max-height:186px}
   .compass-root .questions{gap:12px}
   /* 0.3：上方一栏高度固定，点开任务详情时下面的时间轴和三栏不跟着跳；详情在栏里滚动 */
-  .compass-root #today .above{height:310px!important;min-height:0!important}
+  .compass-root #today .above{height:310px;min-height:0}
   .compass-root #today .focus-section{min-height:0;overflow-y:auto;overflow-x:hidden}
   /* 习惯、自问、航迹多了在块里滚动，不把下面的块推得很远 */
   .compass-root #today .below .today-subsection{overflow:visible}
@@ -68,7 +68,7 @@
     -webkit-mask-image:linear-gradient(transparent,#000 18px);mask-image:linear-gradient(transparent,#000 18px)}
   .compass-root .scenery{inset:0 auto auto 0}
   .compass-root .today{padding-bottom:48px}
-  .compass-root #today .below{height:auto!important;min-height:0;grid-template-rows:auto auto}
+  .compass-root #today .below{height:auto;min-height:0;grid-template-rows:auto auto}
   .compass-root .journal{max-height:186px}
 }
 
@@ -83,7 +83,7 @@
   .compass-root .other-tasks{height:auto;min-height:0}
   .compass-root .other-task-items{max-height:160px}
   /* 0.3：上下排时整排不固定高度；聚焦栏自己固定高度，点开详情在栏里滚动，下面的不跟着跳 */
-  .compass-root #today .above{height:auto!important}
+  .compass-root #today .above{height:auto}
   .compass-root #today .focus-section{height:250px}
   .compass-root #today .other-tasks{height:170px}
   .compass-root .focus-name{font-size:28px}

@@ -413,7 +413,7 @@
 @media (prefers-reduced-motion: reduce){.compass-root .event-mist{filter:none;transform:none}}
 .compass-root .event-mist{background:rgba(244,245,242,.94);border-radius:12px;box-shadow:0 5px 20px rgba(28,42,53,.045),inset 0 0 0 1px rgba(244,245,242,.65)}
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.compass-root .event-mist{background:rgba(244,245,242,.82);-webkit-backdrop-filter:blur(12px) saturate(.72);backdrop-filter:blur(12px) saturate(.72)}}
-.compass-root .person-initial::before{display:none!important}
+.compass-root .person-initial::before{display:none}
 .compass-root .person-initial > svg{position:absolute;inset:0;width:100%!important;height:100%!important;pointer-events:none}
 .compass-root .person-initial > span{position:relative;z-index:1}
 .compass-root .library-sign.unlinked .paper-title > span{right:10px}
@@ -587,10 +587,10 @@
 .compass-root #today .trail:has(.detail-inline) + #past{display:none}
 .compass-root .feedback-result{display:flex;align-items:center}
 .compass-root .feedback-result svg{width:19px;height:19px}
-.compass-root .idea-empty-quote{top:41%!important}
-@container compass (min-width: 901px){.compass-root #today .above{height:220px!important;min-height:220px!important;max-height:220px!important;overflow:visible!important}}
+.compass-root .idea-empty-quote{top:41%}
+@container compass (min-width: 901px){.compass-root #today .above{height:220px;min-height:220px;max-height:220px;overflow:visible}}
 @container compass (min-width: 901px){.compass-root #today #focus, .compass-root #today #other-tasks{height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--tick) transparent;padding-right:4px}}
-@container compass (min-width: 901px) and (max-width: 1320px){.compass-root #today .above{height:200px!important;min-height:200px!important;max-height:200px!important}}
+@container compass (min-width: 901px) and (max-width: 1320px){.compass-root #today .above{height:200px;min-height:200px;max-height:200px}}
 .compass-root #tasks > form, .compass-root #tasks > .cargo-top, .compass-root #tasks > .cargo-center, .compass-root #tasks > .cargo-floor{z-index:2}
 .compass-root #tasks .cargo-top{position:absolute;padding:0;align-items:flex-start;justify-content:flex-end}
 .compass-root #tasks .cargo-mailbag{display:block}
@@ -623,7 +623,7 @@
 .compass-root #tasks .cargo-floor{position:absolute;left:0;right:0;display:grid;align-items:end}
 .compass-root #tasks .cargo-loose{position:relative;left:auto;bottom:0;width:175px;height:142px}
 .compass-root #tasks .cargo-loose svg{width:175px!important;height:142px!important}
-.compass-root #tasks .cargo-crates{position:static;display:flex;align-items:end;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--tick) transparent;padding:0 0 2px}
+.compass-root #tasks .cargo-crates{position:static;display:flex;align-items:end;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--tick) transparent;padding:8px 0}
 .compass-root #tasks .cargo-crate{flex-shrink:0;position:relative}
 .compass-root #tasks .cargo-crate svg{width:100%!important}
 .compass-root #tasks .cargo-crate .crate-name{text-align:center}
@@ -631,8 +631,8 @@
 .compass-root #tasks .cargo-crate[aria-pressed="true"] .crate-name{text-decoration:underline;text-underline-offset:5px}
 .compass-root #tasks .cargo-archive{position:relative;left:auto;bottom:0;right:auto;width:140px;height:142px;z-index:3}
 .compass-root #tasks .cargo-archive svg{width:140px!important;height:140px!important}
-.compass-root .cargo-new-list{bottom:180px!important;left:200px!important;z-index:12!important;background:var(--paper)}
-.compass-root .cargo-view-form{top:178px!important;left:100px!important;right:calc(52% + 30px)!important;width:auto!important;background:var(--paper);z-index:12!important}
+.compass-root .cargo-new-list{bottom:180px;left:200px;z-index:12;background:var(--paper)}
+.compass-root .cargo-view-form{top:178px;left:100px;right:calc(52% + 30px);width:auto;background:var(--paper);z-index:12}
 .compass-root #tasks button:active:not([draggable]){transform:scale(.98)}
 .compass-root #tasks .cargo-row.is-selected{border-left:0;padding-left:0;margin-left:0}
 .compass-root .cargo-selection{position:absolute;left:-7px;top:0;width:5px;height:100%;pointer-events:none}
@@ -762,11 +762,11 @@
 .compass-root #tasks .cargo-mailbag:nth-of-type(4){left:calc(93% - 35px)}
 .compass-root #tasks .cargo-center{left:96px;right:12px;display:grid;grid-template-columns:158px minmax(0,1.08fr) minmax(0,1fr);gap:23px}
 .compass-root #tasks .cargo-nav, .compass-root #tasks .cargo-left-pane, .compass-root #tasks .cargo-detail-pane{position:relative;inset:auto;height:100%;min-width:0;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--tick) transparent}
-.compass-root #tasks .cargo-left-pane{padding:0 6px 0 2px}
+.compass-root #tasks .cargo-left-pane{padding:0 10px 0 12px}
 .compass-root #tasks .cargo-detail-pane{padding:0 6px 0 0}
 .compass-root #tasks .cargo-left-pane{display:flex;flex-direction:column;overflow:hidden}
 .compass-root #tasks .cargo-left-pane > .cargo-list-tools, .compass-root #tasks .cargo-left-pane > .current-task-filter, .compass-root #tasks .cargo-left-pane > .cargo-bookmarks{flex:none}
-.compass-root #tasks .cargo-left-pane > .cargo-manifest{flex:1;min-height:0;overflow:auto!important;scrollbar-width:thin;scrollbar-color:var(--tick) transparent}
+.compass-root #tasks .cargo-left-pane > .cargo-manifest{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--tick) transparent}
 .compass-root #tasks .cargo-detail-pane{padding-right:32px}
 .compass-root .cargo-read-next{position:absolute;right:4px;bottom:5px;width:24px;height:27px;background:var(--paper);display:grid;place-items:center;z-index:5}
 .compass-root .cargo-read-next > svg{width:20px!important;height:22px!important}
@@ -795,7 +795,7 @@
 .compass-root .cargo-document-head h3{font-size:24px}
 .compass-root #tasks .cargo-floor{height:142px;bottom:14px}
 .compass-root #tasks .cargo-archive, .compass-root #tasks .cargo-archive svg{width:126px!important;height:126px!important}
-.compass-root #tasks .cargo-view-form{top:175px!important;left:calc(21% + 8px)!important;right:41%!important}
+.compass-root #tasks .cargo-view-form{top:175px;left:calc(21% + 8px);right:41%}
 .compass-root .chart-goals{left:16%;top:7px;right:40px;gap:20px;flex-wrap:wrap}
 .compass-root .chart-goals button{font-size:13px}
 .compass-root .project-map-body{overflow:hidden}
@@ -814,8 +814,8 @@
 .compass-root .project-new-berth{bottom:auto!important;width:110px;height:48px}
 .compass-root .project-new-berth svg{width:110px!important;height:48px!important}
 .compass-root .project-archive{bottom:auto!important;display:flex;align-items:center;gap:10px;font-size:12px;background:var(--paper);padding:3px 5px;min-height:28px}
-.compass-root .project-archived-list{bottom:auto!important;left:3%;padding:5px 10px}
-.compass-root .project-new-form{bottom:auto!important;left:6%;width:260px;padding:5px;background:var(--paper)}
+.compass-root .project-archived-list{bottom:auto;left:3%;padding:5px 10px}
+.compass-root .project-new-form{bottom:auto;left:6%;width:260px;padding:5px;background:var(--paper)}
 .compass-root .project-detail{left:0;right:0;bottom:0;height:300px;border:0;padding:10px 8px 0;overflow:auto}
 .compass-root .project-detail-top{position:relative;min-height:35px;padding-right:10px;gap:16px}
 .compass-root .project-detail-top h3{font:400 25px/1.5 var(--serif);margin:0 auto 0 0}
@@ -846,7 +846,7 @@
 .compass-root .today-section-mark{display:flex;align-items:center;gap:9px;color:var(--secondary);font-size:13px;line-height:22px;margin-bottom:13px;flex:none}
 .compass-root .today-section-mark svg{width:20px;height:20px;flex:none}
 .compass-root .focus-section-mark{margin-bottom:15px}
-.compass-root .other-tasks-mark{font-size:13px!important;gap:9px!important}
+.compass-root .other-tasks-mark{font-size:13px!important;gap:9px}
 .compass-root .other-tasks-mark svg{width:20px!important;height:20px!important}
 .compass-root #today .below{min-height:220px;align-items:stretch}
 .compass-root #today .below > div{min-height:0;flex-direction:column}
@@ -871,7 +871,7 @@
 .compass-root #today [data-today-group="past"], .compass-root #today [data-today-group="questions"], .compass-root #today [data-today-group="journal"]{margin-top:auto}
 .compass-root #today .today-subsection > .today-section-mark{margin-bottom:7px}
 .compass-root #today .today-subsection > blockquote{margin-top:0!important;padding-top:0!important}
-.compass-root #today .today-subsection > #questions{margin-top:0!important}
+.compass-root #today .today-subsection > #questions{margin-top:0}
 .compass-root #today .question-title{min-height:24px;font-size:14px}
 .compass-root #today .question .dial{width:150px;height:auto}
 .compass-root #today #focus{display:flex;flex-direction:column;overflow:hidden}
@@ -954,16 +954,16 @@
 @container compass (max-width: 1320px){.compass-root #tasks .cargo-floor{grid-template-columns:172px minmax(0,1fr) 118px}}
 @container compass (max-width: 1320px){.compass-root #tasks .cargo-loose, .compass-root #tasks .cargo-loose svg{width:172px!important;height:140px!important}}
 .compass-root #today{--habit-row:34px}
-.compass-root #today .below .today-subsection{margin-top:0!important;display:flex;flex-direction:column}
+.compass-root #today .below .today-subsection{margin-top:0;display:flex;flex-direction:column}
 .compass-root #today .below [data-today-group="past"], .compass-root #today .below [data-today-group="questions"], .compass-root #today .below [data-today-group="journal"]{align-self:stretch}
 .compass-root #today .habit{height:var(--habit-row)!important;min-height:var(--habit-row)!important}
 @container compass (max-width: 1320px){.compass-root #today .below > div{row-gap:4px}}
 .compass-root #tasks .cargo-mailbag span{left:50%;top:56.5%}
 .compass-root #today .below{row-gap:28px}
-.compass-root #today .below > div{grid-row:1/span 2;display:grid!important;grid-template-rows:subgrid;row-gap:28px;height:auto!important;align-self:stretch}
+.compass-root #today .below > div{grid-row:1/span 2;display:grid;grid-template-rows:subgrid;row-gap:28px;height:auto;align-self:stretch}
 .compass-root #today .below .today-subsection{justify-content:flex-start}
 .compass-root #today .below [data-today-group="journal"] > form{margin-top:10px}
-.compass-root #today .below [data-today-group="questions"] > #questions{margin-top:0!important}
+.compass-root #today .below [data-today-group="questions"] > #questions{margin-top:0}
 @container compass (max-width: 1320px){.compass-root #today{--habit-row:28px}}
 @container compass (max-width: 1320px){.compass-root #today .below, .compass-root #today .below > div{row-gap:12px}}
 @container compass (max-width: 1320px){.compass-root #today .investment{margin-bottom:8px}}
@@ -1309,9 +1309,9 @@
 .compass-root #projects .project-status-menu > button{width:auto;height:30px;display:flex;align-items:center;gap:10px;padding:0 6px;font-size:13px;color:var(--ink)}
 .compass-root #projects .project-status-menu > button svg{width:16px!important;height:16px!important;flex:none}
 .compass-root #projects .project-status-menu > button[aria-pressed="true"] span{text-decoration:underline;text-decoration-color:#C8206A;text-underline-offset:4px}
-.compass-root #projects .project-archived-list{bottom:auto!important;min-width:170px;padding:8px 14px}
+.compass-root #projects .project-archived-list{bottom:auto;min-width:170px;padding:8px 14px}
 .compass-root #projects .project-archived-list button{display:block;min-height:30px;font-size:13px;text-align:left}
-.compass-root #projects .project-new-form{bottom:auto!important;width:260px;padding:8px 14px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.compass-root #projects .project-new-form{bottom:auto;width:260px;padding:8px 14px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .compass-root #projects .project-new-form .hand-popup-title{flex-basis:100%}
 .compass-root #projects .project-new-form input{flex:1;min-width:0}
 .compass-root #projects .project-plain-list{top:40px;right:10px;left:auto;bottom:auto;width:268px;max-height:calc(100% - 60px);overflow:auto;padding:8px 12px}
@@ -1911,7 +1911,7 @@
 .compass-root .onboarding{padding-bottom:150px}
 @container compass (max-height: 820px){.compass-root .ob-sea{bottom:76px;height:40px}}
 @container compass (max-height: 820px){.compass-root .onboarding{padding-bottom:128px}}
-.compass-root .onboarding > .ob-sea{position:absolute!important;left:44px;right:44px;bottom:80px;height:84px}
+.compass-root .onboarding > .ob-sea{position:absolute;left:44px;right:44px;bottom:80px;height:84px}
 .compass-root .ob-sea svg{preserveAspectRatio:none}
 @container compass (max-height: 820px){.compass-root .onboarding > .ob-sea{bottom:74px;height:58px}}
 .compass-root .onboarding.is-cover{padding-bottom:28px}
@@ -1922,7 +1922,7 @@
 .compass-root[data-font-scale="1.2"] .day-column:not(:first-child){padding-left:10px}
 .compass-root[data-font-scale="1.2"] .goals{gap:22px;padding-right:10px}
 .compass-root[data-font-scale="1.2"] .plan-task{margin-bottom:14px}
-@container compass (max-width: 1320px){.compass-root[data-font-scale="1.2"] #today .above{height:214px!important;min-height:214px!important;max-height:214px!important}}
+@container compass (max-width: 1320px){.compass-root[data-font-scale="1.2"] #today .above{height:214px;min-height:214px;max-height:214px}}
 @container compass (max-width: 1320px){.compass-root[data-font-scale="1.2"] .timeline{height:103px}}
 @container compass (max-width: 1320px){.compass-root[data-font-scale="1.2"] .week-board{gap:8px}}
 @container compass (max-width: 1320px){.compass-root[data-font-scale="1.2"] .questions{margin-top:14px}}
@@ -2150,7 +2150,7 @@
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root .habit-history svg{width:9px;height:9px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root .questions{margin-top:15px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root .question-title{min-height:28px}}
-@container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today .above{height:200px!important;min-height:200px!important;max-height:200px!important}}
+@container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today .above{height:200px;min-height:200px;max-height:200px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today .above .detail-heading h3{font-size:22px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root .question-title{font-size:14px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root .today-section-mark{margin-bottom:9px}}
@@ -2166,7 +2166,7 @@
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today{--habit-row:28px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today .below, .compass-root #today .below > div{row-gap:12px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root #today .investment{margin-bottom:8px}}
-@container compass (min-width: 1321px) and (max-height: 800px){.compass-root[data-font-scale="1.2"] #today .above{height:214px!important;min-height:214px!important;max-height:214px!important}}
+@container compass (min-width: 1321px) and (max-height: 800px){.compass-root[data-font-scale="1.2"] #today .above{height:214px;min-height:214px;max-height:214px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root[data-font-scale="1.2"] .questions{margin-top:14px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root[data-font-scale="1.2"] .question-title{line-height:22px;min-height:44px}}
 @container compass (min-width: 1321px) and (max-height: 800px){.compass-root[data-font-scale="1.2"] .investment{margin-bottom:4px}}
@@ -2364,7 +2364,7 @@
   0% { opacity: 0; transform: translateY(10px); }
   100% { opacity: 1; transform: none; }
 }
-.compass-root .ob-finale{width:380px;top:auto!important;bottom:32px;right:40px;position:absolute!important;padding:14px 20px 12px}
+.compass-root .ob-finale{width:380px;top:auto;bottom:32px;right:40px;position:absolute;padding:14px 20px 12px}
 .compass-root .ob-finale .ob-finale-title{margin:0 0 4px;line-height:0}
 .compass-root .ob-finale .ob-finale-title svg{height:26px;width:auto}
 .compass-root .ob-finale ul{margin:2px 0 4px}

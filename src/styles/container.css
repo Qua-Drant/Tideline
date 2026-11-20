@@ -16,15 +16,15 @@
 .compass-root[data-tooltips="off"]{--no-tooltip:true}
 /* 任务纸条的位置由触发按钮或指针决定。覆盖原型新清单表单的固定坐标。 */
 .compass-root #tasks :is(.cargo-new-list,.task-destination){
-  position:absolute;left:var(--task-popup-x,0px)!important;top:var(--task-popup-y,0px)!important;right:auto!important;bottom:auto!important;
-  z-index:45!important;width:270px;max-width:calc(100cqw - 24px);margin:0;padding:14px 16px;gap:12px;
+  position:absolute;left:var(--task-popup-x,0px);top:var(--task-popup-y,0px);right:auto;bottom:auto;
+  z-index:45;width:270px;max-width:calc(100cqw - 24px);margin:0;padding:14px 16px;gap:12px;
   background:var(--paper)!important;box-shadow:none;backdrop-filter:none;border:0;border-radius:0;
 }
 .compass-root #tasks :is(.cargo-new-list,.task-destination) :is(input,select){min-width:0;flex:1;width:0}
 .compass-root #tasks :is(.cargo-new-list,.task-destination) button{flex:none}
 .compass-root #tasks :is(.cargo-date-editor,.cargo-fields){position:relative;max-width:100%;margin:0 0 14px;gap:10px;flex-wrap:wrap}
 .compass-root #tasks :is(.cargo-view-form,.cargo-date-editor,.cargo-fields,.task-picker){background:var(--paper)!important;box-shadow:none;backdrop-filter:none}
-.compass-root #tasks .cargo-view-form{z-index:45!important}
+.compass-root #tasks .cargo-view-form{z-index:45}
 .compass-root #tasks .cargo-date-editor input{width:9em;min-width:0;flex:0 1 9em}
 .compass-root #tasks .detail-actions{gap:8px 18px;flex-wrap:wrap}
 .compass-root #tasks :is(.task-destination,.cargo-fields,.task-when-extra,.task-batch-move) .task-picker-trigger{
@@ -177,8 +177,8 @@
 .compass-root #tasks .cargo-row[data-depth="2"]{padding-left:44px}
 .compass-root #tasks .cargo-row[data-depth="3"]{padding-left:66px}
 .compass-root #tasks .cargo-row.is-child > time{visibility:hidden}
-/* 选中：圆角的浅墨底，四周留一点空，不贴着行里的字（滴答清单的做法，颜色仍是纸和墨） */
-.compass-root #tasks .cargo-left-pane{margin-left:-10px;padding-left:12px;margin-right:-10px;padding-right:10px}
+/* 选中：圆角的浅墨底，四周留一点空，不贴着行里的字（滴答清单的做法，颜色仍是纸和墨）。左右内边距写在 prototype.css 的同一选择器里，这里的负外边距把它抵掉 */
+.compass-root #tasks .cargo-left-pane{margin-left:-10px;margin-right:-10px}
 .compass-root #tasks .cargo-row > .cargo-selection{display:none}
 .compass-root #tasks .cargo-left-pane > .cargo-manifest{margin:0 -8px;padding-left:8px;padding-right:12px}
 .compass-root #tasks .cargo-row{isolation:isolate}
@@ -373,8 +373,8 @@
 .compass-root #tasks .cargo-row :is(.cargo-task-name,.cargo-row-main):focus-visible{outline:none}
 .compass-root #tasks .cargo-row:has(.cargo-task-name:focus-visible)::before{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ink) 70%,transparent)}
 .compass-root #tasks .cargo-row:not(.is-selected,.is-multi):has(.cargo-task-name:focus-visible)::before{background:color-mix(in srgb,var(--ink) 4%,transparent)}
-/* 0.5.1 地板上的落点（收件箱堆、清单木箱）和上方的邮包：也用圆角矩形框，四周宽出几像素；不再用 R39 的投影。木箱那排是横向滚动区，上下各多留 8px 给框 */
-.compass-root #tasks .cargo-crates{margin-top:-8px;padding-top:8px;margin-bottom:-6px;padding-bottom:8px}
+/* 0.5.1 地板上的落点（收件箱堆、清单木箱）和上方的邮包：也用圆角矩形框，四周宽出几像素；不再用 R39 的投影。木箱那排是横向滚动区，上下各多留 8px 给框（内边距写在 prototype.css 的同一选择器里，这里的负外边距把它抵掉） */
+.compass-root #tasks .cargo-crates{margin-top:-8px;margin-bottom:-6px}
 .compass-root #tasks :is(.cargo-crate,.cargo-loose,.cargo-mailbag,.cargo-archive).p2-drop-active{outline:none}
 .compass-root #tasks :is(.cargo-crate,.cargo-loose,.cargo-mailbag).p2-drop-active svg,.compass-root[data-theme="night"] #tasks :is(.cargo-crate,.cargo-loose,.cargo-mailbag).p2-drop-active svg{filter:none}
 .compass-root #tasks :is(.cargo-crate,.cargo-loose,.cargo-archive).p2-drop-active::after,.compass-root #tasks .cargo-mailbag.p2-drop-active::after{content:"";position:absolute;inset:-5px -6px -4px;border:1.5px solid var(--ink);border-radius:10px;background:color-mix(in srgb,var(--ink) 5%,transparent);pointer-events:none}

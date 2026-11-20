@@ -1,6 +1,6 @@
 /* 窄视图（插件自己的设计，原型没有这一档）：插件视图宽度 < 1000px，常见于 Obsidian 开着一侧或两侧侧栏。
    原型只验收过 ≥1280；窄于 900 的规则是原型没验收过的手机布局，这里整体接管 680–999 这一档。
-   - 纸面改成上下滚动：顶部条（日期、记录、罗盘）和侧栏不动，只有纸在走；风景跟着内容一起滚（view.js 按内容高度画）。
+   - 纸面改成上下滚动：顶部条（日期、记录、罗盘）和侧栏不动，只有纸在走；风景跟着内容一起滚（view.ts 按内容高度画）。
    - 上方：≥820 仍是聚焦 | 其他任务两栏；<820 上下排，其他任务最多 4 行，余下的照常“还有 N 项”。
    - 时间轴照旧横贯整张纸。
    - 下方三栏改两栏三行：航迹 | 习惯、往年今日 | 自问、投入 | 随手记。
@@ -21,7 +21,7 @@
   .compass-root .scenery{inset:0 auto auto 0}
   .compass-root .today{padding-top:20px;padding-bottom:48px}
 
-  .compass-root #today .above{grid-template-columns:3fr 2fr;gap:28px;height:auto!important;min-height:200px!important;max-height:none!important;overflow:visible!important;padding-right:0}
+  .compass-root #today .above{grid-template-columns:3fr 2fr;gap:28px;max-height:none!important;overflow:visible!important;padding-right:0}
   /* 其他任务不撑高这一排：高度跟聚焦栏走（至少 200），多出的照常在栏里滚动、“还有 N 项” */
   .compass-root .other-tasks{margin-top:0;height:0;min-height:100%}
   .compass-root .focus-name{font-size:30px}

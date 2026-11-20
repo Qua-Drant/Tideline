@@ -1,4 +1,4 @@
-/* 指引页对话（src/ai/controller.js）：原型的对话区只有“我 / 回答”两种消息，这里补上流式回答、工具小字、确认卡片、@ 菜单。
+/* 指引页对话（src/ai/controller.ts）：原型的对话区只有“我 / 回答”两种消息，这里补上流式回答、工具小字、确认卡片、@ 菜单。
    画法沿用原型：纸上不加框，用细线与留白；等你决定的卡片左边一道品红（全站“选中 / 待定”的颜色）。 */
 .compass-root .native-thread{height:100%;overflow-y:auto;overflow-x:hidden;padding-right:10px;scrollbar-width:thin;scrollbar-color:var(--tick) transparent}
 .compass-root .native-message.ai-answer .ai-md{font-size:15px;line-height:1.85;color:var(--ink)}

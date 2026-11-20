@@ -1,4 +1,4 @@
-/* 插件视图的根：整张纸。原型按整个窗口排版，这里改成按这个容器：尺寸断点用 @container compass，100vh/100vw 用 cqh/cqw（见 extract-css.mjs）。 */
+/* 插件视图的根：整张纸。原型按整个窗口排版，这里改成按这个容器：尺寸断点用 @container compass，100vh/100vw 用 cqh/cqw（prototype.css 里已换好）。 */
 .workspace-leaf-content[data-type="tideline"] .view-content{padding:0;overflow:hidden}
 .compass-root{position:relative;container:compass/size;width:100%;height:100%;overflow:hidden;
   --sans:'Noto Sans SC','Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif;--serif:'Noto Serif SC','Noto Serif CJK SC','Songti SC','SimSun',serif}
@@ -69,12 +69,12 @@
 .compass-root .set-sub-del{margin-left:auto;padding:0;border:0;background:none;box-shadow:none;font-size:12px;color:var(--secondary);cursor:pointer;opacity:0;transition:opacity .15s}
 .compass-root .set-subs li:hover .set-sub-del, .compass-root .set-sub-del:focus-visible{opacity:1}
 .compass-root .set-sub-note{margin:6px 0 2px}
-/* 时间轴上挨得近的日程：名称截短 / 只留时刻 / 只留浮标（today.js labels()） */
+/* 时间轴上挨得近的日程：名称截短 / 只留时刻 / 只留浮标（pages/today.ts 的 labels()） */
 .compass-root .event-copy.is-clipped{overflow:hidden;text-overflow:ellipsis}
 .compass-root .event-copy.is-terse .event-title{display:none}
 .compass-root .event-copy.is-terse time{margin-right:0}
 .compass-root .event-copy.is-bare{visibility:hidden}
-/* 示例笔记：淡墨 + “例”字印记（设计说明 22.5；ui/examples.js） */
+/* 示例笔记：淡墨 + “例”字印记（设计说明 22.5；ui/examples.ts） */
 .compass-root .is-example{opacity:.48}
 .compass-root .example-seal{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:5px;border:1px solid currentColor;border-radius:50%;font:normal 400 9.5px/1 var(--sans);letter-spacing:0;vertical-align:1px;color:var(--secondary);opacity:.9;flex:none;pointer-events:none;text-decoration:none}
 /* 大脑的节点宽度是定的：印放在右上角，不占名称的位置 */
@@ -85,7 +85,7 @@
 .compass-root .upgrade-slip .upgrade-title small{margin-left:10px;font-size:11.5px;font-weight:400;color:var(--secondary)}
 .compass-root .upgrade-slip li{font-size:13px;line-height:1.7;color:var(--ink)}
 /* 0.9.3（评审 P1-1）：纸是实的，不透出底下的字；按版本分组，内容太长时纸里滚动 */
-.compass-root .upgrade-slip{background:var(--paper)!important;opacity:1;z-index:40;max-height:min(70vh,520px);display:flex;flex-direction:column}
+.compass-root .upgrade-slip{background:var(--paper)!important;opacity:1;z-index:40;display:flex;flex-direction:column}
 .compass-root .upgrade-slip .upgrade-body{overflow:auto;min-height:0;padding-right:4px}
 .compass-root .upgrade-slip .upgrade-ver{margin:6px 0 0;font-size:12px;font-weight:600;color:var(--secondary)}
 .compass-root .upgrade-slip .upgrade-more{margin-top:6px}
@@ -104,7 +104,7 @@
 .compass-root .capture-types .capture-type-name{font-size:11px;line-height:1.2;color:var(--secondary);white-space:nowrap}
 .compass-root .capture-types [aria-pressed="true"] .capture-type-name{color:var(--ink)}
 .compass-root .capture-types [aria-pressed="true"]::after{bottom:-3px;left:50%;width:18px;transform:translateX(-50%)}
-/* 0.3（使用者 2026-11-08）：不显示系统滚动条，改用手绘小三角（ui/more.js）；点三角滚动 */
+/* 0.3（使用者 2026-11-08）：不显示系统滚动条，改用手绘小三角（ui/more.ts）；点三角滚动 */
 .compass-root, .compass-root *{scrollbar-width:none!important}
 .compass-root ::-webkit-scrollbar{width:0!important;height:0!important}
 .compass-root #r33-more{z-index:46}
@@ -149,7 +149,6 @@
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="shimmer"]{animation:tl-shimmer 3.6s steps(20) infinite;transform-origin:50% 0}
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="swing"]{animation:tl-swing 5.2s steps(30) infinite;transform-origin:50% 0}
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="sway"]{animation:tl-swing-s 6.6s steps(38) infinite;transform-origin:50% 0}
-.compass-root:not([data-motion="off"]) .scenery [data-ambient="sway-up"]{animation:tl-swing-s 7.4s steps(40) infinite;transform-origin:50% 100%}
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="wobble"]{animation:tl-wobble 7s steps(42) infinite}
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="quill"]{animation:tl-quill 6.4s steps(36) infinite;transform-origin:50% 100%}
 .compass-root:not([data-motion="off"]) .scenery [data-ambient="plumb"]{animation:tl-plumb 5.2s steps(30) infinite;transform-origin:50% 0}
@@ -172,7 +171,7 @@
 /* 升级纸条：跨好几个版本时内容很长，纸条最高到纸的上沿下面一点，里面滚动（手绘三角提示），× 始终在纸条顶上 */
 .compass-root .upgrade-slip{max-height:calc(100% - 64px);overflow-y:auto;overflow-x:hidden}
 
-/* ===== 0.4 任务页学滴答清单的交互（src/ui/task-plus.js，docs/滴答清单交互.md）：只用纸色、墨色和手绘线 ===== */
+/* ===== 0.4 任务页学滴答清单的交互（src/ui/task-plus.ts）：只用纸色、墨色和手绘线 ===== */
 .compass-root #tasks{--tp-wash:color-mix(in srgb,var(--ink) 6%,transparent)}
 .compass-root #tasks .cargo-row[data-depth="1"]{padding-left:22px}
 .compass-root #tasks .cargo-row[data-depth="2"]{padding-left:44px}
@@ -219,23 +218,15 @@
 .compass-root #tasks .task-suggest button[aria-selected="true"]{background:var(--tp-wash);font-weight:600}
 /* 详情：属性、子任务、检查项、评论 */
 .compass-root #tasks .task-plus{display:grid;gap:9px;margin:18px 0 4px}
-.compass-root #tasks .task-plus-head{margin:0 0 18px;gap:6px}
 .compass-root #tasks .task-plus-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .compass-root #tasks .task-plus-label{flex:none;width:3.6em;color:var(--secondary);font-size:12px}
 .compass-root #tasks .task-priority{display:flex;gap:4px;flex-wrap:wrap}
 .compass-root #tasks .task-priority button{padding:2px 8px;border-bottom:1px solid transparent;cursor:pointer}
 .compass-root #tasks .task-priority button[aria-pressed="true"]{border-bottom-color:var(--ink);font-weight:600}
 .compass-root #tasks :is(.task-when,.task-parent){text-align:left;cursor:pointer}
-.compass-root #tasks .task-when{text-decoration:underline;text-decoration-color:var(--tick);text-underline-offset:4px}
 .compass-root #tasks .task-parent{justify-self:start;color:var(--secondary);font-size:12px}
-.compass-root #tasks .task-tags{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap}
-.compass-root #tasks .task-tags .task-tag{color:var(--secondary);font-size:12px;cursor:pointer}
 .compass-root #tasks .task-plus-input{min-width:10em;padding:4px 2px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:13px}
 .compass-root #tasks .task-plus-input:focus{outline:none;border-bottom-color:var(--ink)}
-.compass-root #tasks .task-plus-block{display:grid;gap:4px;margin-top:6px}
-.compass-root #tasks .task-plus-block h4{display:flex;align-items:center;gap:10px;margin:0;color:var(--secondary);font:500 13px/1.6 var(--sans)}
-.compass-root #tasks .task-progress svg{display:block;width:100px;height:8px}
-.compass-root #tasks .task-progress-track path{fill:var(--tick)}
 .compass-root #tasks .task-sub{display:flex;align-items:center;gap:6px}
 .compass-root #tasks .task-sub .p2-check{flex:none}
 .compass-root #tasks .task-sub-title{text-align:left;cursor:pointer}
@@ -290,7 +281,7 @@
 /* 菜单打开时，插件根上“还有 N 项”那一层不压在菜单上 */
 .compass-root[data-task-menu] #r33-more{visibility:hidden}
 
-/* ===== 0.5 任务详情：一张纸（学滴答清单的布局；src/ui/task-sheet.js）=====
+/* ===== 0.5 任务详情：一张纸（学滴答清单的布局；src/ui/task-sheet.ts）=====
    顶部一条（完成框、日期与提醒、优先级小旗）和底部一条（所在清单、文本样式、评论、更多）贴着详情栏的上下边，中间随内容滚动 */
 .compass-root #tasks .cargo-detail-pane:has(.task-sheet){z-index:6;padding-right:6px;-webkit-mask-image:none;mask-image:none}
 .compass-root #tasks .cargo-detail-pane:has(.task-sheet) ~ [data-p2="task-read-more"]{display:none}

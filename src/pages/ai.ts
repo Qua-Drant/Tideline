@@ -20,7 +20,7 @@ import type CompassPlugin from '../main.ts';
 interface GuidanceSync { enabled: boolean; provider: string; permission: string; send: string; cards: Record<string, {on: boolean}> }
 /** 本页用到的 d：AI 状态里的模型与供应商名，外加原型读的设置 */
 type AIModel = Model & {ai: ModelAI & {model: string; agent: string}; settingsR27?: {ai?: GuidanceSync}};
-/** 下方各页的核心（pages/lower.js 的 core；还没转 TypeScript）里本页用到的几样 */
+/** 下方各页的核心（pages/lower.ts 的 core）里本页用到的几样 */
 interface AICore { readonly data: Model; announce: (message: string, undo?: () => void) => void }
 type R12Art = ReturnType<typeof createR12Art>;
 

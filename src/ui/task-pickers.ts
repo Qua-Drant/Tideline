@@ -133,7 +133,7 @@ export function createTaskPickers(view: CompassView, place: PlacePopup){
     if (event.key === 'Tab' && isSelect(active.field)) { close(true); return false; }
     const options = [...active.popup.querySelectorAll<HTMLElement>('[role="option"]:not(:disabled)')];
     if (!options.length || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return false;
-    const index = options.indexOf(document.activeElement as HTMLElement);
+    const index = options.indexOf(active.popup.doc.activeElement as HTMLElement);
     const next = ({Home: 0, End: options.length - 1, ArrowDown: Math.min(index + 1, options.length - 1), ArrowUp: Math.max(index - 1, 0)} as Record<string, number>)[event.key];
     options[next]?.focus();
     return true;

@@ -28,7 +28,7 @@ interface ThoughtUI {
 }
 /** 思索页用到的画面缓存（d.cache 上的几项） */
 interface ThoughtCache { ideaDraft?: string; tagSidebarScroll?: number; r12Sky?: unknown; skyFrame: {left: number; top: number; width: number; height: number} }
-/** 下方各页的核心（pages/lower.js 的 core；还没转 TypeScript）里本页用到的几样 */
+/** 下方各页的核心（pages/lower.ts 的 core）里本页用到的几样 */
 interface ThoughtCore { readonly data: Model; render(): void; announce: (msg: string | undefined, undo?: () => unknown) => void; newProject?(title: string, ideaId: string): void }
 /** marked 的行内词元（只用到这几个字段） */
 interface InlineToken { type: string; raw: string; text: string; href?: string; tokens?: InlineToken[] }
@@ -233,7 +233,8 @@ export function createThought({core, r12Art, r14Marine, view}: {core: ThoughtCor
     if (!tag) { if (!raw.trim()) return; ui.tagError = '请输入标签名称'; renderIdeaTagFilters(); $('#tag-inline-name').focus({preventScroll: true}); return; }
     if (!ideaTagNames().includes(tag)) d.ideaTags.push(tag); ui.tagNewName = ''; ui.tagError = ''; renderIdeaTagFilters(); renderComposerTags(); $('#idea-tag-list').scrollTop = $('#idea-tag-list').scrollHeight; $('#tag-inline-name').focus({preventScroll: true});
   }
-  const fitIdeaEntry = () => { const el = $<HTMLTextAreaElement>('#idea-input'); el.style.height = '32px'; if (el.value.includes('\n')) el.style.height = Math.min(120, Math.max(32, el.scrollHeight)) + 'px'; };
+  // 先回到样式里的 32px（.idea-composer textarea；原来在行内写 32px，计算值相同），多行时再按内容撑高
+  const fitIdeaEntry = () => { const el = $<HTMLTextAreaElement>('#idea-input'); el.style.height = ''; if (el.value.includes('\n')) el.style.height = Math.min(120, Math.max(32, el.scrollHeight)) + 'px'; };
   // 记下一条想法（原型 captureValue 的 idea 分支）
   function captureIdea(text: string, tags: string[]){
     const clean = text.trim(); if (!clean) return; const id = 'new-' + d.serial++;
@@ -256,10 +257,10 @@ export function createThought({core, r12Art, r14Marine, view}: {core: ThoughtCor
   function skyRaw(){ const k = d.clock.time + '|' + ui.lamp; if (skies.has(k)) cache.r12Sky = skies.get(k); const phase = r12Art.sky(); skies.set(k, cache.r12Sky); if (skies.size > 4) skies.delete(skies.keys().next().value!); return phase; }
   let warm = '';
   // 生成天空是一整块几百毫秒的计算：等在思索页安静停 2 秒、没有过场在走时才做，免得卡住切页的动画；指针移到灯塔上（快要点了）就马上做
-  let warmTimer: ReturnType<typeof setTimeout> | undefined;
+  let warmTimer: number | undefined;
   let lastBox: DOMRect | null = null;
-  function prewarm(box: DOMRect, soon = false){ lastBox = box; const k = d.clock.time + '|' + box.width; if (warm === k) return; clearTimeout(warmTimer);
-    warmTimer = setTimeout(() => (window.requestIdleCallback || ((f: () => void) => setTimeout(f, 50)))(() => { if (HOST.root !== view.root || !view.root.isConnected || ui.page !== 'thought' || HOST.transitionApi?.state().running) return; warm = k; const keep = ui.lamp, toggle = $('#lighthouse-toggle'), style = toggle.getAttribute('style');
+  function prewarm(box: DOMRect, soon = false){ lastBox = box; const k = d.clock.time + '|' + box.width; if (warm === k) return; window.clearTimeout(warmTimer);
+    warmTimer = window.setTimeout(() => (window.requestIdleCallback || ((f: () => void) => window.setTimeout(f, 50)))(() => { if (HOST.root !== view.root || !view.root.isConnected || ui.page !== 'thought' || HOST.transitionApi?.state().running) return; warm = k; const keep = ui.lamp, toggle = $('#lighthouse-toggle'), style = toggle.getAttribute('style');
       ui.lamp = !keep; try { scenery(box, true); } finally { ui.lamp = keep; sky(); toggle.setAttribute('style', style!); } }), soon ? 0 : 2000); }
   // 风景（原型 drawScenery 的 thought 分支）：描述（draw/scene.ts），由视图比较过再建节点
   function scenery(box: DOMRect, warming = false){
@@ -314,7 +315,7 @@ export function createThought({core, r12Art, r14Marine, view}: {core: ThoughtCor
     const f = e.target as HTMLFormElement;
     if (f.id === 'tag-inline-form') { e.preventDefault(); finishInlineTag(); return; }
     if (f.id === 'idea-form') { e.preventDefault(); const input = $<HTMLTextAreaElement>('#idea-input'), text = input.value.trim(); if (!text) { input.focus(); return; } const tags = [...ui.draftTags]; ui.draftTags = []; closeTagPanels(); captureIdea(text, tags);
-      $<HTMLTextAreaElement>('#idea-input').value = ''; $('#idea-input').focus(); cache.ideaDraft = ''; $('#idea-form').dataset.empty = 'true'; $('#idea-input').style.height = '32px'; }
+      $<HTMLTextAreaElement>('#idea-input').value = ''; $('#idea-input').focus(); cache.ideaDraft = ''; $('#idea-form').dataset.empty = 'true'; $('#idea-input').style.height = ''; }
   });
   HOST.addEventListener('input', e => {
     const t = e.target as HTMLInputElement;

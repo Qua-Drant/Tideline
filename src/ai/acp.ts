@@ -22,7 +22,7 @@ import type {
 } from './types.ts';
 
 // Node 模块在用到时才取（Obsidian 桌面版的渲染进程有 require；测试工具是纯浏览器，不会走到这里）
-const nodeRequire = (name: string): unknown => (globalThis.require || window.require)(name);
+const nodeRequire = (name: string): unknown => window.require(name);
 const cp = () => nodeRequire('child_process') as typeof ChildProcessModule, fs = () => nodeRequire('fs') as typeof FsModule, pathm = () => nodeRequire('path') as typeof PathModule, os = () => nodeRequire('os') as typeof OsModule;
 const win = () => process.platform === 'win32';
 
@@ -89,7 +89,7 @@ function connect({path, args, cwd, env, onNotify, onRequest, onExit, onStderr}: 
   let buf = '', seq = 0, dead: ConnError | null = null; const waiting = new Map<number | string, {resolve(v: unknown): void; reject(e: unknown): void}>();
   const write = (m: RpcMessage) => { if (!dead) try { child.stdin.write(JSON.stringify(m) + '\n'); } catch { /* 管道已经关了：这条消息不发 */ } };
   child.stdout.setEncoding('utf8');
-  child.stdout.on('data', (chunk: string) => { buf += chunk; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue; let m: RpcMessage; try { m = JSON.parse(line) as RpcMessage; } catch { continue; } handle(m); } });
+  child.stdout.on('data', (chunk: string) => { buf += chunk; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue; let m: RpcMessage; try { m = JSON.parse(line) as RpcMessage; } catch { continue; } void handle(m); } });
   child.stderr.setEncoding('utf8'); child.stderr.on('data', (s: string) => onStderr?.(s));
   const fail = (error: ConnError) => { if (dead) return; dead = error; for (const w of waiting.values()) w.reject(error); waiting.clear(); onExit?.(error); };
   child.on('error', e => fail(e));
@@ -102,7 +102,7 @@ function connect({path, args, cwd, env, onNotify, onRequest, onExit, onStderr}: 
   }
   return {
     call<T = unknown>(method: string, params: unknown, timeout = 0): Promise<T>{ if (dead) return Promise.reject(dead); const id = ++seq; write({jsonrpc: '2.0', id, method, params: params as Record<string, unknown>});
-      return new Promise<T>((resolve, reject) => { waiting.set(id, {resolve, reject}); if (timeout) setTimeout(() => { if (waiting.delete(id)) reject(new Error('代理程序没有回应')); }, timeout); }); },
+      return new Promise<T>((resolve, reject) => { waiting.set(id, {resolve, reject}); if (timeout) window.setTimeout(() => { if (waiting.delete(id)) reject(new Error('代理程序没有回应')); }, timeout); }); },
     notify(method: string, params: unknown){ write({jsonrpc: '2.0', method, params: params as Record<string, unknown>}); },
     close(){ dead ??= new Error('closed'); try { child.stdin.end(); } catch { /* 已经关了 */ } try { child.kill(); } catch { /* 已经退出了 */ } },
     get alive(){ return !dead; },
@@ -246,7 +246,8 @@ export function createAcpSession({provider, cwd, model, effort, mode, lists, api
     allowed,
     caps: {rewind: false},
     send(text, uuid = crypto.randomUUID()){
-      (async () => {
+      // 出错都在里面接住，变成 result 事件
+      void (async () => {
         try { await ready; } catch { onEvent({type: 'result', ok: false, ms: 0, error: ''}); return; }
         t0 = performance.now(); msgId = null; msgText = '';
         try { const r = await conn!.call<{stopReason?: string} | null>('session/prompt', {sessionId, prompt: [{type: 'text', text}]}); flush();

@@ -38,7 +38,7 @@ export function completeTask(d: Model, t: ModelTask){
     for (const k of family) { k.status = 'done'; k.completed = today; }
   }
   const current = (x: ModelTask) => d.tasks.find(y => y.id === x.id) || x;
-  return {next, record, family, undo(){
+  return {next, record, family, undo: () => {
     for (const [x, v] of saved) Object.assign(current(x), v);
     if (record) dropTasks(d, [record.id]);
   }};
@@ -48,5 +48,5 @@ export function completeTask(d: Model, t: ModelTask){
 export function reopenTask(d: Model, t: ModelTask){
   const saved = pick(t);
   t.status = 'open'; t.completed = undefined;
-  return {undo(){ Object.assign(d.tasks.find(y => y.id === t.id) || t, saved); }};
+  return {undo: () => { Object.assign(d.tasks.find(y => y.id === t.id) || t, saved); }};
 }

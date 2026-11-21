@@ -12,6 +12,7 @@ import {requestUrl} from 'obsidian';
 import type {App, RequestUrlResponse} from 'obsidian';
 import {parseICS, occurrences} from './ical.ts';
 import {HOST} from '../host.ts';
+import {looseString} from './frontmatter.ts';
 import type {CalendarFetchError, CalendarSub, Clock, FetchedCalendar, IcalEvent, IndexEvent, Occurrence} from './types.ts';
 
 /** 日历要用到的插件部分（main.ts 的 CompassPlugin；测试工具里是替身） */
@@ -33,8 +34,12 @@ const shift = (date: string, n: number) => { const [y, m, d] = date.split('-').m
 const httpUrl = (u: unknown) => String(u).trim().replace(/^webcals?:\/\//i, 'https://');
 const hm = (t: number) => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const header = (h: Record<string, string> | null | undefined, name: string) => { if (!h) return ''; const k = Object.keys(h).find(x => x.toLowerCase() === name); return k ? String(h[k]) : ''; };
-// 等一个 Promise，最多 ms 毫秒；超时就抛出 message
-const within = <T>(promise: Promise<T>, ms: number, message: string) => new Promise<T>((resolve, reject) => { const t = setTimeout(() => reject(Object.assign(new Error(message), {timeout: true})), ms); promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); }); });
+// 等一个 Promise，最多 ms 毫秒；超时就抛出 message。原 Promise 先有结果就照它的结果（失败原因原样传下去）
+const within = <T>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+  let t = 0;
+  const late = new Promise<never>((_, reject) => { t = window.setTimeout(() => reject(Object.assign(new Error(message), {timeout: true})), ms); });
+  return Promise.race([promise, late]).finally(() => window.clearTimeout(t));
+};
 // Retry-After：秒数或 HTTP 日期 → 毫秒（拿不到给 0）
 function retryAfter(v: string | null | undefined, now = Date.now()){
   if (!v) return 0; const n = Number(v); if (Number.isFinite(n)) return Math.max(0, n * 1000);
@@ -49,7 +54,7 @@ export async function fetchCalendar(url: string, {etag = '', modified = '', time
   if (etag) headers['If-None-Match'] = etag; if (modified) headers['If-Modified-Since'] = modified;
   let res: RequestUrlResponse;
   try { res = await within(requestUrl({url: u, method: 'GET', throw: false, headers}), timeout, `${Math.round(timeout / 1000)} 秒没有回应（服务器太慢或网络不通）`); }
-  catch (e) { throw (e as CalendarFetchError)?.timeout ? e : new Error('连不上：' + ((e as Error)?.message || e)); }
+  catch (e) { throw (e as CalendarFetchError)?.timeout ? e : new Error('连不上：' + looseString((e as Error)?.message || e)); }
   if (res.status === 304) return {same: true, status: 304};
   if (res.status === 429 || res.status === 503) throw Object.assign(new Error(res.status === 429 ? '日历服务器说请求太频繁（429）' : '日历服务器暂时不可用（503）'), {status: res.status, wait: retryAfter(header(res.headers, 'retry-after'))});
   if (res.status >= 400) throw Object.assign(new Error('HTTP ' + res.status), {status: res.status});
@@ -68,12 +73,12 @@ function createStore(plugin: CalendarHost){
   const legacy = plugin.localStore, vault = plugin.app?.appId || plugin.app?.vault?.getName?.() || 'vault';
   const key = (id: string) => vault + ':' + id, oldKey = (id: string) => 'tideline-ical-' + id;
   let db: Promise<IDBDatabase | null> | null = null;
+  // indexedDB.open 同步抛错时，Promise 的执行函数里抛出就是以它失败（原来另写的 try/catch 再 reject 与此相同）；失败原因只用来判断“打不开”，不给人看
   const open = () => db ??= within(new Promise<IDBDatabase>((resolve, reject) => {
-    try { const r = indexedDB.open('tideline-calendars', 1); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('events')) r.result.createObjectStore('events'); }; r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); }
-    catch (e) { reject(e); }
+    const r = indexedDB.open('tideline-calendars', 1); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('events')) r.result.createObjectStore('events'); }; r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error ?? new Error('IndexedDB 打不开'));
   }), 4000, 'IndexedDB 打不开').catch(() => null);
   const tx = async (mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest) => { const d = await open(); if (!d) throw new Error('no idb');
-    return within(new Promise<unknown>((resolve, reject) => { const t = d.transaction('events', mode), r = fn(t.objectStore('events')); t.oncomplete = () => resolve(r?.result); t.onerror = t.onabort = () => reject(t.error); }), 4000, 'IndexedDB 没有回应'); };
+    return within(new Promise<unknown>((resolve, reject) => { const t = d.transaction('events', mode), r = fn(t.objectStore('events')); t.oncomplete = () => resolve(r?.result); t.onerror = t.onabort = () => reject(t.error ?? new Error('IndexedDB 没有完成')); }), 4000, 'IndexedDB 没有回应'); };
   const old = (id: string) => { try { return legacy.load(oldKey(id)); } catch { return null; } };
   return {
     async get(id: string): Promise<IcalEvent[] | null>{
@@ -111,7 +116,7 @@ export function createCalendars(plugin: CalendarHost){
   }
   async function keep(s: CalendarSub, events: IcalEvent[]){ cache.set(s.id, events); await store.set(s.id, events); }
   // 一次只联网一个，相邻两次至少隔 1.5 秒（每一次都有 60 秒上限，不会把后面的卡住）
-  const serial = <T>(fn: () => Promise<T>) => { const run = queue.then(async () => { const gap = 1500 - (Date.now() - lastNet); if (gap > 0) await new Promise(r => setTimeout(r, gap)); try { return await fn(); } finally { lastNet = Date.now(); } }); queue = run.catch(() => {}); return run; };
+  const serial = <T>(fn: () => Promise<T>) => { const run = queue.then(async () => { const gap = 1500 - (Date.now() - lastNet); if (gap > 0) await new Promise(r => window.setTimeout(r, gap)); try { return await fn(); } finally { lastNet = Date.now(); } }); queue = run.catch(() => {}); return run; };
   // 刷新一个订阅。manual：你点的“立即刷新”——不受退避限制；到点检查时被限流、还没到可以再试的时刻就不联网
   function refresh(s: CalendarSub, {manual = false}: {manual?: boolean} = {}): Promise<CalendarSub>{
     if (running.has(s.id)) return running.get(s.id)!;
@@ -129,7 +134,7 @@ export function createCalendars(plugin: CalendarHost){
       try { cal = await fetchCalendar(s.url, has ? {etag: s.etag, modified: s.modified, timeout: limit()} : {timeout: limit()}); }
       catch (e) { // 你点的：服务器只要等十几秒就照它说的等一下再试一次
         if (!manual || (e as CalendarFetchError)?.status !== 429 || !(e as CalendarFetchError).wait || (e as CalendarFetchError).wait! > 15000) throw e;
-        await new Promise(r => setTimeout(r, (e as CalendarFetchError).wait)); cal = await fetchCalendar(s.url, has ? {etag: s.etag, modified: s.modified, timeout: limit()} : {timeout: limit()});
+        await new Promise(r => window.setTimeout(r, (e as CalendarFetchError).wait)); cal = await fetchCalendar(s.url, has ? {etag: s.etag, modified: s.modified, timeout: limit()} : {timeout: limit()});
       }
       if (!cal.same) { const events = trim(cal.events, plugin.clock().date); await keep(s, events); Object.assign(s, {count: cal.events.length, etag: cal.etag || '', modified: cal.modified || ''}); if (!s.name) s.name = cal.name || new URL(httpUrl(s.url)).hostname; }
       Object.assign(s, {ok: true, error: '', last: new Date().toISOString(), okAt: new Date().toISOString(), fails: 0, retryAt: 0, status: cal.status || 200, ms: Date.now() - t0});

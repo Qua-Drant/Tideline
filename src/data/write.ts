@@ -20,9 +20,9 @@ export function todayActions(writer: Writer, clock: () => Clock){
     },
     // 习惯三态：没记 → 完成 → 没完成 → 没记（和原型一样点一下换一态）
     async cycleHabit(id: string){
-      await writer.frontmatter(dayPath(clock().date), fm => { fm.habits ??= {}; const v = fm.habits[id]; if (v === undefined || v === null) fm.habits[id] = true; else if (v === true) fm.habits[id] = false; else delete fm.habits[id]; });
+      await writer.frontmatter(dayPath(clock().date), fm => { fm.habits ??= {}; const habits = fm.habits as Record<string, unknown>, v = habits[id]; if (v === undefined || v === null) habits[id] = true; else if (v === true) habits[id] = false; else delete habits[id]; });
     },
-    async score(id: string, value: unknown){ await writer.frontmatter(dayPath(clock().date), fm => { fm.scores ??= {}; fm.scores[id] = value; }); },
+    async score(id: string, value: unknown){ await writer.frontmatter(dayPath(clock().date), fm => { fm.scores ??= {}; (fm.scores as Record<string, unknown>)[id] = value; }); },
     // 随手记：追加到当天日记“## 随手记”的最后一行（没有这一节就在文末加上）
     async addJournal(text: string){
       const {date, time} = clock(), line = `- ${time} ${text.replace(/\n+/g, ' ').trim()}`;

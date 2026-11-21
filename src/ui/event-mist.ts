@@ -14,13 +14,14 @@ const mistLines = (w: number, h: number) => [inkEl([[2, h * .4], [5, h * .24], [
   inkEl([[7, h - 12], [w * .21, h - 16], [w * .43, h - 11], [w * .7, h - 14], [w - 5, h - 9]], 1, MIST), inkEl([[w * .22, h - 4], [w * .46, h - 1], [w * .73, h - 4]], .8, MIST_LIGHT)];
 
 export function createEventMist({view}: {view: CompassView}){
-  const root = view.root, doc = root.ownerDocument, $ = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s), $$ = (s: string) => [...root.querySelectorAll<HTMLElement>(s)];
+  const root = view.root, $ = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s), $$ = (s: string) => [...root.querySelectorAll<HTMLElement>(s)];
   let hover: string | null = null, mode: string | null = null, dismissed: string | null = null, leaveTimer = 0, exitTimer = 0;
   const panel = () => $('#event-mist');
   const button = () => $$('[data-event]').find(b => b.dataset.event === hover);
   // 上方（今日聚焦、其他任务）每一段文字的范围
   function textRects(){
     const list: DOMRect[] = [], above = $('#today .above'); if (!above) return list;
+    const doc = above.doc; // 视图所在的 document（视图搬进弹出窗口后是那个窗口的）
     const walk = doc.createTreeWalker(above, NodeFilter.SHOW_TEXT);
     while (walk.nextNode()) { const n = walk.currentNode; if (!n.textContent!.trim()) continue; const r = doc.createRange(); r.selectNode(n); for (const b of r.getClientRects()) if (b.width && b.height) list.push(b); }
     return list;
@@ -44,7 +45,7 @@ export function createEventMist({view}: {view: CompassView}){
   }
   function show(id: string, how = 'pointer'){
     if (view.page !== 'today' || dismissed === id) return;
-    clearTimeout(leaveTimer); clearTimeout(exitTimer);
+    window.clearTimeout(leaveTimer); window.clearTimeout(exitTimer);
     const el = panel(), event = view.today.events.find(e => e.id === id); if (!el || !event) return;
     if (hover === id && !el.hidden) { if (how === 'keyboard') mode = how; return; }
     hover = id; mode = how;
@@ -55,25 +56,25 @@ export function createEventMist({view}: {view: CompassView}){
   }
   function dismiss(immediate = false){
     const el = panel(); if (!el) return;
-    clearTimeout(leaveTimer); clearTimeout(exitTimer); hover = null; mode = null;
+    window.clearTimeout(leaveTimer); window.clearTimeout(exitTimer); hover = null; mode = null;
     for (const b of $$('[data-event]')) b.removeAttribute('aria-describedby');
     el.dataset.visible = 'false';
     if (immediate) el.hidden = true; else exitTimer = window.setTimeout(() => { if (!hover) el.hidden = true; }, 220);
   }
   function deferHide(){
-    clearTimeout(leaveTimer);
-    leaveTimer = window.setTimeout(() => { const b = button(), el = panel(), keyboard = mode === 'keyboard' && document.activeElement === b; if (!keyboard && !b?.matches(':hover') && !el?.matches(':hover')) dismiss(); }, 220);
+    window.clearTimeout(leaveTimer);
+    leaveTimer = window.setTimeout(() => { const b = button(), el = panel(), keyboard = mode === 'keyboard' && root.doc.activeElement === b; if (!keyboard && !b?.matches(':hover') && !el?.matches(':hover')) dismiss(); }, 220);
   }
 
   const closest = (t: EventTarget | null, s: string) => (t as Element | null)?.closest?.<HTMLElement>(s) ?? null;
-  view.registerDomEvent(root, 'pointerover', e => { const b = closest(e.target, '[data-event]'); if (b) show(b.dataset.event!); else if (closest(e.target, '#event-mist')) clearTimeout(leaveTimer); });
+  view.registerDomEvent(root, 'pointerover', e => { const b = closest(e.target, '[data-event]'); if (b) show(b.dataset.event!); else if (closest(e.target, '#event-mist')) window.clearTimeout(leaveTimer); });
   view.registerDomEvent(root, 'pointerout', e => {
     const b = closest(e.target, '[data-event]'); if (b && !b.contains(e.relatedTarget as Node | null)) { dismissed = null; deferHide(); return; }
     const m = closest(e.target, '#event-mist'); if (m && !m.contains(e.relatedTarget as Node | null)) deferHide();
   });
   view.registerDomEvent(root, 'focusin', e => { const b = closest(e.target, '[data-event]'); if (b) show(b.dataset.event!, b.matches(':focus-visible') ? 'keyboard' : 'pointer'); });
   view.registerDomEvent(root, 'focusout', e => { if (closest(e.target, '[data-event]')) { dismissed = null; deferHide(); } });
-  view.registerDomEvent(document, 'keydown', e => {
+  view.registerDocEvent('keydown', e => {
     if (!hover || !root.isConnected) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); dismissed = hover; dismiss(); }
     else if (!(e.target as Element).matches?.('input,textarea,select') && (e.key === '/' || e.key === '?')) dismiss(true);

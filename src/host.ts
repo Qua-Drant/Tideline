@@ -22,13 +22,13 @@ export interface HostPaper {
   };
 }
 
-/** 过场（paper-transition-r37.js 装上）：换页前一刻量旧画面、立刻收尾 */
+/** 过场（paper-transition-r37.ts 装上）：换页前一刻量旧画面、立刻收尾 */
 export interface HostTransition {
   before(from: string, to: string): void;
   finish(): void;
 }
 
-/** 过场的检查接口（paper-transition-r37.js 装上；测试工具逐帧检查用） */
+/** 过场的检查接口（paper-transition-r37.ts 装上；测试工具逐帧检查用） */
 export interface HostTransitionApi {
   state(): {running: false} | {running: true; from: string; to: string; mode: string; first: boolean; elapsed: number; total: number; distance: number; direction: number};
   seek(ms: number): ReturnType<HostTransitionApi['state']>;
@@ -62,9 +62,17 @@ export interface Host {
   querySelector(s: string): Element | null;
   /** 没有根元素时返回空数组（不是 NodeList） */
   querySelectorAll(s: string): NodeListOf<Element> | never[];
-  /** pointermove / pointerup / pointercancel 挂在 window 上（拖动时指针可能离开插件区域），其余挂在根元素上 */
+  /** pointermove / pointerup / pointercancel 挂在视图所在的窗口上（拖动时指针可能离开插件区域），其余挂在根元素上 */
   addEventListener(t: string, f: EventListenerOrEventListenerObject, o?: boolean | AddEventListenerOptions): void;
   removeEventListener(t: string, f: EventListenerOrEventListenerObject, o?: boolean | EventListenerOptions): void;
+  /** 视图搬到别的窗口（弹出窗口，或搬回主窗口）之后：挂在旧窗口上的那几种监听器搬到新窗口（视图在 onWindowMigrated 里调用） */
+  migrate(): void;
+  /** 视图所在的窗口：视图在弹出窗口里时是那个窗口，没有视图时是主窗口 */
+  readonly win: Window;
+  /** 在视图所在的窗口排一帧（主窗口最小化或被挡住时它的动画帧会停）；返回的编号交给 cancelFrame（记着是哪个窗口排的，中途搬了窗口也取消得对）。
+   *  回调拿到的时刻与主窗口的 performance.now() 同一条时间线 */
+  requestFrame(cb: FrameRequestCallback): number;
+  cancelFrame(id: number | null | undefined): void;
   dispatchEvent(e: Event): boolean | undefined;
   /** document.body 的替身：就是根元素 */
   readonly body: HTMLElement | null;
@@ -91,7 +99,7 @@ export interface Host {
   ai?: HostAI | null;
   /** 开着的 AI 供应商：id → [名称, 模型菜单] */
   aiProviders?: () => Record<string, [name: string, models: string[]]>;
-  /** 删除任务（pages/lower.js 装上 data/trash.ts 的 dropTasks） */
+  /** 删除任务（pages/lower.ts 装上 data/trash.ts 的 dropTasks） */
   dropTasks?: typeof dropTasks;
   /** 任务页（ui/task-plus.js） */
   taskShowDone?: (t: ModelTask, d: Model) => boolean;
@@ -127,6 +135,8 @@ export interface Host {
 }
 
 const WINDOW_EVENTS = new Set(['pointermove', 'pointerup', 'pointercancel']); // 拖动时指针可能离开插件区域
+// requestFrame 排的帧：编号 → [窗口, 那个窗口给的编号]
+const frames = new Map<number, [Window, number]>(); let frameSeq = 0;
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 
@@ -137,8 +147,14 @@ export const HOST: Host = {
   detach(){ for (const [target, t, f, o] of this.listeners) target.removeEventListener(t, f, o); this.listeners = []; this.root = null; },
   querySelector(s){ return this.root?.querySelector(s) || null; },
   querySelectorAll(s){ return this.root ? this.root.querySelectorAll(s) : []; },
-  addEventListener(t, f, o){ const target = WINDOW_EVENTS.has(t) ? window : this.root; if (!target) return; target.addEventListener(t, f, o); this.listeners.push([target, t, f, o]); },
-  removeEventListener(t, f, o){ const target = WINDOW_EVENTS.has(t) ? window : this.root; target?.removeEventListener(t, f, o); this.listeners = this.listeners.filter(l => !(l[1] === t && l[2] === f)); },
+  // 规范收尾批（弹出窗口兼容）：窗口上的那几种挂在视图所在的窗口上（原来一律挂在主窗口，视图在弹出窗口里时拖动收不到指针移动）
+  addEventListener(t, f, o){ const target = WINDOW_EVENTS.has(t) ? (this.root ? this.root.win : window) : this.root; if (!target) return; target.addEventListener(t, f, o); this.listeners.push([target, t, f, o]); },
+  removeEventListener(t, f, o){ for (const l of this.listeners) if (l[1] === t && l[2] === f) l[0].removeEventListener(t, f, o); this.listeners = this.listeners.filter(l => !(l[1] === t && l[2] === f)); },
+  migrate(){ const w = this.root?.win; if (!w) return; for (const l of this.listeners) if (WINDOW_EVENTS.has(l[1]) && l[0] !== w) { l[0].removeEventListener(l[1], l[2], l[3]); w.addEventListener(l[1], l[2], l[3]); l[0] = w; } },
+  get win(){ return this.root ? this.root.win : window; },
+  // 回调拿到的时刻换算到主窗口 performance.now() 的时间线上（各窗口的时间原点不同，原型模块拿它和 performance.now() 比；在主窗口里差为 0，与原来相同）
+  requestFrame(cb){ const w = this.win, id = ++frameSeq, shift = w.performance.timeOrigin - performance.timeOrigin; frames.set(id, [w, w.requestAnimationFrame(t => { frames.delete(id); cb(t + shift); })]); return id; },
+  cancelFrame(id){ const f = id ? frames.get(id) : undefined; if (!f) return; frames.delete(id!); f[0].cancelAnimationFrame(f[1]); },
   dispatchEvent(e){ return this.root?.dispatchEvent(e); },
   get body(){ return this.root; },
   byId(id){ return this.root?.querySelector('#' + CSS.escape(id)) || null; },

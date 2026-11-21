@@ -15,7 +15,7 @@ export class CompassSettingTab extends PluginSettingTab {
   display(){
     const {containerEl: el} = this, p = this.plugin, D = p.local.device, save = async () => { await p.saveSettings(); p.applyDevice(); };
     el.empty();
-    new Setting(el).setName('潮线').setDesc('版本 ' + (p.manifest?.version || '')).addButton(b => b.setButtonText('打开潮线设置').setCta().onClick(() => { this.app.setting?.close(); p.openCompassSettings(); }));
+    new Setting(el).setName('潮线').setDesc('版本 ' + (p.manifest?.version || '')).addButton(b => b.setButtonText('打开潮线设置').setCta().onClick(() => { this.app.setting?.close(); void p.openCompassSettings(); }));
     new Setting(el).setName('配色').addDropdown(d => d.addOptions({obsidian: '跟随 Obsidian', paper: '纸', night: '夜航'}).setValue(D.theme).onChange(async v => { D.theme = v; await save(); }));
     new Setting(el).setName('过场').setDesc('换页时纸面上下滑动；系统开了“减少动态效果”时直接切换').addDropdown(d => d.addOptions({brief: '滑动', off: '关闭'}).setValue(D.motion).onChange(async v => { D.motion = v; await save(); }));
   }

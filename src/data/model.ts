@@ -4,7 +4,7 @@
 import {dayView} from './day.ts';
 import {HOST} from '../host.ts';
 import type {
-  Clock, ConfigViewFilter, Frontmatter, IndexDay, IndexLibraryItem, IndexLike, IndexQuarter, Model, ModelTask, ReviewDay, UIState,
+  Clock, ConfigViewFilter, Frontmatter, IndexDay, IndexLibraryItem, IndexLike, IndexQuarter, Model, ModelTask, ReviewDay, ReviewQuarter, UIState,
 } from './types.ts';
 
 const addDays = (d: string, n: number) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
@@ -101,7 +101,7 @@ export function buildModel(index: IndexLike, clock: Clock, prev?: Model | null):
   d.libraryMetaVersion = ix.version;
   d.prompts = [...ix.prompts.values()].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh')).map(p => ({id: p.id, title: p.title, subtitle: p.subtitle, category: p.category, risk: p.risk, scope: [...p.scope], body: p.body}));
   d.ui.prompt ??= d.prompts[0]?.id || null;
-  d.savedViews = ix.config.views.map((x, i) => { const f: Partial<ConfigViewFilter> = x.filter || {}, ref = (map: Map<string, Titled>, t: unknown) => byTitle(map, String(t || '').replace(/^\[\[|\]\]$/g, ''));
+  d.savedViews = ix.config.views.map((x, i) => { const f: Partial<ConfigViewFilter> = x.filter || {}, ref = (map: Map<string, Titled>, t: string | undefined) => byTitle(map, String(t || '').replace(/^\[\[|\]\]$/g, ''));
     return {id: 'v' + i, title: x.title, filter: f.kind === 'project' ? {kind: 'project', id: ref(ix.projects, f.project)} : f.kind === 'person' ? {kind: 'person', id: ref(ix.people, f.person)} : f.kind === 'list' ? {kind: 'list', id: f.list} : {kind: f.kind || 'all'}}; });
   // 复盘
   const quarter: Partial<IndexQuarter> = ix.quarters.get(quarterOf(date)) || {};
@@ -109,12 +109,13 @@ export function buildModel(index: IndexLike, clock: Clock, prev?: Model | null):
   const trend = Array.from({length: 12}, (_, i) => { const s = addDays(weekStart, (i - 11) * 7), e = addDays(s, 6); return d.tasks.filter(t => !t.example && done(t) && (t.completed || t.date)! >= s && (t.completed || t.date)! <= e).length; });
   const md5 = date.slice(4), pastYears = [...ix.days.values()].filter(x => x.date.slice(4) === md5 && x.date < date && x.done.length).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
     .map((x, i) => ({year: Number(x.date.slice(0, 4)), items: [...x.done], sketch: SKETCH[i % SKETCH.length]}));
-  // quarter 的各项是季度笔记里手写的（Frontmatter 的 any），逐项转换
+  // quarter 的各项是季度笔记里手写的（属性块的值是 unknown），逐项转换；列表本身按原来的假设写明类型（类型断言，不改值）
+  const wheel = quarter.wheel as Record<string, unknown> | undefined, rows = (v: unknown) => (v || []) as Frontmatter[], nums = (v: unknown) => ((v || []) as unknown[]).map(Number);
   d.review = {weekDates, trend, days: weekDates.map(dayOf),
-    wheel: ix.config.areas.map(a => ({id: a.id, title: a.title, value: quarter.wheel?.[a.id] != null ? Number(quarter.wheel[a.id]) : null})), quarterText: quarter.text || '',
-    quarter: {harvest: (quarter.harvest || []).map((h: Frontmatter) => [String(h.title), !!h.done]), metrics: (quarter.metrics || []).map((m: Frontmatter) => [m.icon, m.title, String(m.value), m.unit || '', m.change || '']),
-      directions: (quarter.directions || []).map((x: Frontmatter) => [x.icon, x.title, Number(x.progress) || 0]), experiments: (quarter.experiments || []).map((x: Frontmatter) => [x.title, !!x.done, (x.trend || []).map(Number)]),
-      tasks: (quarter.tasks || []).map(Number), hours: (quarter.hours || []).map(Number), time: (quarter.time || []).map((x: Frontmatter) => [x.title, Number(x.share) || 0])},
+    wheel: ix.config.areas.map(a => ({id: a.id, title: a.title, value: wheel?.[a.id] != null ? Number(wheel[a.id]) : null})), quarterText: quarter.text || '',
+    quarter: {harvest: rows(quarter.harvest).map((h): [string, boolean] => [String(h.title), !!h.done]), metrics: rows(quarter.metrics).map((m): ReviewQuarter['metrics'][number] => [m.icon, m.title, String(m.value), m.unit || '', m.change || '']),
+      directions: rows(quarter.directions).map((x): ReviewQuarter['directions'][number] => [x.icon, x.title, Number(x.progress) || 0]), experiments: rows(quarter.experiments).map((x): ReviewQuarter['experiments'][number] => [x.title, !!x.done, nums(x.trend)]),
+      tasks: nums(quarter.tasks), hours: nums(quarter.hours), time: rows(quarter.time).map((x): ReviewQuarter['time'][number] => [x.title, Number(x.share) || 0])},
     pastYears};
   d.ui.reviewDay = prev ? d.ui.reviewDay : Math.max(0, weekDates.indexOf(date));
   // 大脑默认显示的节点：目标、活跃项目、它们关联的想法与文献、今日重点、人物、在读/读完的书

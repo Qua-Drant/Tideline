@@ -20,8 +20,7 @@ import {createMore} from './ui/more.ts';
 import {createFocusGuard} from './ui/focus-guard.ts';
 import {createEmptyStates} from './ui/empty-states.ts';
 import {HOST} from './host.ts';
-import {createLower, PAGES} from './pages/lower.js';
-import type {createAI} from './pages/ai.ts';
+import {createLower, PAGES} from './pages/lower.ts';
 import {createSettingsPage} from './pages/settings.ts';
 import {createOnboarding} from './pages/onboarding.ts';
 import {createCapture} from './ui/capture.ts';
@@ -37,11 +36,11 @@ import {createTodayReward} from './ui/today-reward.ts';
 import {FOLDERS} from './data/index.ts';
 import type {Index} from './data/index.ts';
 import {changesSince} from './changes.ts';
-import './draw/proto/paper-transition-r37.js';
+import './draw/proto/paper-transition-r37.ts';
 import {wrapAmbient} from './ui/ambient.ts';
 import './draw/proto/paper-help-r39.ts'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37）：装上 HOST.transition
 import type CompassPlugin from './main.ts';
-import type {DayView, Model} from './data/types.ts';
+import type {DayView} from './data/types.ts';
 import type {ChangeEntry} from './plugin-types.ts';
 
 export const VIEW_TYPE = 'tideline';
@@ -67,29 +66,23 @@ export interface ViewPerf {
   samples: number[];
   /** 签名没变、跳过的渲染次数 */
   skipped?: number;
+  /** 下方各页写回笔记的累计条数（pages/lower.ts） */
+  writes?: number;
 }
 
 /** 纸的范围（风景的坐标系）；scroll：窄视图里纸上下滚动 */
 export interface SheetBox { x: number; y: number; left: number; top: number; width: number; height: number; right: number; bottom: number; scroll: boolean }
 
 /** 一页风景：它的描述（draw/scene.ts），和按描述建好的那组节点（露出来时整组换回去）。
- *  内容变了就换一个新的记录：过场（paper-transition-r37.js）按这个对象记它量过的线条 */
+ *  内容变了就换一个新的记录：过场（paper-transition-r37.ts）按这个对象记它量过的线条 */
 export interface SceneNodes { parts: readonly Part[]; nodes: ChildNode[] }
 /** 风景的 <svg id="scenery">：记着当前挂的是哪一组节点 */
 type SceneSvg = SVGSVGElement & {__compassScene?: SceneNodes | null};
 /** 风景缓存（下方各页）：尺寸和那张风景的描述 */
 interface SceneCache { w: number; h: number; scene: readonly Part[] }
 
-// 与还没转 TypeScript 的模块的边界：TypeScript 从 .js 推断的类型里，下面这几样是 any（JS 里先写 let d = null / let ai = null，
-// 或 querySelector 的结果），视图用到的这几样在这里写明（其余成员沿用推断）。
-/** 下方各页（pages/lower.js 的 createLower）：模型 d（还没建时 null）、指引页（还没打开过时 null）、风景 */
-type LowerPages = Omit<ReturnType<typeof createLower>, 'data' | 'model' | 'ai' | 'scenery'> & {
-  readonly data: Model | null;
-  model(): Model;
-  readonly ai: ReturnType<typeof createAI> | null;
-  /** 当前页的风景（描述） */
-  scenery(box: DOMRect | null): readonly Part[];
-};
+/** 下方各页（pages/lower.ts 的 createLower）：模型 d（还没建时 null）、指引页（还没打开过时 null）、风景（描述）。规范收尾批：lower 已是 TypeScript，类型直接取它的 */
+type LowerPages = ReturnType<typeof createLower>;
 /** 今日页（pages/today.ts 的 createToday）：el 是 <section id="today"> */
 type TodayPage = ReturnType<typeof createToday>;
 
@@ -131,10 +124,11 @@ export class CompassView extends ItemView {
   /** 取消订阅索引改动 */
   declare unsub: ReturnType<Index['subscribe']>;
   declare resize: ResizeObserver;
-  /** 排着的那一帧（0 = 没排） */
+  /** 排着的那一帧（0 = 没排）与它所在的窗口（视图在弹出窗口里时是那个窗口：主窗口最小化或被挡住时它的动画帧会停） */
   declare raf: number;
+  declare rafWin?: Window;
   /** 被挡下的重画：等停手后补 */
-  declare holdTimer: ReturnType<typeof setTimeout> | number;
+  declare holdTimer: number;
   declare renderHeld: boolean;
   /** 过场途中又要重画：过场播完后补一次 */
   declare redrawAtRest?: boolean;
@@ -169,7 +163,6 @@ export class CompassView extends ItemView {
       if (event.matches) this.stopMotion();
     });
     // 过场模块要读的几样：是否就绪、过场设置（完整 / 简洁 / 关闭）、今天的日期、今日重点（大脑节点接力用）
-    const view = this;
     HOST.onTransitionEnd = () => {
       if (!this.root.isConnected) return;
       if (this.redrawAtRest) {
@@ -180,8 +173,10 @@ export class CompassView extends ItemView {
         this.taskOverlays.layout();
       }
     };
-    HOST.paper = {ready: true, data: {get ui(){ return {...(view.lower?.data?.ui || {}), page: view.page}; },get settingsR27(){ return {motion: view.plugin.local?.device?.motion || 'full'}; }, get clock(){ return view.plugin.clock(); },
-      get tasks(){ return view.lower?.data?.tasks || [...view.plugin.index.tasks.values()]; }}};
+    // （读取时现算：访问器里转调箭头函数，箭头函数里的 this 就是视图）
+    const ui = () => ({...(this.lower?.data?.ui || {}), page: this.page}), motion = () => this.plugin.local?.device?.motion || 'full', clock = () => this.plugin.clock(),
+      tasks = () => this.lower?.data?.tasks || [...this.plugin.index.tasks.values()];
+    HOST.paper = {ready: true, data: {get ui(){ return ui(); }, get settingsR27(){ return {motion: motion()}; }, get clock(){ return clock(); }, get tasks(){ return tasks(); }}};
     this.hand = createHandFont();
     this.art = createR12Art({data: {clock: p.clock(), ui: {}, cache: {}}, ink, circle, icon});
     this.frame = buildFrame(this.root, this.hand);
@@ -197,7 +192,7 @@ export class CompassView extends ItemView {
     this.registerDomEvent(this.root, 'compositionend', e => {
       this.composing = false;
       const target = e.target as Element | null;
-      setTimeout(() => {
+      window.setTimeout(() => {
         if (!cm(e) && target?.isConnected) target.dispatchEvent(new Event('input', {bubbles: true}));
         this.releaseRender();
       }, 0);
@@ -220,19 +215,24 @@ export class CompassView extends ItemView {
     // 首次起航的点击、表单、按键先给它（原型也是在捕获阶段先交给它）
     this.registerDomEvent(this.root, 'click', e => { if (this.onboarding.click(e)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
     this.registerDomEvent(this.root, 'submit', e => { if ((e.target as HTMLFormElement).dataset?.obForm && this.onboarding.submit(e.target as HTMLFormElement)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
-    this.registerDomEvent(document, 'keydown', e => { if (this.root.isConnected && this.onboarding.key(e)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
+    // 按键挂在视图所在窗口的 document 上（registerDocEvent：视图搬进弹出窗口时跟过去）
+    this.registerDocEvent('keydown', e => { if (this.root.isConnected && this.onboarding.key(e)) { e.preventDefault(); e.stopImmediatePropagation(); } }, {capture: true});
     // ?：只在潮线是当前视图、焦点不在输入框里时
-    this.registerDomEvent(document, 'keydown', e => { if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || !this.root.isConnected || (e.target as Element).closest?.('input,textarea,select,[contenteditable],.cm-editor')) return;
-      if (this.app.workspace.getActiveViewOfType?.(CompassView) !== this && !this.root.contains(document.activeElement)) return; e.preventDefault(); this.toggleHelp(); });
+    this.registerDocEvent('keydown', e => { if (e.key !== '?' || e.ctrlKey || e.metaKey || e.altKey || !this.root.isConnected || (e.target as Element).closest?.('input,textarea,select,[contenteditable],.cm-editor')) return;
+      if (this.app.workspace.getActiveViewOfType?.(CompassView) !== this && !this.root.contains(this.root.doc.activeElement)) return; e.preventDefault(); this.toggleHelp(); });
     // 打开时停在：上次所在的页，或今日
     const D = p.local?.device, last = p.local?.lastPage;
     if (D?.start === 'last' && last && (last === 'today' || PAGES.includes(last))) this.page = last;
     this.registerDomEvent(this.root, 'scroll', () => this.more.paint(), {capture: true, passive: true});
     // 字体（数字用的 IBM Plex Mono）晚到时版式会变：到了再重放一次“还有 N 项”
-    document.fonts?.ready.then(() => { if (this.root.isConnected) this.more.update(); });
-    if (document.fonts) this.registerDomEvent(document.fonts, 'loadingdone', () => this.more.update());
+    const fonts = this.root.doc.fonts; // 视图所在 document 的字体
+    void fonts?.ready.then(() => { if (this.root.isConnected) this.more.update(); });
+    if (fonts) this.registerDomEvent(fonts, 'loadingdone', () => this.more.update());
     this.applyDevice(false);
     this.registerEvent(this.app.workspace.on('css-change', () => this.theme()));
+    // 视图搬到另一个窗口（弹出窗口，或搬回主窗口）：那个窗口的样式表是另一份，字号要在那份上再改一遍；配色按那个窗口的主题再看一次
+    // 原型模块经 HOST 挂在窗口上的拖动监听器也一起搬过去
+    this.register(this.root.onWindowMigrated(() => { if (HOST.root === this.root) HOST.migrate(); this.applyDevice(); }));
     this.registerDomEvent(this.root, 'click', e => this.click(e));
     this.registerDomEvent(this.root, 'submit', e => this.submit(e));
     this.registerDomEvent(this.root, 'pointerdown', e => this.dialDown(e));
@@ -241,13 +241,22 @@ export class CompassView extends ItemView {
     this.resize = new ResizeObserver(() => this.schedule()); this.resize.observe(this.root);
     this.registerInterval(window.setInterval(() => { const t = p.clock().time; if (t !== this.lastTime) this.schedule(); }, 15000));
     this.render();
-    if (p.local && !p.local.onboarded) setTimeout(() => this.startVoyage(), 400);
-    else setTimeout(() => this.upgradeSlip(), 600);
+    if (p.local && !p.local.onboarded) window.setTimeout(() => this.startVoyage(), 400);
+    else window.setTimeout(() => this.upgradeSlip(), 600);
   }
   refreshAI(){ this.lower?.ai?.refresh(); }
+  // 视图所在窗口的 document 上的监听（快捷键、Esc、拖动时的 dragover 等）：视图搬到别的窗口（弹出窗口，或搬回主窗口）时摘下来挂到那个窗口上，视图关闭时摘掉。
+  // 规范收尾批：原来挂在主窗口的 document 上，视图在弹出窗口里时收不到
+  registerDocEvent<K extends keyof DocumentEventMap>(type: K, fn: (e: DocumentEventMap[K]) => void, options?: AddEventListenerOptions){
+    let doc: Document | null = null;
+    const bind = () => { const next = this.root.doc; if (next === doc) return; doc?.removeEventListener(type, fn, options); doc = next; doc.addEventListener(type, fn, options); };
+    bind();
+    this.register(this.root.onWindowMigrated(bind));
+    this.register(() => doc?.removeEventListener(type, fn, options));
+  }
   async onClose(){
-    this.todayReward?.leave(); this.taskPlus?.leave(); this.taskPlus?.destroy?.(); clearTimeout(this.holdTimer);
-    await this.lower?.close(); this.unsub?.(); this.resize?.disconnect(); cancelAnimationFrame(this.raf);
+    this.todayReward?.leave(); this.taskPlus?.leave(); this.taskPlus?.destroy?.(); window.clearTimeout(this.holdTimer);
+    await this.lower?.close(); this.unsub?.(); this.resize?.disconnect(); this.rafWin?.cancelAnimationFrame(this.raf);
     if (HOST.root === this.root) {
       HOST.transition?.finish();
       HOST.onTransitionEnd = null;
@@ -258,7 +267,7 @@ export class CompassView extends ItemView {
   }
 
   // 配色：跟随 Obsidian（明暗主题）或固定纸 / 夜航
-  theme(){ const t = this.plugin.local?.device?.theme || 'obsidian'; this.root.dataset.theme = t === 'obsidian' ? (document.body.classList.contains('theme-dark') ? 'night' : 'paper') : t; }
+  theme(){ const t = this.plugin.local?.device?.theme || 'obsidian'; this.root.dataset.theme = t === 'obsidian' ? (this.root.doc.body.classList.contains('theme-dark') ? 'night' : 'paper') : t; }
   // 这台设备的偏好生效：配色、字号、习惯旁的最近 7 天
   applyDevice(rerender = true){
     const D: Partial<CompassPlugin['local']['device']> = this.plugin.local?.device || {};
@@ -277,14 +286,14 @@ export class CompassView extends ItemView {
   // 升级后的小纸条（设计说明 22.1）：上次用的版本之后有变化就列出来，点 × 关掉；第一次装（走首次起航）不弹
   upgradeSlip(){
     const L = this.plugin.local, now = this.plugin.manifest?.version; if (!L || !now) return;
-    const from = L.version; L.version = now; if (from !== now) this.plugin.saveSettings();
+    const from = L.version; L.version = now; if (from !== now) void this.plugin.saveSettings();
     if (!from || from === now) return;
     const list = changesSince(from, now); if (!list.length) return;
     this.root.querySelector('.upgrade-slip')?.remove();
     // 0.9.3（评审 P1-1）：按版本分组，只展开最近一个版本，其余收在“更早的变化”；纸是实的（不透字）；是对话框，Esc 关，关后焦点回原处
     const group = ([v, items]: ChangeEntry) => [h('h4', {class: 'upgrade-ver mono'}, v), h('ul', null, items.map(x => h('li', null, x)))];
     const [first, ...rest] = list, more = rest.reduce((n, [, items]) => n + items.length, 0);
-    this.upgradeReturn = document.activeElement;
+    this.upgradeReturn = this.root.doc.activeElement;
     insertNodes(this.root.querySelector('#sheet')!, 'beforeend', () => h('div', {class: 'ob-slip ob-finale hand-popup upgrade-slip', role: 'dialog', 'aria-labelledby': 'upgrade-title'},
       h('button', {class: 'inline-close', 'data-action': 'close-upgrade', 'aria-label': '关掉'}, '×'),
       h('h3', {class: 'upgrade-title', id: 'upgrade-title'}, '这次的变化', h('small', {class: 'mono'}, from + ' → ' + now)),
@@ -294,29 +303,29 @@ export class CompassView extends ItemView {
     slip.querySelector<HTMLElement>('.inline-close')!.focus({preventScroll: true});
     this.frames();
   }
-  closeUpgrade(){ const slip = this.root.querySelector('.upgrade-slip'); if (!slip) return; slip.remove(); const back = this.upgradeReturn; this.upgradeReturn = null; if (back?.isConnected && back !== document.body) back.focus?.({preventScroll: true}); }
+  closeUpgrade(){ const slip = this.root.querySelector('.upgrade-slip'); if (!slip) return; slip.remove(); const back = this.upgradeReturn; this.upgradeReturn = null; if (back?.isConnected && back !== back.doc.body) back.focus?.({preventScroll: true}); }
   // 装着示例航程时写下第一篇自己的笔记：提示一次要不要清除示例（设计说明 22.5）。只问一次（记在这台设备上）。
   noteCreated(path: string){
     const L = this.plugin.local, ex = L?.examples || [];
     if (!ex.length || L.examplesAsked || !path.endsWith('.md') || ex.includes(path)) return false;
     const folders = (['journal', 'tasks', 'projects', 'people', 'goals', 'ideas', 'literature', 'books'] as const).map(k => FOLDERS[k] + '/');
     if (!folders.some(f => path.startsWith(f))) return false;
-    L.examplesAsked = true; this.plugin.saveSettings();
+    L.examplesAsked = true; void this.plugin.saveSettings();
     this.frame.feedback('写下了第一篇自己的笔记。示例航程还要留着吗？', null, null, {label: '清除示例', run: () => { this.openSettings('data'); this.settingsPage.ask('clear-examples'); }});
     return true;
   }
   startVoyage(){ this.settingsPage.close(false); this.go('today'); this.onboarding.open(); }
-  schedule(){ if (this.raf) return; this.raf = requestAnimationFrame(() => { this.raf = 0; this.render(); }); }
+  schedule(){ if (this.raf) return; const win = this.rafWin = this.root.win; this.raf = win.requestAnimationFrame(() => { this.raf = 0; this.render(); }); }
 
   // force：界面状态在别处改过（例如展开详情）；不给就按“数据版本 + 时刻 + 尺寸 + 当前页 + 展开的详情 + 配色”判断要不要重画
   // 被挡下的重画：组字结束或停手后补一次
-  releaseRender(){ clearTimeout(this.holdTimer); this.holdTimer = 0; if (this.renderHeld) { this.renderHeld = false; this.render(true); } }
+  releaseRender(){ window.clearTimeout(this.holdTimer); this.holdTimer = 0; if (this.renderHeld) { this.renderHeld = false; this.render(true); } }
   render(force = false): void{
     if (!this.root?.isConnected) return;
     // 组字中不重画；在任务详情里打字时，写回引起的重画等停手 1.2 秒后再做（不打断光标，不搬动编辑器）
     if (this.composing) { this.renderHeld = true; return; }
     const hold = this.taskPlus?.holdRender?.() || 0;
-    if (hold) { this.renderHeld = true; clearTimeout(this.holdTimer); this.holdTimer = setTimeout(() => this.releaseRender(), hold); return; }
+    if (hold) { this.renderHeld = true; window.clearTimeout(this.holdTimer); this.holdTimer = window.setTimeout(() => this.releaseRender(), hold); return; }
     const width = this.root.clientWidth, height = this.root.clientHeight;
     if (!width) return;
     const t0 = performance.now(), p = this.plugin, {date, time} = p.clock();
@@ -412,7 +421,7 @@ export class CompassView extends ItemView {
     if (page !== this.page && this.root.isConnected) HOST.transition?.before(this.page, page);
     if (this.page === 'today' && page !== 'today') this.todayReward.leave();
     if (this.page === 'tasks' && page !== 'tasks') { this.taskOverlays.close(); this.taskPlus.leave(); }
-    if (this.plugin.local && this.plugin.local.lastPage !== page) { this.plugin.local.lastPage = page; this.plugin.saveSettings?.(); }
+    if (this.plugin.local && this.plugin.local.lastPage !== page) { this.plugin.local.lastPage = page; void this.plugin.saveSettings?.(); }
     this.page = page; this.ui.detail = null; this.ui.chooseFocus = false; this.root.querySelector('#sheet')!.scrollTop = 0;
     this.navigating = true;
     try { this.render(true); }
@@ -455,7 +464,7 @@ export class CompassView extends ItemView {
     }
     for (const {el, w, h, btn, cls, key} of todo) {
       let svg = (el.firstElementChild?.classList.contains(cls) ? el.firstElementChild : el.querySelector(':scope > .' + cls)) as SVGSVGElement | null;
-      if (!svg) { svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add(cls); svg.setAttribute('aria-hidden', 'true'); el.prepend(svg); }
+      svg ??= el.createSvg('svg', {cls, attr: {'aria-hidden': 'true'}, prepend: true});
       svg.dataset.size = key; svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       setNodes(svg, () => btn ? buttonFrameEl(w, h) : el.classList.contains('hand-pill') ? pillFrameEl(w, h) : popupFrameEl(w, h));
     }
@@ -463,7 +472,7 @@ export class CompassView extends ItemView {
     if (this.root.querySelector('.settings-view, .onboarding, .hand-popup, #search:not([hidden])') || this.moreModal) { this.moreModal = !!this.root.querySelector('.settings-view, .onboarding'); this.more?.update(); }
   }
 
-  // 今日页完成 / 重新打开任务（P1-2）：和任务页走同一个 data/complete.js、同一套写回（lower.js 的模型 + persist.js），
+  // 今日页完成 / 重新打开任务（P1-2）：和任务页走同一个 data/complete.js、同一套写回（lower.ts 的模型 + persist.ts），
   // 重复任务一样留完成记录并顺延。返回撤销：把顺延、完成记录一并撤回
   async toggleTask(id: string){
     const lower: LowerPages = this.lower ??= createLower(this), m = lower.model(), t = m.tasks.find(x => x.id === id); if (!t) return null;
@@ -513,9 +522,9 @@ export class CompassView extends ItemView {
     const svg = (e.target as Element).closest<SVGSVGElement>('.dial'); if (!svg) return; e.preventDefault(); svg.setPointerCapture?.(e.pointerId); svg.classList.add('is-dragging');
     let value = this.dialValue(svg, e); const move = (ev: PointerEvent) => { value = this.dialValue(svg, ev); this.preview(svg, value); };
     const up = async () => { svg.removeEventListener('pointermove', move); svg.classList.remove('is-dragging'); await this.actions.score(svg.dataset.question!, value); };
-    svg.addEventListener('pointermove', move); svg.addEventListener('pointerup', up, {once: true}); this.preview(svg, value);
+    svg.addEventListener('pointermove', move); svg.addEventListener('pointerup', () => { void up(); }, {once: true}); this.preview(svg, value);
   }
-  preview(svg: SVGSVGElement, value: number){ const a = Math.PI + (value - 1) / 9 * Math.PI; let g = svg.querySelector('.needle'); if (!g) { g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.classList.add('needle'); svg.append(g); }
+  preview(svg: SVGSVGElement, value: number){ const a = Math.PI + (value - 1) / 9 * Math.PI; const g = svg.querySelector('.needle') ?? svg.createSvg('g', {cls: 'needle'});
     setNodes(g, () => [inkEl([[87 - Math.cos(a) * 4, 86 - Math.sin(a) * 4], [87, 86], [87 + Math.cos(a) * 36, 86 + Math.sin(a) * 36]], 2, 'currentColor'), circleEl(87, 86, 3.1, 1.4, 'currentColor')]); svg.setAttribute('aria-valuenow', value as unknown as string); svg.setAttribute('aria-valuetext', value as unknown as string); }
   async dialKey(e: KeyboardEvent){
     const svg = (e.target as Element).closest?.<SVGSVGElement>('.dial'); if (!svg || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault();
@@ -525,12 +534,14 @@ export class CompassView extends ItemView {
 }
 
 // 字号：把潮线样式表里所有以 px 写的字号按比例改一遍（原型 paper.js 的 applyFontScale；排版位置不变）
-const fontBase = new WeakMap<CSSStyleRule, string>(); let fontNow = 1;
+// 规范收尾批：改的是视图所在窗口的样式表（弹出窗口有自己的一份），每个 document 各记现在的倍数；规则的类型用那个窗口的 CSSStyleRule 判断
+const fontBase = new WeakMap<CSSStyleRule, string>(), fontNow = new WeakMap<Document, number>();
 function fontScale(root: HTMLElement, f: number){
-  root.dataset.fontScale = String(f); if (f === fontNow) return; fontNow = f;
+  const doc = root.doc, StyleRule = (root.win as Window & typeof globalThis).CSSStyleRule;
+  root.dataset.fontScale = String(f); if (f === (fontNow.get(doc) ?? 1)) return; fontNow.set(doc, f);
   // 分组规则（@media 等）有 cssRules，往里走；样式规则看字号
-  const walk = (rules: CSSRuleList) => { for (const r of rules as Iterable<CSSRule & {cssRules?: CSSRuleList}>) { if (r.cssRules?.length) walk(r.cssRules); if (!(r instanceof CSSStyleRule) || !r.selectorText.includes('.compass-root')) continue;
+  const walk = (rules: CSSRuleList) => { for (const r of rules as Iterable<CSSRule & {cssRules?: CSSRuleList}>) { if (r.cssRules?.length) walk(r.cssRules); if (!(r instanceof StyleRule) || !r.selectorText.includes('.compass-root')) continue;
     if (!fontBase.has(r)) fontBase.set(r, r.style.fontSize); const m = /^([\d.]+)px$/.exec(fontBase.get(r) || ''); if (!m) continue;
     r.style.setProperty('font-size', (+m[1] * f).toFixed(2) + 'px', r.style.getPropertyPriority('font-size')); } };
-  for (const sh of document.styleSheets) { try { walk(sh.cssRules); } catch { /* 跨源样式表读不到 cssRules：跳过 */ } }
+  for (const sh of doc.styleSheets) { try { walk(sh.cssRules); } catch { /* 跨源样式表读不到 cssRules：跳过 */ } }
 }

@@ -74,7 +74,7 @@ function build(){const help=$('#help');if(!help||help.hidden){sig='';return;}if(
  building=true;setNodes(help,()=>targets.map(x=>h('div',{class:'help-note r39-note'},x.t)));const boxes=([...help.children] as HTMLElement[]).map(n=>({w:Math.ceil(n.offsetWidth),h:Math.ceil(n.offsetHeight)}));
  const placed: Box[]=[],avoid: Box[]=targets.map(x=>x.r).concat([...HOST.querySelectorAll('.rail,.page-head,#compass-toggle,#capture-toggle')].map(e=>{const r=e.getBoundingClientRect();return{x:r.left-H.left,y:r.top-H.top,w:r.width,h:r.height};}));
  // 这一页的文字行与控件也要避开（说明的纸色底会把它们盖住）
- const sec=HOST.byId(page!),ink: Box[]=[];if(sec){const rg=document.createRange(),w=document.createTreeWalker(sec,NodeFilter.SHOW_TEXT);let n=0;
+ const sec=HOST.byId(page!),ink: Box[]=[];if(sec){const rg=sec.doc.createRange(),w=sec.doc.createTreeWalker(sec,NodeFilter.SHOW_TEXT);let n=0;
   while(w.nextNode()&&n<900){const t=w.currentNode;if(!t.textContent!.trim()||t.parentElement!.closest('svg,[hidden],.r35-leaving'))continue;rg.selectNodeContents(t);for(const r of rg.getClientRects()){if(r.width&&r.bottom>0&&r.top<HOST.bottom){ink.push({x:r.left-H.left,y:r.top-H.top,w:r.width,h:r.height});n++;}}}
   for(const e of sec.querySelectorAll('button,input,textarea,.dial,.cargo-crate,.cargo-mailbag,.flag-button,.brain-node,.library-sign')){const r=e.getBoundingClientRect();if(r.width&&r.width<420&&r.height<320&&r.bottom>0&&r.top<HOST.bottom)ink.push({x:r.left-H.left,y:r.top-H.top,w:r.width,h:r.height});}}
  const area=(a: Box,b: Box)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
@@ -91,13 +91,13 @@ function build(){const help=$('#help');if(!help||help.hidden){sig='';return;}if(
  setNodes(help,()=>out.map((o,i)=>h('div',{class:'help-note r39-note','data-help-target':String(i),style:`left:${o.b.x}px;top:${o.b.y}px`,'data-tip':o.tip.map(v=>v.toFixed(1)).join(',')},svg('svg',{class:'r39-arrow',width:'1',height:'1','aria-hidden':'true'},o.arrow),targets[i].t)));
  targets.forEach((x,i)=>{x.e.dataset.helpTarget=String(i);});building=false;}
 let queued=false;
-function settle(){if(queued||building)return;queued=true;requestAnimationFrame(()=>{queued=false;build();});}
+function settle(){if(queued||building)return;queued=true;HOST.requestFrame(()=>{queued=false;build();});}
 // 只在说明显示时才盯整页（R39：说明收起时什么也不做，不给过场添负担）
 const page=new MutationObserver(ms=>{if(building)return;if(ms.every(m=>(m.target as Element).closest?.('#help')&&(m.target as Element).id!=='help'&&[...m.addedNodes].every(n=>(n as Element).classList?.contains('r39-note'))))return;settle();});
 let tick=0;
 function watch(){const help=$('#help');if(!help)return;const on=!help.hidden;
  if(on&&!tick){page.observe(HOST.body!,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','aria-pressed','class']});tick=window.setInterval(()=>{if(!HOST.root!.hasAttribute('data-r35-run'))settle();},400);settle();}
- else if(!on&&tick){page.disconnect();clearInterval(tick);tick=0;sig='';}
+ else if(!on&&tick){page.disconnect();window.clearInterval(tick);tick=0;sig='';}
  else if(on)settle();}
-(function hook(){const help=$('#help');if(!help){requestAnimationFrame(hook);return;}new MutationObserver(watch).observe(help,{attributes:true,attributeFilter:['hidden'],childList:true});watch();})();
+(function hook(){const help=$('#help');if(!help){HOST.requestFrame(hook);return;}new MutationObserver(watch).observe(help,{attributes:true,attributeFilter:['hidden'],childList:true});watch();})();
 addEventListener('resize',()=>{sig='';if(tick)settle();});

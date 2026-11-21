@@ -95,9 +95,9 @@ export function createMapSearch({view, plugin}: {view: CompassView; plugin: Comp
   view.registerDomEvent(root, 'input', e => { const t = e.target as HTMLInputElement; if (t.id === 'global-query') renderSearch(t.value); });
   view.registerDomEvent(root, 'submit', e => { if ((e.target as Element).closest('#search')) { e.preventDefault(); e.stopImmediatePropagation(); if (results[0]) open(results[0]); } }, {capture: true});
   // 按键：/ 搜索、Esc 收起、Alt + ↑ / ↓ 换层（只在潮线是当前视图、焦点不在别的输入框时）
-  view.registerDomEvent(document, 'keydown', e => {
+  view.registerDocEvent('keydown', e => {
     if (!root.isConnected) return;
-    const mine = view.app.workspace.getActiveViewOfType?.(view.constructor as typeof CompassView) === view || root.contains(document.activeElement);
+    const mine = view.app.workspace.getActiveViewOfType?.(view.constructor as typeof CompassView) === view || root.contains(root.doc.activeElement);
     if (!mine) return;
     const typing = (e.target as Element).closest?.('input,textarea,select,[contenteditable],.cm-editor');
     if (e.key === 'Escape') { if (!$('#search').hidden) { e.preventDefault(); closeSearch(); } else if (!$('#map').hidden) { e.preventDefault(); toggleMap(false); } return; }

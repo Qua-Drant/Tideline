@@ -135,7 +135,7 @@ export function suggestions(token: ActiveToken | null, d: Pick<Model, 'lists' | 
   if (!token) return [];
   const q = token.query, hit = (s: string) => !q || s.includes(q);
   if (token.sign === '!' || token.sign === '！') return PRIORITIES.filter(p => hit(p[1])).map(p => ({insert: '!' + p[1], label: '优先级 · ' + p[1]}));
-  if (token.sign === '@') { const name = q.replace(/[\/:*?"<>|#^[\]]/g, '').trim(), list = d.people.filter(p => hit(p.name)).slice(0, 8).map(p => ({insert: '@' + p.name, label: '@' + p.name}));
+  if (token.sign === '@') { const name = q.replace(/[/:*?"<>|#^[\]]/g, '').trim(), list = d.people.filter(p => hit(p.name)).slice(0, 8).map(p => ({insert: '@' + p.name, label: '@' + p.name}));
     return name && !d.people.some(p => p.name === name) ? [...list, {insert: '@' + name, label: '新建人物“' + name + '”', create: name}] : list; } // 0.9：没有这个人时可以直接新建
   const lists = d.lists.filter(l => !l.archived && hit(l.title)).map(l => ({insert: token.sign + l.title, label: '清单 · ' + l.title}));
   if (token.sign !== '#') return lists.slice(0, 8);

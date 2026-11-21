@@ -15,7 +15,7 @@ export type Pen = (points: Point[], size?: number, color?: string, attrs?: strin
 export type PenV = (points: Point[], size?: number, color?: string, attrs?: Attrs | null) => Shape | null;
 /** 画笔：ink 是直线笔（L），curve 是曲线笔（C，没有时用 ink）；…V 是对应的描述版；drawV 是带 data-draw-path 的笔（完成态海景用，没有时用 inkV） */
 export interface MaritimePens {
-  /** 字符串画笔：第 4a 期起不再读（调用方 pages/lower.js、r12 还会传，忽略） */
+  /** 字符串画笔：第 4a 期起不再读（调用方 pages/lower.ts、r12 还会传，忽略） */
   ink?: Pen; curve?: Pen;
   inkV?: PenV; curveV?: PenV; drawV?: PenV;
 }

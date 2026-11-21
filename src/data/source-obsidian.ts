@@ -24,8 +24,9 @@ export function obsidianSource(app: App, plugin: Pick<Component, 'registerEvent'
 export function obsidianWriter(app: App): Required<Writer>{
   const get = (path: string) => app.vault.getAbstractFileByPath(path);
   const folder = async (path: string) => { const dir = path.split('/').slice(0, -1).join('/'); if (dir && !get(dir)) await app.vault.createFolder(dir).catch(() => {}); };
-  // 已经有就用它（ensure 只给 Markdown 笔记用：路径上是文件夹时不在这里处理，交给后面的 Obsidian 接口报错）
-  const ensure = async (path: string, init: string) => (get(path) || (await folder(path), app.vault.create(path, init))) as TFile;
+  // 已经有就用它（ensure 只给 Markdown 笔记用）。路径上是文件夹时报错（规范收尾批：原来把文件夹当笔记交给后面的 Obsidian 接口，由它报错）
+  const ensure = async (path: string, init: string): Promise<TFile> => { const f = get(path); if (f instanceof TFile) return f; if (f) throw new Error(path + ' 是文件夹，不是笔记');
+    await folder(path); return app.vault.create(path, init); };
   return {
     exists: path => !!get(path),
     async create(path, text){ return ensure(path, text); },
@@ -34,7 +35,7 @@ export function obsidianWriter(app: App): Required<Writer>{
     async trash(path){ const f = get(path); if (f) await app.fileManager.trashFile(f); },
     async frontmatter(path, fn, init = '---\n---\n'){ const f = await ensure(path, init); await app.fileManager.processFrontMatter(f, fn); },
     async body(path, fn, init = ''){ const f = await ensure(path, init); await app.vault.process(f, fn); },
-    open(path){ const f = get(path); if (f) app.workspace.getLeaf('tab').openFile(f as TFile); },
+    open(path){ const f = get(path); if (f instanceof TFile) void app.workspace.getLeaf('tab').openFile(f); },
     openPDF(path){
       const note = get(path);
       if (!(note instanceof TFile)) return false;
@@ -43,7 +44,7 @@ export function obsidianWriter(app: App): Required<Writer>{
       for (const link of links) {
         const target = app.metadataCache.getFirstLinkpathDest(link.link.split('#')[0], path);
         if (target?.extension.toLowerCase() !== 'pdf') continue;
-        app.workspace.getLeaf('tab').openFile(target);
+        void app.workspace.getLeaf('tab').openFile(target);
         return true;
       }
       return false;

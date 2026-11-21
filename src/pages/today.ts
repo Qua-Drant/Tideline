@@ -184,7 +184,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
     const journal = $('#journal')!, form = $('#journal-form')!, wrap = $('.other-task-items');
     const top = journal.getBoundingClientRect().top, formH = form.getBoundingClientRect().height;
     const rows = wrap && !wrap.querySelector('.detail-inline') ? [...wrap.children] : [];
-    if (wrap) { wrap.style.maxHeight = ''; wrap.style.flex = ''; }
+    if (wrap) { wrap.style.maxHeight = ''; wrap.classList.remove('tl-fit'); }
     // wrap 为空时 wtop 不用（rows 也为空）
     const wtop = wrap ? wrap.getBoundingClientRect().top : 0, limit = wrap ? $('#other-tasks')!.getBoundingClientRect().bottom - wtop : 0;
     let fitH = 0; for (const r of rows) { const end = r.getBoundingClientRect().bottom - wtop; if (end <= limit + .1) fitH = end; else break; }
@@ -193,7 +193,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
     // 纸不滚动时，随手记撑到纸底；窄视图里纸会滚动，随手记用样式里的固定高度
     journal.style.maxHeight = box.scroll ? '' : Math.max(52, Math.floor(box.bottom - 48 - top - formH)) + 'px';
     if (ui.journalFollow) { journal.scrollTop = journal.scrollHeight; ui.journalFollow = false; }
-    if (fitH > 0) { wrap!.style.maxHeight = fitH + 'px'; wrap!.style.flex = '0 1 auto'; }
+    if (fitH > 0) { wrap!.style.maxHeight = fitH + 'px'; wrap!.classList.add('tl-fit'); } // tl-fit：flex 0 1 auto（container.css；原来写在行内）
     trail(ys);
     labels();
     alignJournal(journal);
@@ -210,7 +210,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
   }
   function trail(ys: number[]){
     const t = $('#trail')!; let sketch = t.querySelector<SVGSVGElement>('.trail-sketch');
-    if (!sketch) { sketch = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sketch.classList.add('trail-sketch'); sketch.setAttribute('aria-hidden', 'true'); t.prepend(sketch); }
+    sketch ??= t.createSvg('svg', {cls: 'trail-sketch', attr: {'aria-hidden': 'true'}, prepend: true});
     const key = ys.map(Math.round).join(','); if (sketch.dataset.key === key) return; sketch.dataset.key = key;
     const ht = Math.max(t.clientHeight, t.scrollHeight, 1); sketch.setAttribute('viewBox', `0 0 28 ${ht}`); sketch.style.height = ht + 'px';
     setNodes(sketch, () => [ys.length > 1 ? inkEl(ys.map((y, i): Point => [11 + Math.sin(i * .9) * 1.1, y]), 2.15, SECONDARY, {'data-route-stroke': true}) : null,
@@ -225,7 +225,7 @@ export function createToday({root, art, ui}: {root: HTMLElement; art: R12Art; ui
     return inkV(points, size, color, {'data-draw-path': `M${center}`, 'data-draw-width': String(size)});
   }});
   function obstacles(base: SheetBox, completed: boolean){
-    const out: Shape[] = [], m = 12, range = document.createRange();
+    const out: Shape[] = [], m = 12, range = sec.doc.createRange();
     const add = (left: number, top: number, right: number, bottom: number) => {
       if (right > left && bottom > top) out.push(sh('rect', {x: (left - base.left - m).toFixed(1), y: (top - base.top - m).toFixed(1), width: (right - left + 2 * m).toFixed(1), height: (bottom - top + 2 * m).toFixed(1), fill: 'black'}));
     };

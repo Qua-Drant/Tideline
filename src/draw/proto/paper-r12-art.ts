@@ -10,11 +10,11 @@ import type {Pen} from './paper-maritime-r14.ts';
 import {createGuidanceArt,GUIDANCE_H,GUIDANCE_HORIZON,GUIDANCE_FLAGS,GUIDANCE_CENTER,GUIDANCE_SPAN} from './paper-guidance-art-r19.ts';
 // 第 3b 期转成 TypeScript：风景（远岸、小船、水面、思索页的海岸与灯塔、指引页的桅杆）改为描述版（…V，见 scene.ts），字符串版删去；
 // 页面模板还在用的 L、C、symbol、flag 保留字符串版，输出与原来逐字相同。
-// 第 4a 期：指引页改成节点构建，symbol / flag 的字符串版没有调用方，删去（旗子的节点版 flagEl）；L、C 只剩 pages/lower.js 传给 maritimeArt。
+// 第 4a 期：指引页改成节点构建，symbol / flag 的字符串版没有调用方，删去（旗子的节点版 flagEl）；L、C 只剩 pages/lower.ts 传给 maritimeArt。
 
 /** 天空的缓存：一张 1600×320 的画布与它的像素 */
 interface SkyCache { key: string; canvas: HTMLCanvasElement; width: number; height: number; pixels: Uint8ClampedArray; palette: {top: number[]; bottom: number[]; dim: number} }
-/** 原型数据里这个模块读写的部分（lower.js 传进模型 d；视图传一份只有时刻的小对象） */
+/** 原型数据里这个模块读写的部分（lower.ts 传进模型 d；视图传一份只有时刻的小对象） */
 export interface R12Data {
  clock: {time: string};
  ui: {lamp?: boolean};
@@ -64,7 +64,7 @@ export function createR12Art(a: R12Args){
  const stops: [number,Rgb,Rgb][]=[[0,[18,38,53],[113,139,149]],[300,[24,46,62],[172,184,180]],[390,[95,121,142],[238,209,171]],[510,[151,182,194],[235,238,226]],[840,[139,174,191],[235,239,231]],[1020,[91,117,140],[236,205,170]],[1110,[44,68,88],[192,164,151]],[1200,[18,38,53],[113,139,149]],[1440,[18,38,53],[113,139,149]]];
  const minutes=()=>Number(d.clock.time.slice(0,2))*60+Number(d.clock.time.slice(3));
  function palette(){const m=minutes(),i=Math.max(0,stops.findIndex((s,j)=>j<stops.length-1&&m>=s[0]&&m<stops[j+1][0])),s=stops[i],e=stops[i+1],t=(m-s[0])/(e[0]-s[0]);return {top:s[1].map((v,k)=>v+(e[1][k]-v)*t),bottom:s[2].map((v,k)=>v+(e[2][k]-v)*t),dim:d.ui.lamp?1:.91};}
- function sky(){const key=d.clock.time+'|'+d.ui.lamp;if(d.cache.r12Sky?.key!==key){const width=1600,height=320,c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d')!,im=ctx.createImageData(width,height),p=palette();let seed=77121;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);const smooth=(t: number)=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
+ function sky(){const key=d.clock.time+'|'+d.ui.lamp;if(d.cache.r12Sky?.key!==key){const width=1600,height=320,c=createEl('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d')!,im=ctx.createImageData(width,height),p=palette();let seed=77121;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);const smooth=(t: number)=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
  const topEdge=new Float64Array(width),bottomEdge=new Float64Array(width),streak=new Float64Array(width);
  for(let x=0;x<width;x++){
   topEdge[x]=3+3*Math.sin(x*.017)+2*Math.sin(x*.069);
@@ -95,7 +95,7 @@ ctx.putImageData(im,0,0);d.cache.r12Sky={key,canvas:c,width,height,pixels:im.dat
  function skyInk(x: number,y: number,w?: number){const b=luminance(skyPixel(x,y,w));return (light+.05)/(b+.05)>=(b+.05)/(dark+.05)?PAPER:INK;}
  // 灯塔：素材的描述（asset-shapes.js）里的 #1c2a35 换成 currentColor（原来在字符串上 replace，素材里它只出现在属性值里）
  const recolor=(list: readonly Part[]): Part[]=>list.map(p=>typeof p==='string'?p:{t:p.t,a:p.a&&(Object.fromEntries(Object.entries(p.a).map(([k,v])=>[k,typeof v==='string'?v.replace(/#1c2a35/ig,'currentColor'):v])) as Attrs),k:recolor(p.k)});
- function lighthouseV(body: readonly Part[],transform: string,w: number): Part[]{const content=recolor(body),c=document.createElement('canvas');c.width=800;c.height=160;const ctx=c.getContext('2d')!,im=ctx.createImageData(800,160);for(let y=0;y<160;y++)for(let x=0;x<800;x++){const i=(y*800+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=255;im.data[i+3]=skyInk(x/800*w,y/160*243-5,w)===PAPER?255:0;}ctx.putImageData(im,0,0);d.cache.towerContrast={source:'r12-colour-grain',lightInk:PAPER,darkInk:INK};
+ function lighthouseV(body: readonly Part[],transform: string,w: number): Part[]{const content=recolor(body),c=createEl('canvas');c.width=800;c.height=160;const ctx=c.getContext('2d')!,im=ctx.createImageData(800,160);for(let y=0;y<160;y++)for(let x=0;x<800;x++){const i=(y*800+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=255;im.data[i+3]=skyInk(x/800*w,y/160*243-5,w)===PAPER?255:0;}ctx.putImageData(im,0,0);d.cache.towerContrast={source:'r12-colour-grain',lightInk:PAPER,darkInk:INK};
   return parts(sh('defs',null,sh('mask',{id:'r12-tower-mask',maskUnits:'userSpaceOnUse',x:'0',y:'-5',width:w,height:'243',style:'mask-type:alpha'},sh('image',{href:c.toDataURL(),x:'0',y:'-5',width:w,height:'243',preserveAspectRatio:'none'}))),
    sh('g',{'data-morph':'lighthouse','data-adaptive-lighthouse':true,transform,color:INK},content),sh('g',{'data-contrast-light':true,mask:'url(#r12-tower-mask)'},sh('g',{transform,color:PAPER},content)));}
  function thoughtCoastV(w: number): Shape{const ridge: Point[]=[[0,220],[w*.025,217],[w*.055,212],[w*.075,213],[w*.102,208],[w*.135,216],[w*.17,215],[w*.21,221],[w*.3,224],[w*.53,224],[w*.62,220],[w*.665,214],[w*.69,213],[w*.73,218],[w*.77,211],[w*.795,207],[w*.83,211],[w*.875,204],[w*.9,203],[w*.94,211],[w,214]];const s: Parts[]=[CV(ridge,.95,INK),CV([[0,225],[w*.16,223],[w*.35,226],[w*.6,224],[w*.79,221],[w,221]],1.1)];for(const p of [[[.02,219],[.065,220],[.105,218]],[[.08,215],[.11,217],[.15,217]],[[.16,218],[.19,221],[.235,222]],[[.66,220],[.7,217],[.735,221]],[[.77,215],[.8,212],[.825,214]],[[.87,214],[.91,209],[.95,216]]])s.push(CV(p.map(([x,y]): Point=>[x*w,y]),.45,SECONDARY));for(let i=0;i<9;i++)s.push(CV([[w*(.025+i*.095),230+i%2*3],[w*(.06+i*.095),229+i%2*3],[w*(.105+i*.095),230+i%2*3]],.5,TICK));return sh('g',{'data-morph':'horizon','data-r12-coast':true},s);}

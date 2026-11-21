@@ -230,12 +230,12 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
     replaceWithNodes(v, view$); const n = $('.settings-view')!; n.classList.add('is-still'); n.querySelector('.set-column')!.scrollTop = top; mountSecret(); view.frames();
     if (S.rename || S.adding) n.querySelector<HTMLInputElement>('.set-inline input')?.focus(); }
   function open(jump?: string){ $('.settings-view')?.remove(); if (jump) S.page = jump; insertNodes($('#sheet')!, 'beforeend', view$); mountSecret(); view.frames(); root.querySelector('.module.settings')?.setAttribute('aria-pressed', 'true'); }
-  function close(animated = true){ const v = $('.settings-view'); S.confirm = null; S.menu = null; root.querySelector('.module.settings')?.setAttribute('aria-pressed', 'false'); if (!v) return; if (!animated) { v.remove(); return; } v.classList.add('is-leaving'); setTimeout(() => v.remove(), 200); }
+  function close(animated = true){ const v = $('.settings-view'); S.confirm = null; S.menu = null; root.querySelector('.module.settings')?.setAttribute('aria-pressed', 'false'); if (!v) return; if (!animated) { v.remove(); return; } v.classList.add('is-leaving'); window.setTimeout(() => v.remove(), 200); }
   const isOpen = () => !!$('.settings-view');
-  function written(){ S.written = Date.now(); setTimeout(() => { if (Date.now() - S.written >= 1900) $('.set-written')?.remove(); }, 2000); }
+  function written(){ S.written = Date.now(); window.setTimeout(() => { if (Date.now() - S.written >= 1900) $('.set-written')?.remove(); }, 2000); }
 
   // ——— 写入 ———
-  const writeConfig = (fn: (fm: Record<string, unknown>) => void) => plugin.writer.frontmatter(CONFIG, fn).then(() => { written(); setTimeout(refresh, 250); });
+  const writeConfig = (fn: (fm: Record<string, unknown>) => void) => plugin.writer.frontmatter(CONFIG, fn).then(() => { written(); window.setTimeout(refresh, 250); });
   async function setPath(path: string, v: string){
     // 按点分的路径一层层往下走（设备 / Zotero / AI 设置都是普通对象）
     const parts = path.split('.'), scope = parts[0], key = parts.at(-1)!; let obj = (scope === 'device' ? dev() : scope === 'zotero' ? (plugin.local.zotero ??= {on: true, folder: ''}) : A()) as unknown as Record<string, unknown>;
@@ -283,10 +283,10 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
     else if (act === 'every') { await plugin.calendars.setEvery(a[0]); }
     // 立即刷新（0.9.2）：你点的不受退避限制；“正在刷新”旁边按秒计时，结束（成功、失败或 60 秒超时）一定收起
     else if (act === 'refresh-sub') { const s = plugin.calendars.list().find(x => x.id === a[0]); if (s) { S.busy = s.id; S.busyAt = Date.now(); refresh();
-      const tick = setInterval(() => { const el = $(`.settings-view [data-sub="${CSS.escape(s.id)}"] .set-last`); if (el && S.busy === s.id) el.textContent = `正在刷新…（${Math.round((Date.now() - S.busyAt!) / 1000)} 秒）`; }, 1000);
+      const tick = window.setInterval(() => { const el = $(`.settings-view [data-sub="${CSS.escape(s.id)}"] .set-last`); if (el && S.busy === s.id) el.textContent = `正在刷新…（${Math.round((Date.now() - S.busyAt!) / 1000)} 秒）`; }, 1000);
       try { await plugin.calendars.refresh(s, {manual: true}); view.frame.feedback(s.ok ? `已刷新：${s.name || '日历'}（${s.count || 0} 个日程）` : `没有刷新成功：${s.error || ''}`); }
       catch (err) { view.frame.feedback('没有刷新成功：' + ((err as Error)?.message || String(err))); }
-      finally { clearInterval(tick); S.busy = null; } } }
+      finally { window.clearInterval(tick); S.busy = null; } } }
     else if (act === 'unsub') { const s = plugin.calendars.list().find(x => x.id === a[0]); await plugin.calendars.remove(a[0]); view.frame.feedback(`已移除日历订阅：${s?.name || ''}`); }
     else if (act === 'unlist') { await editLists(a[0], l => l.filter((_, i) => i !== Number(a[1]))); return true; }
     else if (act === 'confirm') { S.confirm = a.join('|'); S.menu = null; }
@@ -295,7 +295,7 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
       if (k === 'del') { await editConfigList(r[0] as ListKind, l => l.filter((_, i) => i !== Number(r[1]))); return true; }
       if (k === 'clear-chats') { plugin.clearAIConversations(); view.frame.feedback('这台设备上的对话列表已清除'); }
       if (k === 'clear-examples') { const ex = plugin.local.examples || []; for (const p of ex) await plugin.writer.trash(p); plugin.local.examples = []; plugin.index.setExamples([]); await plugin.saveSettings(); view.frame.feedback(`已清除 ${ex.length} 篇示例笔记（在 Obsidian 的回收站里）`); } }
-    else if (act === 'rebuild') { S.rebuilding = true; refresh(); await plugin.index.rebuild(); setTimeout(() => { S.rebuilding = false; refresh(); }, 1400); return true; }
+    else if (act === 'rebuild') { S.rebuilding = true; refresh(); await plugin.index.rebuild(); window.setTimeout(() => { S.rebuilding = false; refresh(); }, 1400); return true; }
     else if (act === 'check') { if (S.report) S.report = null; else check(); }
     else if (act === 'conflicts') findConflicts();
     else if (act === 'advanced') S.advanced = !S.advanced;
@@ -361,7 +361,7 @@ export function createSettingsPage({view, plugin}: {view: CompassView; plugin: C
   view.registerDomEvent(root, 'dragstart', e => dragstart(e), {capture: true});
   view.registerDomEvent(root, 'dragover', e => { if (dragged && (e.target as Element).closest?.('.settings-view [data-item]')) e.preventDefault(); });
   view.registerDomEvent(root, 'drop', e => { void drop(e); }, {capture: true});
-  // Esc 关上设置：焦点不一定在插件视图里（点完选项后常在别处），所以挂在整个窗口上，只在设置开着时管
-  view.registerDomEvent(document, 'keydown', e => { if (e.key === 'Escape' && root.isConnected && isOpen() && !(e.target as Element).closest?.('input,textarea,.tideline-support-qr')) { e.preventDefault(); close(); } });
+  // Esc 关上设置：焦点不一定在插件视图里（点完选项后常在别处），所以挂在视图所在窗口的整个 document 上，只在设置开着时管
+  view.registerDocEvent('keydown', e => { if (e.key === 'Escape' && root.isConnected && isOpen() && !(e.target as Element).closest?.('input,textarea,.tideline-support-qr')) { e.preventDefault(); close(); } });
   return {open, close, refresh, isOpen, ask(k: string){ S.confirm = k; refresh(); }, toggle(){ if (isOpen()) close(); else open(); }};
 }

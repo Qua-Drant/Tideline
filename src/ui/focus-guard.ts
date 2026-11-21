@@ -7,12 +7,13 @@ import type {CompassView} from '../view.ts';
 const TABBABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"]),[contenteditable="true"],[contenteditable="plaintext-only"]';
 
 // 焦点元素是否真的看得见：有大小，中心点在窗口里，并且那一点上最上层的就是它（或它里面的东西，或包着它的 label）
+// 规范收尾批：窗口与 document 用元素自己所在的（视图在弹出窗口里时是那个窗口；原来量的是主窗口）
 export function seen(el: Element | null | undefined): boolean{
   if (!el?.isConnected || el.closest('[hidden],[inert]')) return false;
   const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false;
-  const x = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1), y = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1);
+  const win = el.win, x = Math.min(Math.max(r.left + r.width / 2, 0), win.innerWidth - 1), y = Math.min(Math.max(r.top + r.height / 2, 0), win.innerHeight - 1);
   if (x < r.left || x > r.right || y < r.top || y > r.bottom) return false;
-  const hit = document.elementFromPoint(x, y);
+  const hit = el.doc.elementFromPoint(x, y);
   return !!hit && (hit === el || el.contains(hit) || (hit.tagName === 'LABEL' && hit.contains(el)));
 }
 
@@ -20,7 +21,8 @@ export function createFocusGuard(view: CompassView): void{
   const root = view.root; let back = false, at = 0, busy = false;
   view.registerDomEvent(root, 'keydown', e => { if (e.key === 'Tab') { back = e.shiftKey; at = performance.now(); } }, {capture: true});
   view.registerDomEvent(root, 'focusin', e => {
-    const el = e.target; if (busy || performance.now() - at > 400 || !(el instanceof Element) || seen(el)) return;
+    // 用 Obsidian 的 instanceOf：弹出窗口里的元素是那个窗口的 Element，instanceof 认不出
+    const el = e.target as Node | null; if (busy || performance.now() - at > 400 || !el?.instanceOf(Element) || seen(el)) return;
     el.scrollIntoView?.({block: 'nearest', inline: 'nearest'}); if (seen(el)) return;
     // 沿 Tab 方向找下一个看得见的（最多看 80 个，找不到就留在原处）
     const all = [...root.querySelectorAll<HTMLElement>(TABBABLE)], i = all.indexOf(el as HTMLElement); if (i < 0) return;

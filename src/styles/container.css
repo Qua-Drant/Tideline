@@ -615,3 +615,10 @@
 .compass-root[data-theme="night"] .tideline-support-qr img[data-qr-theme="paper"],
 .compass-root:not([data-theme="night"]) .tideline-support-qr img[data-qr-theme="night"]{display:none}
 .compass-root .tideline-support-qr form{margin-top:16px}
+/* 规范收尾批：原来由脚本写死在行内的几处样式改成类（计算值与原来相同；脚本只加减类）。
+   tl-fit：“其他任务”与货单量好可见行数后，不再撑满剩下的高度（today.ts 的 fit、paper-tasks.ts 的 fitList；max-height 仍由脚本按量到的值写在行内）；
+   is-placed：复盘周趋势悬停时的数字（paper-review.ts）；tl-restart：起航导览进度条重新开始（onboarding.ts，加上、读一次布局、再拿掉） */
+.compass-root .other-task-items.tl-fit{flex:0 1 auto}
+.compass-root #tasks .cargo-left-pane > .cargo-manifest.tl-fit{flex:0 1 auto}
+.compass-root .trend-value.is-placed{top:-5px}
+.compass-root .tour-bar i.tl-restart{animation:none}

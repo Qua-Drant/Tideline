@@ -1,6 +1,6 @@
 // 潮线：Obsidian 插件入口。注册视图、侧边栏按钮和命令；建索引（启动时一次，之后增量）。
-import {MarkdownView, Plugin} from 'obsidian';
-import type {TFile, WorkspaceLeaf} from 'obsidian';
+import {MarkdownView, Plugin, TFile} from 'obsidian';
+import type {WorkspaceLeaf} from 'obsidian';
 import {CompassView, VIEW_TYPE} from './view.ts';
 import {Index} from './data/index.ts';
 import {obsidianSource, obsidianWriter} from './data/source-obsidian.ts';
@@ -77,10 +77,10 @@ export default class CompassPlugin extends Plugin {
       await this.syncZotero(false); // Zotero Integration 的导入文件夹也当文献读（其他插件此时都已载入）
       await this.index.build(); this.perf.indexMs = +this.index.stats.built.toFixed(1);
       // 日历订阅：先用缓存展开，再看要不要刷新；之后每 10 分钟看一次（到了间隔才联网）
-      this.calendars.load().then(() => this.calendars.tick()); // 先用本机缓存展开，再看哪些到了刷新间隔（0.7.1：打开时不再一律联网）
-      this.registerInterval(window.setInterval(() => this.calendars.tick(), 600000));
+      void this.calendars.load().then(() => this.calendars.tick()); // 先用本机缓存展开，再看哪些到了刷新间隔（0.7.1：打开时不再一律联网）
+      this.registerInterval(window.setInterval(() => { void this.calendars.tick(); }, 600000));
       // 新建笔记：装着示例航程时，第一篇自己的笔记出现后提示一次要不要清除示例（稍等一下再看，装示例时建的那些先记进清单）
-      this.registerEvent(this.app.vault.on('create', f => { if ((f as TFile)?.extension !== 'md') return; setTimeout(() => { for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) (leaf.view as CompassViewLike).noteCreated?.(f.path); }, 1500); }));
+      this.registerEvent(this.app.vault.on('create', f => { if (!(f instanceof TFile) || f.extension !== 'md') return; window.setTimeout(() => { for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) (leaf.view as CompassViewLike).noteCreated?.(f.path); }, 1500); }));
       const ref = this.app.metadataCache.on('resolved', async () => { this.app.metadataCache.offref(ref); await this.index.rebuild(); this.perf.indexMs = +this.index.stats.built.toFixed(1); });
       this.registerEvent(ref);
     });
@@ -110,7 +110,7 @@ export default class CompassPlugin extends Plugin {
   // Zotero 文献（0.7，见 data/zotero.ts）
   zotero(){ return zoteroInfo(this.app, this.local.zotero?.folder || ''); }
   async syncZotero(rebuild = true){ const z = this.zotero(), on = this.local.zotero?.on !== false && (z.enabled || !!this.local.zotero?.folder);
-    if (rebuild) await this.index.setZoteroFolders(on ? z.folders : []); else this.index.setZoteroFolders(on ? z.folders : []); return z; }
+    if (rebuild) await this.index.setZoteroFolders(on ? z.folders : []); else void this.index.setZoteroFolders(on ? z.folders : []); return z; }
   async importZotero(id?: string | null){ const z = await this.syncZotero(); const cmd = id || z.imports[0]?.id; if (!cmd) return false; try { return this.app.commands.executeCommandById(cmd) !== false; } catch { return false; } }
   aiProviderInfo(id: string){ return resolveProvider(id, this.settings.ai.providers); }
   aiApiKey(id = this.settings.ai.provider){ const key = this.settings.ai.providers?.[id]?.apiKeySecret; try { return key ? this.app.secretStorage?.getSecret(key) || '' : ''; } catch { return ''; } }
@@ -127,7 +127,7 @@ export default class CompassPlugin extends Plugin {
   applyDevice(){ for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) (leaf.view as CompassViewLike).applyDevice?.(); }
   async openCompassSettings(){ await this.activate(); (this.app.workspace.getLeavesOfType(VIEW_TYPE) as CompassLeaf[])[0]?.view.openSettings?.(); }
   refreshAI(){ for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) (leaf.view as CompassViewLike).refreshAI?.(); }
-  openSettings(){ this.openCompassSettings(); }
+  openSettings(){ void this.openCompassSettings(); }
   // 时刻：设置里固定了就用固定的（沙盒仓库用它和原型对照），否则用本机时间
   clock(): Clock{
     if (this.settings.clock?.date) return {date: this.settings.clock.date, time: this.settings.clock.time || '12:00'};
@@ -137,6 +137,6 @@ export default class CompassPlugin extends Plugin {
     const {workspace} = this.app, have = workspace.getLeavesOfType(VIEW_TYPE)[0];
     const leaf = have || workspace.getLeaf('tab');
     if (!have) await leaf.setViewState({type: VIEW_TYPE, active: true});
-    workspace.revealLeaf(leaf);
+    void workspace.revealLeaf(leaf);
   }
 }

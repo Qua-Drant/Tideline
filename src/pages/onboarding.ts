@@ -37,7 +37,7 @@ interface Voyage {
   ical?: string; ical_state?: 'loading' | 'ok' | 'bad'; ical_cal?: Calendar | null; ical_up?: Upcoming; ical_err?: string;
 }
 /** 导览：先一路飞过各页（fly），再逐页介绍（intro） */
-interface Tour { phase: 'fly' | 'intro'; i: number; timer: ReturnType<typeof setTimeout> | undefined; hint: HTMLElement | null; card: HTMLElement | null; hover: boolean; end(): void; next(): void; prev(): void }
+interface Tour { phase: 'fly' | 'intro'; i: number; timer: number | undefined; hint: HTMLElement | null; card: HTMLElement | null; hover: boolean; end(): void; next(): void; prev(): void }
 /** 一组按钮的一项：[值, 显示的内容] */
 type Option = [value: string, label: Child];
 
@@ -157,10 +157,10 @@ export function createOnboarding({view, plugin, hand}: {view: CompassView; plugi
  // The ship leaves the waypoint it was at and sails to the new one along the course.
  function sail(){const O=cur(),ship=root.querySelector('.ob-ship'),pts=root.querySelectorAll('.ob-point');if(!ship||!O.from||O.from===O.step||!moving())return;const a=pts[O.from-1]?.getBoundingClientRect(),b=pts[O.step-1]?.getBoundingClientRect();if(!a||!b)return;const dx=a.left-b.left;ship.animate([{transform:`translateX(${dx}px) translateY(0)`},{transform:`translateX(${dx*.5}px) translateY(-3px)`,offset:.5},{transform:'translateX(0) translateY(0)'}],{duration:Math.min(1100,420+Math.abs(dx)*1.6),easing:'cubic-bezier(.4,.1,.3,1)'});}
  // 疑似问题批 F1：翻页后 150ms 内按 Esc 或点“跳过”，state 已是 null，计时器再读 cur() 会抛 TypeError；引导已关闭（或换成了新的一次）就直接返回
- function turn(to: number){const O=cur();O.from=O.step;O.step=to;const el=root.querySelector('.onboarding');el?.classList.add('is-turning');setTimeout(()=>{if(state!==O)return;redraw(true);if(cur().step===1)runChecks();},150);}
+ function turn(to: number){const O=cur();O.from=O.step;O.step=to;const el=root.querySelector('.onboarding');el?.classList.add('is-turning');window.setTimeout(()=>{if(state!==O)return;redraw(true);if(cur().step===1)runChecks();},150);}
  function runChecks(){const O=cur(),files=plugin.index.source.files().map(x=>x.path),has=(p: string)=>files.some(x=>x===p||x.startsWith(p+'/')),days=[...plugin.index.days.keys()].length;
   O.facts={days,empty:!files.some(x=>x.startsWith(FOLDERS.tasks+'/')||x.startsWith(FOLDERS.journal+'/')),old:['Meta/Compass Config.md','08 Tasks','01 Journal'].find(has)||''};
-  const order: CheckState[]=[has(CONFIG)?'found':'missing',has(FOLDERS.journal)?'found':'missing',has(FOLDERS.tasks)?'found':'missing',days?'found':'missing'];order.forEach((v,i)=>setTimeout(()=>{if(!state||state.step!==1)return;state.checks[i]=v;redraw();},220+i*260));}
+  const order: CheckState[]=[has(CONFIG)?'found':'missing',has(FOLDERS.journal)?'found':'missing',has(FOLDERS.tasks)?'found':'missing',days?'found':'missing'];order.forEach((v,i)=>window.setTimeout(()=>{if(!state||state.step!==1)return;state.checks[i]=v;redraw();},220+i*260));}
  function open(){reset();mount();Promise.all(AI_IDS.map(id=>plugin.detectAI?.(true,id,{models:false}))).then(()=>{if(state&&(state.step===3||state.step===4))redraw();}).catch(()=>{});} // 第 4 步要显示本机 Claude Code 的真实状态，打开时就去查（不发起对话）
  function close(){root.querySelector('.onboarding')?.remove();}
  // 开始导览时才写：日常的勾选追加进配置笔记；设备与 AI 的偏好存进这台设备
@@ -179,10 +179,10 @@ export function createOnboarding({view, plugin, hand}: {view: CompassView; plugi
  async function startTour(){await applyAll();close();const fast=!moving()||motion()==='off';
   const hint=within(root.ownerDocument,()=>h('div',{class:'tour-hint',role:'status'},'正在从星空驶向海底 · ',h('kbd',null,'Esc'),' 跳过'));root.appendChild(hint);
   const t: Tour={phase:'fly',i:0,timer:undefined,hint,card:null,hover:false,end:()=>endTour(),next:()=>introStep(t.i+1),prev:()=>introStep(Math.max(0,t.i-1))};tour=t;
-  const fly=(k: number)=>{if(!tour||tour.phase!=='fly')return;if(k>=SCENES.length){tour.hint?.remove();tour.hint=null;introStep(0);return;}navigate(SCENES[k][0]);tour.timer=setTimeout(()=>fly(k+1),fast?450:2500);};
+  const fly=(k: number)=>{if(!tour||tour.phase!=='fly')return;if(k>=SCENES.length){tour.hint?.remove();tour.hint=null;introStep(0);return;}navigate(SCENES[k][0]);tour.timer=window.setTimeout(()=>fly(k+1),fast?450:2500);};
   fly(0);}
  // 逐页介绍：第 n 页（越界就收尾）
- function introStep(n: number){if(!tour)return;clearTimeout(tour.timer);if(n>=SCENES.length){endTour();return;}tour.phase='intro';tour.i=n;const[id,scene,name]=SCENES[n],t=TOUR[id];
+ function introStep(n: number){if(!tour)return;window.clearTimeout(tour.timer);if(n>=SCENES.length){endTour();return;}tour.phase='intro';tour.i=n;const[id,scene,name]=SCENES[n],t=TOUR[id];
   navigate(id);showHelp?.();
   let c=tour.card;if(!c){const card=within(root.ownerDocument,()=>h('section',{class:'tour-card hand-panel',role:'dialog','aria-label':'导览'}));c=card;root.appendChild(card);
    card.addEventListener('pointerenter',()=>{if(tour)tour.hover=true;card.classList.add('is-paused');});card.addEventListener('pointerleave',()=>{if(!tour)return;tour.hover=false;card.classList.remove('is-paused');arm();});tour.card=card;}
@@ -191,7 +191,7 @@ export function createOnboarding({view, plugin, hand}: {view: CompassView; plugi
    h('div',{class:'tour-bar'},h('i',{style:`--tour-ms:${INTRO_MS}ms`})),h('div',{class:'tour-actions'},h('button',{class:'ob-link','data-ob':'tour-end'},'结束导览'),h('span',null,n?h('button',{class:'ob-btn hand-pill','data-ob':'tour-prev'},'上一页'):null,h('button',{class:'ob-btn hand-pill','data-ob':'tour-next'},n===SCENES.length-1?'完成':'下一页')))]);
   c.classList.remove('is-paused');void c.offsetWidth;place(c);onFrames?.();arm();
   // 说明箭头在纸里，过场时随纸滑动；等过场结束（最多 760ms）再按箭头的最终位置选一次
-  const me=tour,card=c;setTimeout(()=>{if(tour===me&&tour.card===card&&card.dataset.page===id)place(card);},760);}
+  const me=tour,card=c;window.setTimeout(()=>{if(tour===me&&tour.card===card&&card.dataset.page===id)place(card);},760);}
  // 导览卡放在四个角里第一个不压住说明箭头（.help-note）、顶部条和罗盘的位置；都压就选压得最少的
  function place(c: HTMLElement){const R=root.getBoundingClientRect(),W=R.width,H=R.height,w=c.offsetWidth,ht=c.offsetHeight,m=32,top=132;
   const spots: [number, number][]=[[W-w-40,H-ht-m],[W-w-40,top],[150,H-ht-m],[Math.round((W-w)/2+60),H-ht-m],[W-w-40,Math.round((H-ht)/2+40)],[W-w-40,top+70]];
@@ -199,17 +199,17 @@ export function createOnboarding({view, plugin, hand}: {view: CompassView; plugi
   const cost=([x,y]: [number, number])=>avoid.reduce((s,r)=>s+Math.max(0,Math.min(x+w,r.right)-Math.max(x,r.left))*Math.max(0,Math.min(y+ht,r.bottom)-Math.max(y,r.top)),0);
   const best=spots.map((s): [[number, number], number]=>[s,cost(s)]).sort((a,b)=>a[1]-b[1])[0][0];Object.assign(c.style,{left:best[0]+'px',top:best[1]+'px',right:'auto',bottom:'auto'});}
  const INTRO_MS=9000;
- function arm(){if(!tour||tour.phase!=='intro')return;clearTimeout(tour.timer);if(tour.card?.matches(':hover')){tour.hover=true;tour.card.classList.add('is-paused');}if(tour.hover)return;const bar=tour.card?.querySelector<HTMLElement>('.tour-bar i');if(bar){bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';}tour.timer=setTimeout(()=>{if(!tour)return;if(tour.card?.matches(':hover')){tour.hover=true;tour.card.classList.add('is-paused');return;}tour.next();},INTRO_MS);}
- function endTour(){if(!tour)return;clearTimeout(tour.timer);tour.hint?.remove();tour.card?.remove();tour=null;navigate('today');finale();local().onboarded=true;void plugin.saveSettings();}
+ function arm(){if(!tour||tour.phase!=='intro')return;window.clearTimeout(tour.timer);if(tour.card?.matches(':hover')){tour.hover=true;tour.card.classList.add('is-paused');}if(tour.hover)return;const bar=tour.card?.querySelector<HTMLElement>('.tour-bar i');if(bar){bar.classList.add('tl-restart');void bar.offsetWidth;bar.classList.remove('tl-restart');}tour.timer=window.setTimeout(()=>{if(!tour)return;if(tour.card?.matches(':hover')){tour.hover=true;tour.card.classList.add('is-paused');return;}tour.next();},INTRO_MS);}
+ function endTour(){if(!tour)return;window.clearTimeout(tour.timer);tour.hint?.remove();tour.card?.remove();tour=null;navigate('today');finale();local().onboarded=true;void plugin.saveSettings();}
  // 收尾：完成卡停留约 6 秒后淡出（鼠标停在卡上会等）
  const FINALE_MS=4000;
  function finale(){root.querySelector('.ob-slip')?.remove();const w=state?.writes||[];
   insertNodes(root.querySelector('#sheet')!,'beforeend',()=>h('div',{class:'ob-slip ob-finale hand-popup',role:'status'},h('h3',{class:'ob-finale-title'},hand.textEl('准备好了，起航',{size:22})),
    w.length?[h('p',null,'这次写入了：'),h('ul',null,w.map(([x,p])=>h('li',null,p?h('button',{'data-ob':`open|${p}`},x):h('span',null,x))))]:h('p',null,'这次什么也没有写入。'),
    h('p',{class:'ob-finale-keys'},'左侧栏在八层之间切换 · 左下舵轮是设置 · 指引页可以请 AI 帮忙')));
-  onFrames?.();const el=root.querySelector<HTMLElement>('.ob-finale')!;let left=FINALE_MS,t0=performance.now(),hold=false,timer: ReturnType<typeof setTimeout> | 0=0;
-  const go=()=>{timer=setTimeout(()=>{if(!el.isConnected)return;el.classList.add('is-leaving');setTimeout(()=>el.remove(),800);},left);};
-  el.addEventListener('pointerenter',()=>{hold=true;clearTimeout(timer);left=Math.max(1200,left-(performance.now()-t0));el.classList.remove('is-leaving');});
+  onFrames?.();const el=root.querySelector<HTMLElement>('.ob-finale')!;let left=FINALE_MS,t0=performance.now(),hold=false,timer=0;
+  const go=()=>{timer=window.setTimeout(()=>{if(!el.isConnected)return;el.classList.add('is-leaving');window.setTimeout(()=>el.remove(),800);},left);};
+  el.addEventListener('pointerenter',()=>{hold=true;window.clearTimeout(timer);left=Math.max(1200,left-(performance.now()-t0));el.classList.remove('is-leaving');});
   el.addEventListener('pointerleave',()=>{if(!hold)return;hold=false;t0=performance.now();go();});go();}
  function click(e: MouseEvent){const b=(e.target as Element).closest<HTMLElement>('[data-ob]');if(!b)return false;const[a,...r]=b.dataset.ob!.split('|');
   if(a==='slip-close'){root.querySelector('.ob-slip')?.remove();return true;}if(a==='open'){plugin.writer.open(r.join('|'));return true;}

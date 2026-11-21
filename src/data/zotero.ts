@@ -5,6 +5,7 @@
 // 摘要、标注在 “Abstract / 摘要”、“Annotations / Highlights / 摘录” 这些标题下；zotero:// 链接用来在 Zotero 里打开 PDF。
 import type {App} from 'obsidian';
 import type {Frontmatter, ZoteroFields, ZoteroInfo} from './types.ts';
+import {looseString} from './frontmatter.ts';
 
 export const ZOTERO_ID = 'obsidian-zotero-desktop-connector';
 
@@ -16,10 +17,10 @@ interface ZoteroIntegrationSettings {
 /** 它的一个导入格式 */
 interface ZoteroExportFormat { name?: string; outputPathTemplate?: string }
 
-const trimSlash = (s: unknown): string => String(s || '').replace(/\\/g, '/').replace(/^\.?\/+|\/+$/g, '');
+const trimSlash = (s: unknown): string => looseString(s || '').replace(/\\/g, '/').replace(/^\.?\/+|\/+$/g, '');
 // 输出路径模板里第一个 {{ 之前的文件夹部分：“文献/Zotero/{{citekey}}.md” → “文献/Zotero”
 export function folderOfTemplate(t: unknown): string{
-  const s = String(t || '').replace(/\\/g, '/'), cut = s.indexOf('{{'), head = cut < 0 ? s : s.slice(0, cut);
+  const s = looseString(t || '').replace(/\\/g, '/'), cut = s.indexOf('{{'), head = cut < 0 ? s : s.slice(0, cut);
   const i = head.lastIndexOf('/'); return i < 0 ? '' : trimSlash(head.slice(0, i));
 }
 
@@ -70,11 +71,11 @@ const names = (v: unknown): string[] => (Array.isArray(v) ? v as unknown[] : v ?
 export function zoteroFields(fm: Frontmatter, text: string, bodyText: string): ZoteroFields{
   const authors = names(fm.authors ?? fm.author ?? fm.creators ?? fm.authorString);
   const yearRaw = fm.year ?? fm.date ?? fm.datePublished ?? fm.issued ?? '';
-  const year = yearRaw instanceof Date ? yearRaw.getFullYear() : Number((String(yearRaw).match(/\b(1[5-9]\d\d|20\d\d)\b/) || [])[1]) || null;
-  const tags = (Array.isArray(fm.tags) ? fm.tags : fm.tags ? String(fm.tags).split(/[,\s]+/) : []).map(t => String(t).replace(/^#/, '')).filter(Boolean);
-  const abstract = String(fm.abstract || fm.abstractNote || '') || strip(headingText(bodyText, ['Abstract', '摘要', 'Summary']));
+  const year = yearRaw instanceof Date ? yearRaw.getFullYear() : Number((looseString(yearRaw).match(/\b(1[5-9]\d\d|20\d\d)\b/) || [])[1]) || null;
+  const tags = (Array.isArray(fm.tags) ? fm.tags : fm.tags ? looseString(fm.tags).split(/[,\s]+/) : []).map(t => String(t).replace(/^#/, '')).filter(Boolean);
+  const abstract = looseString(fm.abstract || fm.abstractNote || '') || strip(headingText(bodyText, ['Abstract', '摘要', 'Summary']));
   const marks = marksOf(headingText(bodyText, ['Annotations', 'Highlights', 'Notes', '摘录', '标注', '批注']));
-  const link = String(fm.zotero || fm['zotero-link'] || fm.zoteroLink || fm.uri || fm.desktopURI || '');
+  const link = looseString(fm.zotero || fm['zotero-link'] || fm.zoteroLink || fm.uri || fm.desktopURI || '');
   const zotero = /^zotero:\/\//.test(link) ? link : (text.match(/zotero:\/\/(?:open-pdf|select)\/[^\s)\]>"'|]+/) || [])[0] || '';
-  return {title: fm.title ? String(fm.title) : '', authors: authors.join('、'), year, type: String(fm.itemType || fm.type || fm.category || ''), keywords: tags, abstract, marks, citekey: String(fm.citekey || fm.citationKey || ''), zotero};
+  return {title: fm.title ? looseString(fm.title) : '', authors: authors.join('、'), year, type: looseString(fm.itemType || fm.type || fm.category || ''), keywords: tags, abstract, marks, citekey: looseString(fm.citekey || fm.citationKey || ''), zotero};
 }

@@ -59,7 +59,7 @@ export function createMdEditor(view: CompassView, {onChange, onBlur}: {onChange:
   // 重画时节点会被摘下又挂回：只有挂着的时候焦点真的离开了，才算“离开编辑器”（这时保存）
   let wanted = false;
   host.addEventListener('focusin', () => { wanted = true; });
-  host.addEventListener('focusout', () => setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement)) { wanted = false; onBlur?.(); } }, 0));
+  host.addEventListener('focusout', () => window.setTimeout(() => { if (host.isConnected && !host.contains(host.doc.activeElement)) { wanted = false; onBlur?.(); } }, 0));
   const core = Base ? obsidianEditor(Base) : plainEditor();
 
   function obsidianEditor(Base: EmbedEditModeClass): EditorCore{
@@ -78,39 +78,40 @@ export function createMdEditor(view: CompassView, {onChange, onBlur}: {onChange:
     owner.editMode = ed;
     ed.editor?.cm?.contentDOM?.setAttribute('aria-label', '任务正文');
     const info = owner as unknown as MarkdownFileInfo; // 未公开的用法：Obsidian 只读 app / file / editor
-    host.addEventListener('focusin', () => { try { app.workspace.activeEditor = info; } catch {} });
+    host.addEventListener('focusin', () => { try { app.workspace.activeEditor = info; } catch { /* 未公开的属性写不进去：不接管当前编辑器，正文照常可编辑 */ } });
     // 离开正文就把“当前编辑器”还给 Obsidian，别让命令落到藏起来的任务正文上
-    host.addEventListener('focusout', () => setTimeout(() => { if (!host.contains(document.activeElement)) try { if (app.workspace.activeEditor === info) app.workspace.activeEditor = null; } catch {} }, 0));
+    host.addEventListener('focusout', () => window.setTimeout(() => { if (!host.contains(host.doc.activeElement)) try { if (app.workspace.activeEditor === info) app.workspace.activeEditor = null; } catch { /* 同上：还不回去也不影响编辑 */ } }, 0));
     const E = () => ed.editor!;
     return {
       get: () => E().getValue(),
       set(text: string){ suppress = true; try { ed.set(text, false); } finally { suppress = false; } },
       focus(){ E().focus(); },
-      hasFocus: () => host.contains(document.activeElement),
+      hasFocus: () => host.contains(host.doc.activeElement),
       line(){ const c = E().getCursor(); return {n: c.line, ch: c.ch, text: E().getLine(c.line)}; },
       replaceLine(n: number, text: string, ch?: number){ E().replaceRange(text, {line: n, ch: 0}, {line: n, ch: E().getLine(n).length}); E().setCursor({line: n, ch: ch ?? text.length}); },
       replace(from: number, to: number, text: string){ const n = E().getCursor().line; E().replaceRange(text, {line: n, ch: from}, {line: n, ch: to}); E().setCursor({line: n, ch: from + text.length}); },
       wrap(before: string, after: string){ const s = E().getSelection(); E().replaceSelection(before + s + after); if (!s) { const c = E().getCursor(); E().setCursor({line: c.line, ch: c.ch - after.length}); } E().focus(); },
       insertBlock(text: string){ const c = E().getCursor(), line = E().getLine(c.line); const pre = line.trim() ? '\n' : ''; E().replaceRange(pre + text + '\n', {line: c.line, ch: line.length}); E().setCursor({line: c.line + (pre ? 2 : 1), ch: 0}); E().focus(); },
-      remeasure(){ try { E().cm?.requestMeasure(); } catch {} },
+      remeasure(){ try { E().cm?.requestMeasure(); } catch { /* 编辑器已经卸载：没有可重新排版的 */ } },
       caret(){ const cm = E().cm, r = cm?.coordsAtPos(cm.state.selection.main.head); return r ? {left: r.left, top: r.top, bottom: r.bottom} : host.getBoundingClientRect(); },
-      destroy(){ try { ed.unload?.(); } catch {} try { ed.destroy?.(); } catch {} },
+      destroy(){ try { ed.unload?.(); } catch { /* 卸载时出错：不影响后面的销毁 */ } try { ed.destroy?.(); } catch { /* 已经销毁过：忽略 */ } },
     };
   }
 
   function plainEditor(): EditorCore{
     const ta = h('textarea', {class: 'task-md-plain', spellcheck: 'false', rows: 3, 'aria-label': '任务正文', placeholder: '写点什么，或打 / 插入标题、列表、检查项……'});
     host.append(ta);
-    const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.max(72, ta.scrollHeight + 2) + 'px'; };
+    // 先撤掉行内高度量内容高（样式里没给这个输入框定高度，等于原来写的 auto），再按内容撑高
+    const grow = () => { ta.style.height = ''; ta.style.height = Math.max(72, ta.scrollHeight + 2) + 'px'; };
     ta.addEventListener('input', () => { grow(); if (!suppress) onChange(ta.value); });
     const pos = () => { const before = ta.value.slice(0, ta.selectionStart), lines = before.split('\n'); return {n: lines.length - 1, ch: lines[lines.length - 1].length}; };
     const offset = (n: number, ch: number) => ta.value.split('\n').slice(0, n).reduce((s, l) => s + l.length + 1, 0) + ch;
     const edit = (start: number, end: number, text: string, caret: number | null) => { ta.setRangeText(text, start, end, 'end'); if (caret != null) ta.setSelectionRange(caret, caret); grow(); onChange(ta.value); };
     return {
       get: () => ta.value,
-      set(text: string){ suppress = true; ta.value = text; suppress = false; requestAnimationFrame(grow); },
+      set(text: string){ suppress = true; ta.value = text; suppress = false; ta.win.requestAnimationFrame(grow); },
       focus(){ ta.focus({preventScroll: true}); },
-      hasFocus: () => document.activeElement === ta,
+      hasFocus: () => ta.doc.activeElement === ta,
       line(){ const p = pos(); return {...p, text: ta.value.split('\n')[p.n]}; },
       replaceLine(n: number, text: string, ch?: number){ const start = offset(n, 0), end = start + ta.value.split('\n')[n].length; edit(start, end, text, start + (ch ?? text.length)); },
       replace(from: number, to: number, text: string){ const p = pos(), start = offset(p.n, from); edit(start, offset(p.n, to), text, start + text.length); },
@@ -128,7 +129,7 @@ export function createMdEditor(view: CompassView, {onChange, onBlur}: {onChange:
     if (currentId !== t.id) { currentId = t.id; wanted = false; api.set(text); }
     else if (!wanted && api.get() !== text) api.set(text);
     if (host.parentElement !== slot) { slot.append(host); api.remeasure?.(); }
-    const lost = !document.activeElement || document.activeElement === document.body;
+    const doc = host.doc, lost = !doc.activeElement || doc.activeElement === doc.body;
     if (wanted && lost) api.focus();
   },
   taskId: () => currentId,

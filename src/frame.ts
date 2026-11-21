@@ -36,7 +36,7 @@ export interface Frame {
   undo?: (() => unknown) | null;
   /** 当前反馈条上另一个按钮要做的事 */
   act?: (() => unknown) | null;
-  feedbackTimer?: ReturnType<typeof setTimeout>;
+  feedbackTimer?: number;
 }
 
 const MONTH = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
@@ -127,8 +127,8 @@ export function buildFrame(root: HTMLElement, hand: HandFont): Frame{
     feedback(message, undo, result, action){
       const el = root.querySelector('#feedback')!;
       setNodes(el, () => feedbackNodes(message, undo, result, action));
-      clearTimeout(this.feedbackTimer); this.undo = undo; this.act = action?.run || null;
-      this.feedbackTimer = setTimeout(() => { el.replaceChildren(); this.undo = null; this.act = null; }, action ? 15000 : 5000);
+      window.clearTimeout(this.feedbackTimer); this.undo = undo; this.act = action?.run || null;
+      this.feedbackTimer = window.setTimeout(() => { el.replaceChildren(); this.undo = null; this.act = null; }, action ? 15000 : 5000);
     },
   };
 }

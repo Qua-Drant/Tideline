@@ -21,7 +21,7 @@ interface GoalUI {
   goal?: string | null; goalPage: number; goalsDone?: boolean; goalFlash?: string | null; goalNew?: boolean; goalNewDraft?: string;
   goalCal?: string | null; goalCalMonth?: string | null; goalPick?: string | null; goalPickQuery?: string; goalPickFocus?: boolean; goalPickProject?: string | null;
 }
-/** 下方各页的核心（pages/lower.js 的 core；还没转 TypeScript）里本模块用到的两样 */
+/** 下方各页的核心（pages/lower.ts 的 core）里本模块用到的两样 */
 interface GoalsCore { readonly data: Model; render(): void }
 /** 手里拿的条目：目标或项目（挑选纸条两种用法） */
 type Holder = {id?: string; goalIds?: string[]};
@@ -129,13 +129,13 @@ export function createGoals({core, view, render}: {core: GoalsCore; view: Compas
     const el = $('#goal-paper'), btn = el && $(`#goals [data-goal="${CSS.escape(ui.goal || '')}"]`), box = $('#planning'); if (!el || !box) return;
     const b = box.getBoundingClientRect(), r = btn ? btn.getBoundingClientRect() : $('#goals')!.getBoundingClientRect(), w = el.offsetWidth;
     el.style.left = Math.max(0, Math.min(r.left - b.left, b.width - w - 8)) + 'px'; el.style.top = (r.bottom - b.top + 8) + 'px';
-    el.style.maxHeight = Math.max(160, Math.min(innerHeight, HOST.bottom) - r.bottom - 22) + 'px'; // 纸不超出视图底边，长了就在纸里滚
+    el.style.maxHeight = Math.max(160, Math.min(el.win.innerHeight, HOST.bottom) - r.bottom - 22) + 'px'; // 纸不超出视图底边，长了就在纸里滚
   }
 
   function renderRow(){
     const host = $('#goals'); if (!host) return;
     // 重画前记下焦点在哪个按钮上（同样的 data-goal-* 属性），画完放回去；找不到就放在详情纸或这一格上，Esc 才到得了插件
-    const was = document.activeElement, inside = !!was && (host.contains(was) || !!$('#goal-paper')?.contains(was));
+    const doc = host.doc, was = doc.activeElement, inside = !!was && (host.contains(was) || !!$('#goal-paper')?.contains(was));
     const key = inside && was.matches('button') ? [...was.attributes].filter(a => a.name.startsWith('data-goal')).map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('') : '';
     setNodes(host, row);
     $('#goal-paper')?.remove();
@@ -143,10 +143,10 @@ export function createGoals({core, view, render}: {core: GoalsCore; view: Compas
     // 找不到时不清掉 d.ui.goal：原生 Obsidian 里新目标的笔记可能比项目笔记晚进索引，中间重建一次模型时它暂时不在
     const g = goalOf(ui.goal);
     if (g) { insertNodes($('#planning')!, 'beforeend', () => paper(g)); place(); view.frames(); }
-    if (inside && !document.activeElement?.isConnected || inside && document.activeElement === document.body) ((key ? $(key) : null) || $('#goal-paper') || $(`#goals [data-goal="${CSS.escape(ui.goal || '')}"]`) || $('#goals .goal-add'))?.focus({preventScroll: true});
+    if (inside && !doc.activeElement?.isConnected || inside && doc.activeElement === doc.body) ((key ? $(key) : null) || $('#goal-paper') || $(`#goals [data-goal="${CSS.escape(ui.goal || '')}"]`) || $('#goals .goal-add'))?.focus({preventScroll: true});
     if (ui.goalNew) { const input = $<HTMLInputElement>('.goal-new input'); input?.focus({preventScroll: true}); if (input && ui.goalNewDraft) input.value = ui.goalNewDraft; }
     if (ui.goalPick) { const q = $<HTMLInputElement>('[data-goal-pick-query]'); if (q && ui.goalPickFocus) { q.focus({preventScroll: true}); q.setSelectionRange(q.value.length, q.value.length); } }
-    if (ui.goalFlash) setTimeout(() => { ui.goalFlash = null; $('#goals .is-flash')?.classList.remove('is-flash'); }, 1600);
+    if (ui.goalFlash) window.setTimeout(() => { ui.goalFlash = null; $('#goals .is-flash')?.classList.remove('is-flash'); }, 1600);
   }
   const rerender = () => { renderRow(); };
 
@@ -167,8 +167,8 @@ export function createGoals({core, view, render}: {core: GoalsCore; view: Compas
     const hold = view.lower!.hold, at = d.goals.indexOf(g), from = linked(g).map(p => p.id);
     d.goals.splice(at, 1); for (const p of d.projects) p.goalIds = (p.goalIds || []).filter(id => id !== g.id);
     if (g.id.includes('/')) hold.add(g.id); markDeleted(d, [g.id]); ui.goal = null; touch(); rerender(); // 登记删除（P2-10）
-    let undone = false; const timer = setTimeout(() => { if (undone) return; hold.delete(g.id); touch(); }, 5300);
-    announce('已删除目标 · ' + g.title, () => { undone = true; clearTimeout(timer); hold.delete(g.id); restoreDeleted(d, [g.id]);
+    let undone = false; const timer = window.setTimeout(() => { if (undone) return; hold.delete(g.id); touch(); }, 5300);
+    announce('已删除目标 · ' + g.title, () => { undone = true; window.clearTimeout(timer); hold.delete(g.id); restoreDeleted(d, [g.id]);
       if (!d.goals.includes(g)) d.goals.splice(Math.min(at, d.goals.length), 0, g);
       for (const p of d.projects) if (from.includes(p.id) && !p.goalIds.includes(g.id)) p.goalIds.push(g.id);
       ui.goal = g.id; touch(); core.render(); });

@@ -3,18 +3,21 @@
 // 三张名单（潮线/配置.md 的 ai 属性）：askRead 读取前先问、noWrite 不能改、autoWrite 允许直接改（只在“自动接受改动”这一档生效）。
 // 三档权限：read 只读、confirm 改前确认（默认）、auto 自动接受改动。不提供“全部放行”。
 import type {PolicyLists} from '../data/types.ts';
+import {looseString} from '../data/frontmatter.ts';
 import type {PermissionMode, PolicyResult, ToolInput} from './types.ts';
 
 const READ_TOOLS = new Set(['Read', 'Glob', 'Grep', 'LS', 'NotebookRead']);
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
 
-const slash = (s: unknown): string => String(s || '').replace(/\\/g, '/');
+const slash = (s: unknown): string => looseString(s || '').replace(/\\/g, '/');
 const folder = (s: unknown): string => { const x = slash(s).replace(/^\.?\//, ''); return x; };
 
+// 配置目录用仓库的 app.vault.configDir（来源的 configDir），不写死：使用者可以改它的名字。
+// 不知道配置目录时（来源没给）就不列它——Obsidian 里来源总会给（source-obsidian.ts）；DEFAULT_LISTS 只是没有配置笔记时的兜底，同样不列
 export function defaultLists(configDir?: string): PolicyLists{
-  const dir = folder(configDir).replace(/\/+$/, '') || '.obsidian';
-  return {askRead: ['日记/', '人物/'], noWrite: [dir + '/', '潮线/配置.md'], autoWrite: []};
+  const dir = folder(configDir).replace(/\/+$/, '');
+  return {askRead: ['日记/', '人物/'], noWrite: dir ? [dir + '/', '潮线/配置.md'] : ['潮线/配置.md'], autoWrite: []};
 }
 export const DEFAULT_LISTS = defaultLists();
 

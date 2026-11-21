@@ -189,8 +189,8 @@ export function createPeople(view: CompassView){
     for (const x of d.projects) x.peopleIds = (x.peopleIds || []).filter(id => id !== p.id);
     if (ui.taskFilter?.kind === 'person' && ui.taskFilter.id === p.id) ui.taskFilter = {kind: 'all'};
     if (p.id.includes('/')) hold.add(p.id); markDeleted(d, [p.id]); commit(); // 登记删除（P2-10）
-    let undone = false; const timer = setTimeout(() => { if (undone) return; hold.delete(p.id); touch(); }, 5300);
-    announce('已删除人物 · ' + p.name, () => { undone = true; clearTimeout(timer); hold.delete(p.id); const dd = data()!; restoreDeleted(dd, [p.id]);
+    let undone = false; const timer = window.setTimeout(() => { if (undone) return; hold.delete(p.id); touch(); }, 5300);
+    announce('已删除人物 · ' + p.name, () => { undone = true; window.clearTimeout(timer); hold.delete(p.id); const dd = data()!; restoreDeleted(dd, [p.id]);
       if (!dd.people.some(x => x.id === p.id)) dd.people.splice(Math.min(at, dd.people.length), 0, p);
       for (const [id, ppl, disc] of tasks) { const t = dd.tasks.find(x => x.id === id); if (t) { t.peopleIds = ppl; t.discuss = disc; } }
       for (const id of projects) { const x = dd.projects.find(y => y.id === id); if (x && !x.peopleIds.includes(p.id)) x.peopleIds.push(p.id); }
@@ -240,10 +240,10 @@ export function createPeople(view: CompassView){
 
   // 重画之后把焦点放回原来那个按钮（同样的 data-person-* 属性）；找不到就放在人物纸上
   function keep(fn: () => void){
-    const was = document.activeElement, inside = was && root.contains(was) && was.closest('#person-paper, .cargo-top, .project-people');
+    const doc = root.doc, was = doc.activeElement, inside = was && root.contains(was) && was.closest('#person-paper, .cargo-top, .project-people');
     const key = inside && was.matches('button') ? [...was.attributes].filter(a => a.name.startsWith('data-person') || a.name === 'data-id').map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('') : '';
     fn();
-    if (inside && (!document.activeElement?.isConnected || document.activeElement === document.body)) ((key ? $(key) : null) || $('#person-paper') || $('.cargo-person-add'))?.focus({preventScroll: true});
+    if (inside && (!doc.activeElement?.isConnected || doc.activeElement === doc.body)) ((key ? $(key) : null) || $('#person-paper') || $('.cargo-person-add'))?.focus({preventScroll: true});
   }
   const focusPick = () => { const q = $<HTMLInputElement>('[data-person-pick-query]'); if (q) { q.focus({preventScroll: true}); q.setSelectionRange(q.value.length, q.value.length); } view.frames(); };
   const focusNew = () => { const i = $<HTMLInputElement>('.person-new input'); if (i) { i.focus({preventScroll: true}); i.setSelectionRange(i.value.length, i.value.length); } view.frames(); };

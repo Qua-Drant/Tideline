@@ -50,13 +50,14 @@ const closed = (t: {status: string}) => t.status === 'done' || t.status === 'can
 const md = (date: string | null | undefined) => date ? `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日` : '';
 const checks = (text: string | null | undefined) => { const all = String(text || '').match(/^\s*[-*]\s+\[[ xX]\]/gm) || []; return {total: all.length, done: all.filter(x => /\[[xX]\]/.test(x)).length}; };
 const typing = (el: EventTarget | Element | null | undefined) => !!(el as Element | null)?.closest?.<HTMLElement>('input,textarea,select,[contenteditable="true"],[contenteditable="plaintext-only"],.cm-editor');
-const REMIND_LABEL = Object.fromEntries(REMINDERS);
 // 透明的拖动图：真正跟着指针的是 .task-drag-ghost
 const BLANK = (() => { if (typeof Image === 'undefined') return null; const i = new Image(); i.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; return i; })();
 const remindOffset = (r: string): number | null =>({'0': 0, '5m': 5, '30m': 30, '1h': 60, '1d': 1440} as Record<string, number>)[r] ?? null;
 
 export function createTaskPlus(view: CompassView){
   const root = view.root;
+  // 视图所在的 document（视图搬进弹出窗口后是那个窗口的；规范收尾批：原来直接用主窗口的 document）
+  const doc = () => root.doc;
   const data = (): Model | null => view.lower?.data || null;
   const uiOf = (d: Model) => d.ui as TUI;
   /** 任务页的根（任务页开着时一定在） */
@@ -157,7 +158,7 @@ export function createTaskPlus(view: CompassView){
     const p = d.projects.find(x => x.id === id); if (!p) return;
     if (hd.dataset.ppTitle! !== id) { hd.dataset.ppTitle = id; hd.setAttribute('contenteditable', 'plaintext-only'); hd.setAttribute('role', 'textbox'); hd.setAttribute('spellcheck', 'false'); hd.setAttribute('aria-label', '项目名称，可直接修改'); hd.setAttribute('enterkeyhint', 'done'); }
     if (projectTitle && projectTitle.id !== id) projectTitle = null;
-    if (projectTitle) { if (hd.textContent !== projectTitle.text) hd.textContent = projectTitle.text; if (projectTitle.focus && (document.activeElement === document.body || !document.activeElement || !root.contains(document.activeElement))) { hd.focus({preventScroll: true}); caretEnd(hd); } }
+    if (projectTitle) { if (hd.textContent !== projectTitle.text) hd.textContent = projectTitle.text; if (projectTitle.focus && (doc().activeElement === doc().body || !doc().activeElement || !root.contains(doc().activeElement))) { hd.focus({preventScroll: true}); caretEnd(hd); } }
     const head = root.querySelector<HTMLElement>('#projects .pd-tasks > header');
     if (head && !head.querySelector<HTMLElement>('.pd-task-new')) insertNodes(head, 'beforeend', () => h('button', {type: 'button', class: 'pd-task-new', 'data-tl': 'project-task-new', 'aria-label': `给 ${p.title} 新建任务`}, iconEl('plus', 15)));
   }
@@ -187,7 +188,7 @@ export function createTaskPlus(view: CompassView){
     const t = get(id); if (!t) return false;
     if (closed(t)) { reopen(t); return true; }
     if (completing.has(id)) return true;
-    if (view.page === 'tasks' && motion()) { completing.add(id); render(); setTimeout(() => { completing.delete(id); finish(get(id)); }, 620); }
+    if (view.page === 'tasks' && motion()) { completing.add(id); render(); window.setTimeout(() => { completing.delete(id); finish(get(id)); }, 620); }
     else finish(t);
     return true;
   }
@@ -226,9 +227,9 @@ export function createTaskPlus(view: CompassView){
     if (d.ui.taskDetail && all.has(d.ui.taskDetail)) d.ui.taskDetail = null;
     commit();
     let undone = false;
-    const timer = setTimeout(() => { if (undone) return; for (const id of all) hold.delete(id); touch(); }, 5300);
+    const timer = window.setTimeout(() => { if (undone) return; for (const id of all) hold.delete(id); touch(); }, 5300);
     view.frame.feedback(`已删除 · ${removed.length > 1 ? removed.length + ' 项' : removed[0][0].title}`, async () => {
-      undone = true; clearTimeout(timer);
+      undone = true; window.clearTimeout(timer);
       const now = data()!; for (const [t, i] of removed) { if (!now.tasks.some(x => x.id === t.id)) now.tasks.splice(Math.min(i, now.tasks.length), 0, t); }
       for (const id of all) hold.delete(id);
       restoreDeleted(now, all);
@@ -417,7 +418,7 @@ export function createTaskPlus(view: CompassView){
     const focusedRow = target.closest?.<HTMLElement>('#tasks .cargo-row')?.dataset.id, sel = selection().length && (!focusedRow || selection().includes(focusedRow)) ? selection() : [];
     // 焦点在哪一行就作用于哪一行；多选时（焦点在选中的行里或不在任何行上）作用于整组
     const current = get(focusedRow || d.ui.taskDetail), targets = sel.length ? sel.map(get).filter(isTask) : current ? [current] : [];
-    const mod = e.ctrlKey || e.metaKey, inPage = !!target.closest?.<HTMLElement>('#tasks') || target === root || target === document.body, inList = !!target.closest?.<HTMLElement>('#tasks .cargo-manifest') || target === root || target === document.body;
+    const mod = e.ctrlKey || e.metaKey, inPage = !!target.closest?.<HTMLElement>('#tasks') || target === root || target === doc().body, inList = !!target.closest?.<HTMLElement>('#tasks .cargo-manifest') || target === root || target === doc().body;
     if (!inPage) return;
     const onOtherButton = target.matches?.('button,a,select') && !inList;
     if (e.key === 'ArrowDown' || (e.key === 'j' && !mod)) { moveFocus(1, {extend: e.shiftKey}); stop(e); }
@@ -438,7 +439,7 @@ export function createTaskPlus(view: CompassView){
     else if (e.key === 'p' && !mod && !e.altKey) { const restore = snapshot(targets, FIELDS); const on = !targets.every(t => t.pinned); targets.forEach(t => { t.pinned = on || undefined; }); commit(); feedback(on ? '已置顶' : '取消置顶', restore); stop(e); }
   }
   const stop = (e: Event) => { e.preventDefault(); e.stopImmediatePropagation(); };
-  const caretEnd = (el: HTMLElement) => { const f = el as HTMLInputElement; if ('value' in el && f.setSelectionRange) { const n = f.value.length; try { f.setSelectionRange(n, n); } catch {} } else if (el.isContentEditable) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const sel = getSelection()!; sel.removeAllRanges(); sel.addRange(r); } };
+  const caretEnd = (el: HTMLElement) => { const f = el as HTMLInputElement; if ('value' in el && f.setSelectionRange) { const n = f.value.length; try { f.setSelectionRange(n, n); } catch { /* 这种输入框不支持选区（如 number）：不挪光标 */ } } else if (el.isContentEditable) { const r = el.doc.createRange(); r.selectNodeContents(el); r.collapse(false); const sel = el.win.getSelection()!; sel.removeAllRanges(); sel.addRange(r); } };
 
   // ———— 货单输入框：识别出的片段写成小纸签，# @ ~ ! 弹补全 ————
   function paintTokens(input: HTMLInputElement){
@@ -542,11 +543,11 @@ export function createTaskPlus(view: CompassView){
   const setBody = (t: ModelTask, text: string) => { t.markdown = text; t.description = text.split('\n\n')[0].replace(/^#+\s*/, ''); };
   // 正文编辑器里的字才是最新的：动别的字段之前先收回来
   function syncBody(){ const ed = editor, t = ed && get(ed.taskId()); if (ed && t && ed.el.isConnected && ed.get() !== (t.markdown ?? t.description ?? '')) setBody(t, ed.get()); }
-  function flushSoon(){ clearTimeout(flushTimer); flushTimer = window.setTimeout(() => { flushTimer = 0; touch(); }, 900); }
+  function flushSoon(){ window.clearTimeout(flushTimer); flushTimer = window.setTimeout(() => { flushTimer = 0; touch(); }, 900); }
   function ensureEditor(): MdEditor{
     editor ??= createMdEditor(view, {
       onChange(text){ const t = get(editor!.taskId()); if (!t) return; setBody(t, text); flushSoon(); checkSlash(); },
-      onBlur(){ closeSlash(); syncBody(); clearTimeout(flushTimer); flushTimer = 0; touch(); },
+      onBlur(){ closeSlash(); syncBody(); window.clearTimeout(flushTimer); flushTimer = 0; touch(); },
     });
     return editor;
   }
@@ -638,12 +639,12 @@ export function createTaskPlus(view: CompassView){
     wrap.append(ghost);
     if (ids.length > 1) insertNodes(wrap, 'beforeend', () => h('span', {class: 'task-drag-count mono'}, ids.length));
     tasksEl().append(wrap);
-    wrap.style.left = '0px'; wrap.style.top = '0px';
+    // 左上角是 0（container.css 的 .task-drag-ghost 里写着 left:0、top:0；原来在行内再写一遍 0px，计算值相同）
     const o = wrap.getBoundingClientRect(); // fixed 的参照可能不是视口（祖先有 transform 时）：量一次原点
     const clamp = (v: number, max: number) => Math.max(8, Math.min(max - 8, v));
     drag.ghost = {el: wrap, ox: o.left, oy: o.top, dx: clamp(e.clientX - r.left, r.width), dy: clamp(e.clientY - r.top, r.height)};
     moveGhost(e.clientX, e.clientY);
-    try { e.dataTransfer!.setDragImage(BLANK!, 0, 0); } catch {}
+    try { e.dataTransfer!.setDragImage(BLANK!, 0, 0); } catch { /* 设不了拖动图：用浏览器自带的，影子照常跟着指针 */ }
     for (const id of ids) root.querySelector<HTMLElement>(`#tasks .cargo-row[data-id="${CSS.escape(id)}"]`)?.classList.add('is-drag-source');
   }
   function moveGhost(x: number, y: number){
@@ -914,8 +915,8 @@ export function createTaskPlus(view: CompassView){
     const items = (box: Element) => [...box.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
     const sub = root.querySelector<HTMLElement>('#tasks .task-ctx-sub'), main = root.querySelector<HTMLElement>('#tasks .task-ctx:not(.task-ctx-sub)');
     if (!main) { menu = null; delete root.dataset.taskMenu; return; } // 原型重画时把菜单一起清掉了
-    const inSub = !!sub?.contains(document.activeElement), box = inSub ? sub! : main, list = items(box).filter(x => !x.hidden), i = list.indexOf(document.activeElement as HTMLElement);
-    const active = document.activeElement as HTMLElement | null, search = active?.matches?.('[data-tm-input]') ? active as HTMLInputElement : null;
+    const inSub = !!sub?.contains(doc().activeElement), box = inSub ? sub! : main, list = items(box).filter(x => !x.hidden), i = list.indexOf(doc().activeElement as HTMLElement);
+    const active = doc().activeElement as HTMLElement | null, search = active?.matches?.('[data-tm-input]') ? active as HTMLInputElement : null;
     if (search && e.key === 'Enter' && !e.isComposing) { stop(e); if (search.dataset.tmInput! === 'tag') addTag(search.value); else list[0]?.click(); return; }
     if (search && e.key === 'ArrowDown') { stop(e); list[0]?.focus({preventScroll: true}); return; }
     if (search && e.key === 'ArrowLeft' && inSub && !search.value) { const name = sub!.dataset.sub!; closeSub(); main.querySelector<HTMLElement>(`[data-tm-sub="${name}"]`)?.focus(); stop(e); return; }
@@ -933,7 +934,7 @@ export function createTaskPlus(view: CompassView){
     const d = data()!;
     if (menu) {
       // 有二级菜单的项：点了展开并把焦点交给二级菜单（指针移上去时已经展开过，点一下不会又收起）
-      const sub = tgt(e).closest<HTMLElement>('[data-tm-sub]'); if (sub) { stop(e); clearTimeout(hoverTimer); if (sub.getAttribute('aria-expanded') !== 'true') openSub(sub, false); (root.querySelector<HTMLElement>('#tasks .task-ctx-sub [data-tm-input]') || root.querySelector<HTMLElement>('#tasks .task-ctx-sub [role^="menuitem"]'))?.focus({preventScroll: true}); return; }
+      const sub = tgt(e).closest<HTMLElement>('[data-tm-sub]'); if (sub) { stop(e); window.clearTimeout(hoverTimer); if (sub.getAttribute('aria-expanded') !== 'true') openSub(sub, false); (root.querySelector<HTMLElement>('#tasks .task-ctx-sub [data-tm-input]') || root.querySelector<HTMLElement>('#tasks .task-ctx-sub [role^="menuitem"]'))?.focus({preventScroll: true}); return; }
       const item = tgt(e).closest<HTMLElement>('[data-tm]'); if (item) { stop(e); menuAct(item); return; }
       if (tgt(e).closest<HTMLElement>('.task-ctx')) { stop(e); return; }
       closeMenu(false);
@@ -969,9 +970,9 @@ export function createTaskPlus(view: CompassView){
   const active = () => { const leaf = (view.app?.workspace as {activeLeaf?: {view: unknown} | null} | undefined)?.activeLeaf; return !leaf || leaf.view === view; };
   // 在这些地方打字时，写回引起的回声重画先等一等（任务详情、项目标题、项目里的新建任务、左侧新建清单）
   const HOLD = '#tasks .task-sheet, [data-pp-title], [data-tl-form="project-task"], [data-tp-form="nav-list"]';
-  view.registerDomEvent(document, 'keydown', e => { if (tgt(e)?.closest?.<HTMLElement>(HOLD) && typing(tgt(e))) lastSheetKey = performance.now(); }, {capture: true});
+  view.registerDocEvent('keydown', e => { if (tgt(e)?.closest?.<HTMLElement>(HOLD) && typing(tgt(e))) lastSheetKey = performance.now(); }, {capture: true});
   view.registerDomEvent(root, 'keydown', e => { if (e.key === 'Escape' && tgt(e).closest?.<HTMLElement>('[data-tp-form="nav-list"]')) { stop(e); closeNavAdd(true); } }, {capture: true});
-  view.registerDomEvent(document, 'keydown', e => { if (!root.isConnected) return; const ae = document.activeElement; if (root.contains(ae) || ((!ae || ae === document.body) && active())) key(e); }, {capture: true});
+  view.registerDocEvent('keydown', e => { if (!root.isConnected) return; const ae = doc().activeElement; if (root.contains(ae) || ((!ae || ae === doc().body) && active())) key(e); }, {capture: true});
   view.registerDomEvent(root, 'input', e => {
     if (tgt(e).closest?.<HTMLElement>('[data-tl-form="project-task"]')) { drafts.set('ptask|' + tgt(e).form!.dataset.id!, tgt(e).value); return; }
     if (!onTasks()) return;
@@ -980,7 +981,7 @@ export function createTaskPlus(view: CompassView){
     if (tgt(e).matches?.('[data-tp-title]')) drafts.set('title|' + tgt(e).dataset.tpTitle!, tgt(e).textContent);
     if (tgt(e).matches?.('[data-tm-input]')) filterMenu(tgt(e));
     if (tgt(e).closest?.<HTMLElement>('[data-tp-form="nav-list"]') && navAdd) { navAdd.draft = tgt(e).value; tgt(e).setCustomValidity(''); }
-    if (tgt(e).matches?.('[data-tp-desc]')) { const el = tgt(e); el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; editChecklist(el.dataset.tpDesc!, () => ({desc: el.value})); flushSoon(); }
+    if (tgt(e).matches?.('[data-tp-desc]')) { const el = tgt(e); el.style.height = ''; el.style.height = el.scrollHeight + 'px'; editChecklist(el.dataset.tpDesc!, () => ({desc: el.value})); flushSoon(); }
     if (tgt(e).matches?.('[data-tp-item]')) { const el = tgt(e); editChecklist(el.dataset.id!, items => { if (items[Number(el.dataset.tpItem!)]) items[Number(el.dataset.tpItem!)].text = el.value; }); flushSoon(); }
     if (tgt(e).closest?.<HTMLElement>('.cargo-date-editor')) {
       const form = tgt(e).closest<HTMLFormElement>('.cargo-date-editor')!;
@@ -1011,12 +1012,12 @@ export function createTaskPlus(view: CompassView){
   let hoverTimer = 0;
   view.registerDomEvent(root, 'mouseover', e => {
     if (!menu || !onTasks()) return;
-    if (tgt(e).closest?.<HTMLElement>('#tasks .task-ctx-sub')) { clearTimeout(hoverTimer); return; }
+    if (tgt(e).closest?.<HTMLElement>('#tasks .task-ctx-sub')) { window.clearTimeout(hoverTimer); return; }
     if (!tgt(e).closest?.<HTMLElement>('#tasks .task-ctx')) return;
     const item = tgt(e).closest<HTMLElement>('[data-tm-sub],[role^="menuitem"],[data-tm-input]'); if (!item) return;
-    clearTimeout(hoverTimer);
+    window.clearTimeout(hoverTimer);
     if (item.dataset.tmSub!) { if (item.getAttribute('aria-expanded') !== 'true') hoverTimer = window.setTimeout(() => { if (menu && item.isConnected) openSub(item, false); }, 140); }
-    else if (root.querySelector<HTMLElement>('#tasks .task-ctx-sub')) hoverTimer = window.setTimeout(() => { if (!menu || !item.isConnected) return; const inSub = !!root.querySelector<HTMLElement>('#tasks .task-ctx-sub')?.contains(document.activeElement); closeSub(); if (inSub) item.focus({preventScroll: true}); }, 300);
+    else if (root.querySelector<HTMLElement>('#tasks .task-ctx-sub')) hoverTimer = window.setTimeout(() => { if (!menu || !item.isConnected) return; const inSub = !!root.querySelector<HTMLElement>('#tasks .task-ctx-sub')?.contains(doc().activeElement); closeSub(); if (inSub) item.focus({preventScroll: true}); }, 300);
   }, {capture: true});
   // 用户滚动（滚轮）时收起菜单；重画恢复滚动位置引起的 scroll 不算
   view.registerDomEvent(root, 'wheel', e => { if (menu && !tgt(e).closest?.<HTMLElement>('.task-ctx')) closeMenu(false); }, {capture: true, passive: true});
@@ -1028,10 +1029,10 @@ export function createTaskPlus(view: CompassView){
   view.registerDomEvent(root, 'focusout', e => {
     const nav = tgt(e).closest?.<HTMLElement>('[data-tp-form="nav-list"]');
     // 离开横线：空着就收起（点别处常会引起整页重画，旧的横线已被换掉，所以按草稿判断，不看节点还在不在）
-    if (nav) setTimeout(() => { if (!navAdd || document.activeElement?.closest?.<HTMLElement>('[data-tp-form="nav-list"]')) return; navAdd.focus = false; if (!(navAdd.draft || '').trim()) closeNavAdd(false); }, 0);
+    if (nav) window.setTimeout(() => { if (!navAdd || doc().activeElement?.closest?.<HTMLElement>('[data-tp-form="nav-list"]')) return; navAdd.focus = false; if (!(navAdd.draft || '').trim()) closeNavAdd(false); }, 0);
     const el = tgt(e).closest?.<HTMLElement>('[data-tp-title]'); if (!el) return;
-    setTimeout(() => { if (!el.isConnected || el === document.activeElement || !onTasks()) return; if (drafts.has('title|' + el.dataset.tpTitle!)) commitTitle(el, false); }, 0);
-    if (tgt(e).matches?.('[data-tp-desc],[data-tp-item]')) setTimeout(() => { if (tgt(e).isConnected && !tgt(e).contains(document.activeElement)) { clearTimeout(flushTimer); flushTimer = 0; touch(); } }, 0);
+    window.setTimeout(() => { if (!el.isConnected || el === doc().activeElement || !onTasks()) return; if (drafts.has('title|' + el.dataset.tpTitle!)) commitTitle(el, false); }, 0);
+    if (tgt(e).matches?.('[data-tp-desc],[data-tp-item]')) window.setTimeout(() => { if (tgt(e).isConnected && !tgt(e).contains(doc().activeElement)) { window.clearTimeout(flushTimer); flushTimer = 0; touch(); } }, 0);
   }, {capture: true});
   view.registerDomEvent(root, 'input', e => { const h = tgt(e).closest?.<HTMLElement>('[data-pp-title]'); if (h) projectTitle = {id: h.dataset.ppTitle!, text: h.textContent, focus: true}; }, {capture: true});
   view.registerDomEvent(root, 'keydown', e => {
@@ -1041,10 +1042,10 @@ export function createTaskPlus(view: CompassView){
     else e.stopPropagation(); // 打字时不触发页面的快捷键
   }, {capture: true});
   view.registerDomEvent(root, 'focusin', e => { if (tgt(e).closest?.<HTMLElement>('[data-pp-title]') && projectTitle) projectTitle.focus = true; }, {capture: true});
-  view.registerDomEvent(root, 'focusout', e => { const h = tgt(e).closest?.<HTMLElement>('[data-pp-title]'); if (!h) return; setTimeout(() => { if (!h.isConnected || h === document.activeElement) return; if (projectTitle) { projectTitle.focus = false; commitProjectTitle(h); } }, 0); }, {capture: true});
+  view.registerDomEvent(root, 'focusout', e => { const h = tgt(e).closest?.<HTMLElement>('[data-pp-title]'); if (!h) return; window.setTimeout(() => { if (!h.isConnected || h === doc().activeElement) return; if (projectTitle) { projectTitle.focus = false; commitProjectTitle(h); } }, 0); }, {capture: true});
   view.registerDomEvent(root, 'click', e => { if (tgt(e).closest?.<HTMLElement>('[data-tl="project-task-new"]')) { e.preventDefault(); e.stopImmediatePropagation(); const input = root.querySelector<HTMLElement>('#projects [data-tl-form="project-task"] input'); input?.scrollIntoView({block: 'nearest'}); input?.focus(); } }, {capture: true});
   // 标题只收纯文字（粘贴进来的换行变空格）
-  view.registerDomEvent(root, 'paste', e => { const el = tgt(e).closest?.<HTMLElement>('[data-tp-title],[data-pp-title]'); if (!el) return; e.preventDefault(); (document as {execCommand(command: string, ui: boolean, value: string): boolean}).execCommand('insertText', false, (e.clipboardData?.getData('text/plain') || '').replace(/\s+/g, ' ')); }, {capture: true});
+  view.registerDomEvent(root, 'paste', e => { const el = tgt(e).closest?.<HTMLElement>('[data-tp-title],[data-pp-title]'); if (!el) return; e.preventDefault(); (el.doc as {execCommand(command: string, ui: boolean, value: string): boolean}).execCommand('insertText', false, (e.clipboardData?.getData('text/plain') || '').replace(/\s+/g, ' ')); }, {capture: true});
   // 点文本样式和斜杠菜单不让正文失去焦点（选中的字还在）
   view.registerDomEvent(root, 'mousedown', e => { if (tgt(e).closest?.<HTMLElement>('[data-tf],[data-ts-slash]')) e.preventDefault(); }, {capture: true});
   view.registerDomEvent(root, 'dragstart', dragStart, {capture: true});
@@ -1052,13 +1053,13 @@ export function createTaskPlus(view: CompassView){
   view.registerDomEvent(root, 'drop', dropOn, {capture: true});
   view.registerDomEvent(root, 'dragend', () => cleanupDrag(), {capture: true});
   // 指针在窗口里任何地方移动都让影子跟上（离开潮线的区域也跟着）
-  view.registerDomEvent(document, 'dragover', e => { if (drag) moveGhost(e.clientX, e.clientY); }, {capture: true});
+  view.registerDocEvent('dragover', e => { if (drag) moveGhost(e.clientX, e.clientY); }, {capture: true});
   // 正文编辑：离开编辑区就保存（Esc 仍是放弃）
   view.registerDomEvent(root, 'focusout', e => {
     const area = tgt(e).closest?.<HTMLElement>('[data-task-edit-body],[data-task-edit-title]'); if (!area || !onTasks()) return;
     const id = area.dataset.taskEditBody || area.dataset.taskEditTitle!;
-    setTimeout(() => {
-      const active = document.activeElement;
+    window.setTimeout(() => {
+      const active = doc().activeElement;
       if (active?.closest?.<HTMLElement>('[data-task-edit-body],[data-task-edit-title],.cargo-edit-tools') || !(data() && uiOf(data()!).taskEdits)?.[id]) return;
       root.querySelector<HTMLElement>(`#tasks [data-p2="task-edit-save"][data-id="${CSS.escape(id)}"]`)?.click();
     }, 0);
@@ -1071,7 +1072,7 @@ export function createTaskPlus(view: CompassView){
     layout(){
       if (view.page === 'projects') projectLayout();
       if (projectWanted && view.page === 'projects') {
-        const input = root.querySelector<HTMLElement>(`[data-tl-form="project-task"][data-id="${CSS.escape(projectWanted)}"] input`), lost = !document.activeElement || document.activeElement === document.body || !root.contains(document.activeElement);
+        const input = root.querySelector<HTMLElement>(`[data-tl-form="project-task"][data-id="${CSS.escape(projectWanted)}"] input`), lost = !doc().activeElement || doc().activeElement === doc().body || !root.contains(doc().activeElement);
         if (input && lost) input.focus({preventScroll: true});
       }
       if (!onTasks()) return;
@@ -1087,16 +1088,17 @@ export function createTaskPlus(view: CompassView){
       enhanceDateEditor();
       batchPanel();
       const navInput = paintNavAdd();
-      if (navInput && navAdd!.focus && (document.activeElement === document.body || !document.activeElement || !root.contains(document.activeElement))) { navInput.focus({preventScroll: true}); caretEnd(navInput); }
+      if (navInput && navAdd!.focus && (doc().activeElement === doc().body || !doc().activeElement || !root.contains(doc().activeElement))) { navInput.focus({preventScroll: true}); caretEnd(navInput); }
       const slot = root.querySelector<HTMLElement>('#tasks .task-md-host'), slotTask = slot && get(slot.dataset.id);
       if (slotTask && editor && editor.taskId() === slotTask.id && (flushTimer || editor.editing())) { const text = editor.get(); if (text !== (slotTask.markdown ?? slotTask.description ?? '')) setBody(slotTask, text); }
       if (slotTask) ensureEditor().attach(slot, slotTask);
-      for (const el of root.querySelectorAll<HTMLElement>('#tasks [data-tp-desc]')) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+      // 先撤掉行内高度量内容高（样式里没给检查项说明定高度，等于原来写的 auto），再按内容撑高
+      for (const el of root.querySelectorAll<HTMLElement>('#tasks [data-tp-desc]')) { el.style.height = ''; el.style.height = el.scrollHeight + 'px'; }
       if (want.child && want.child !== data()!.ui.taskDetail) want.child = null;
       if (want.comment && want.comment !== data()!.ui.taskDetail) want.comment = null;
       if (slash && !root.querySelector<HTMLElement>('#tasks .task-slash')) { if (editor?.hasFocus()) paintSlash(); else slash = null; }
       const composer = root.querySelector<HTMLElement>('#cargo-task-input');
-      const lost = document.activeElement === document.body || !document.activeElement || !root.contains(document.activeElement);
+      const lost = doc().activeElement === doc().body || !doc().activeElement || !root.contains(doc().activeElement);
       if (composerWanted && composer && lost) composer.focus({preventScroll: true});
       const detailInput = inputWanted && !pendingFocus && root.querySelector<HTMLElement>('#tasks ' + inputWanted);
       if (detailInput && lost) { detailInput.focus({preventScroll: true}); caretEnd(detailInput); }
@@ -1112,11 +1114,11 @@ export function createTaskPlus(view: CompassView){
     // 在详情里打字（标题、正文、检查项、评论……）时，写回引起的回声重画先等一等：返回还要等几毫秒，0 表示照常画
     holdRender(){
       if (allowRender || !data()) return 0;
-      const ae = document.activeElement; if (!ae?.closest?.<HTMLElement>(HOLD) || !typing(ae)) return 0;
+      const ae = doc().activeElement; if (!ae?.closest?.<HTMLElement>(HOLD) || !typing(ae)) return 0;
       const left = 1200 - (performance.now() - lastSheetKey);
       return left > 0 ? Math.ceil(left) : 0;
     },
-    leave(){ navAdd = null; clearTimeout(hoverTimer); syncBody(); if (flushTimer) { clearTimeout(flushTimer); flushTimer = 0; touch(); } closeMenu(false); closeSuggest(); closeSlash(); closeRename(false); cleanupDrag(); if (data()) uiOf(data()!).taskSelection = null; },
+    leave(){ navAdd = null; window.clearTimeout(hoverTimer); syncBody(); if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = 0; touch(); } closeMenu(false); closeSuggest(); closeSlash(); closeRename(false); cleanupDrag(); if (data()) uiOf(data()!).taskSelection = null; },
     destroy(){ editor?.destroy(); editor = null; },
   };
 }

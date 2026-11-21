@@ -6,9 +6,9 @@
 /**
  * 笔记的属性块（YAML frontmatter）。由使用者手写、Obsidian 解析，字段和类型都不可信；
  * 读取侧按 JS 的宽松写法逐项转换（String()/Number()/!!），写回侧原样交给 processFrontMatter。
- * 这里保留 any：改成 unknown 就得在每一处读取加收窄，等于改写读取逻辑（本期只做类型迁移）。
+ * 值是 unknown（规范收尾批：原来是 any）：整块取用的地方（习惯、问题、季度复盘的几张表等）按原来的假设写类型断言，不改值、也不校验。
  */
-export type Frontmatter = Record<string, any>;
+export type Frontmatter = Record<string, unknown>;
 
 // —— 来源与写入器 ——
 
@@ -318,7 +318,7 @@ export interface UIState {
   taskFilter: SavedViewFilter; taskDetail: string | null; taskMenu: unknown; taskArchive: boolean; newList: boolean; newView: boolean;
   projectSelected: string | null; projectList: boolean; projectArchive: boolean;
   projectMenu: boolean; newProject: boolean; reviewPeriod: string; reviewDay: number; reviewWeek: number; reviewSource: boolean;
-  wheelMenu: unknown; librarySelected: string | null; libraryFilter: unknown;
+  wheelMenu: unknown; librarySelected: {kind: string; id: string} | null; libraryFilter: unknown;
   libraryMenu: boolean; libraryHover: unknown; libraryKnot: unknown; brainSelected: string | null; brainType: string | null; brainQuery: string; brainList: boolean;
   [key: string]: unknown;
 }

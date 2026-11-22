@@ -1,0 +1,19 @@
+# 换行统一为 LF（仓库里已经全是 LF；加这份文件时核对过，已跟踪文件不会因此变成已修改）
+* text=auto eol=lf
+
+# 锁文件冲突时不做文本合并：取一边后 npm install 重新生成（见 docs/TASKS.md）
+package-lock.json -merge
+
+# 二进制
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.mp4 binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary

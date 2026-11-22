@@ -11,7 +11,9 @@
     "sandbox": "node tools/make-sandbox.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node tools/test.mjs"
+    "test": "node tools/test.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "version": "node tools/version-bump.mjs && git add manifest.json versions.json"
   },
   "devDependencies": {
     "@types/node": "22.20.3",

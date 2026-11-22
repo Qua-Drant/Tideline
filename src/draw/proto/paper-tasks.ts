@@ -5,14 +5,14 @@ import {cargoR18} from './paper-cargo-r18.ts';
 import {cargoR23} from './paper-cargo-r23.ts';
 import {inlineTaskEditor} from './paper-inline-editor-r15.ts';
 import {seedTaskMarkdown} from './paper-task-markdown.ts';
-import {h,svg,setNodes} from '../dom.ts';
+import {h,svg,frag,within} from '../dom.ts';
 import type {Attrs,Child} from '../dom.ts';
 import {iconEl} from '../ink.ts';
 import type {Point} from '../ink.ts';
 import {parts,partNodes} from '../scene.ts';
 import type {Parts,Shape} from '../scene.ts';
 import type {Model,ModelPerson,ModelProject,ModelTask,SavedViewFilter} from '../../data/types.ts';
-// 第 3e 期：转 TypeScript，整页改成节点构建（setNodes 整页换掉，仍是每次重画整页：按条更新属于以后的性能批）。
+// 第 3e 期：转 TypeScript，整页改成节点构建（setNodes 整页换掉；性能批起货单按条更新，见 keepRows）。
 // 结构、属性及先后、class、文字与原来的模板一一对应；用户输入（任务名、清单名、项目名、人名、搜索词、草稿）一律是文本节点或属性值。
 // 货舱的箱子、收件箱那堆、归档箱与导航小图来自 R16 / R18 / R23 的描述版（partNodes 建节点）；phase2.js 的字符串小工具（button、glyph、
 // stateMark、svg）在这里用节点版：按钮见 button，小图用 phase2 api 的描述版画笔（inkV、circleV、dashV，几何与字符串版相同）。
@@ -81,17 +81,66 @@ export function taskPage(a: ProtoApi){
  root.classList.remove('has-person-filter');
  const menuTask=d.ui.taskMenu?get(d.ui.taskMenu as string):undefined,title=filterTitle();
  // 整页换掉（原来写 innerHTML，再把移动纸条插在最后）；之后的摆放、量高、滚动位置、补画与原来一样
- setNodes(root,()=>[h('div',{class:'cargo-top'},HOST.cargoMailbags?HOST.cargoMailbags(d,B):d.people.map(p=>B('task-filter-person',p.id,null,p.name+'的待沟通事项',{class:'cargo-mailbag','data-p2-drop':'person:'+p.id,'aria-pressed':String(f.kind==='person'&&f.id===p.id)}))),
+ // 性能批：先照原样建出整页，能按条更新时（keepRows）只换变了的行，其余整页换掉
+ const fresh=within(root.ownerDocument,()=>frag([h('div',{class:'cargo-top'},HOST.cargoMailbags?HOST.cargoMailbags(d,B):d.people.map(p=>B('task-filter-person',p.id,null,p.name+'的待沟通事项',{class:'cargo-mailbag','data-p2-drop':'person:'+p.id,'aria-pressed':String(f.kind==='person'&&f.id===p.id)}))),
   h('div',{class:'cargo-center'},navigation(),h('div',{class:'cargo-left-pane',role:'region','aria-label':'任务列表',tabindex:'0'},h('div',{class:'cargo-list-tools'},h('form',{class:'line-form cargo-search',role:'search','data-p2-form':'task-search'},h('input',{id:'cargo-query','aria-label':'搜索任务',placeholder:'搜索任务…',value:ui.taskQuery||''})),B('task-compose','',iconEl('plus'),'新建任务',{class:'cargo-compose-toggle','aria-expanded':String(!!ui.cargoComposer),'aria-controls':'cargo-task-input'}),B('task-new-view','',G('bookmark'),'保存当前视图'),ui.taskQuery?B('task-search-clear','','×','清除任务搜索'):null),composer(),h('div',{class:'current-task-filter'},title?B('task-clear','',[G('route'),title],'清除筛选',{draggable:'true','data-p2-drag':'filter'}):null),bookmarks(),list()),
    h('div',{id:'cargo-detail-reading',class:'cargo-detail-pane',role:'region','aria-label':'任务正文',tabindex:'0'},d.ui.taskArchive?h('div',{class:'cargo-archived-list'},B('task-archive','',G('left'),'收回归档箱'),d.lists.filter(l=>l.archived).map(l=>B('task-filter-list',l.id,[l.title,' ',h('span',{class:'mono'},count(l.id))],l.title))):[f.kind==='person'?personDetail():null,selected?detail(selected):null]),
    B('task-read-more','',svgP([a.inkV([[3,5],[10,12],[17,5]],1.4),a.inkV([[3,11],[10,18],[17,11]],1.15)],20,22),'继续阅读任务正文',{class:'cargo-read-next','aria-controls':'cargo-detail-reading'})),
   d.ui.newView?h('form',{class:'cargo-view-form line-form hand-popup',role:'dialog','aria-label':'保存视图','data-p2-form':'new-view'},h('input',{name:'title',placeholder:'视图名称','aria-label':'视图名称',autocomplete:'off',required:true}),h('button',{type:'submit',class:'text-button'},'保存')):null,
   h('div',{class:'cargo-floor'},B('task-filter-inbox','',svgP([art.loose(n)],175,142),`收件箱，${n}`,{class:'cargo-loose','data-p2-drop':'inbox:'}),h('div',{class:'cargo-crates'},d.lists.filter(l=>!l.archived).map(l=>crate(l)),B('task-new-list','',svgP(art.newCrate(),150,126,'xMidYMax meet'),'新建清单',{class:'cargo-crate cargo-new-crate'})),B('task-archive','',svgP([art.archive()],140,140),'展开归档清单',{class:'cargo-archive','aria-expanded':String(!!d.ui.taskArchive)})),
   d.ui.newList?h('form',{class:'cargo-new-list line-form hand-popup',role:'dialog','aria-label':'新建清单','data-p2-form':'new-list'},h('input',{name:'title',placeholder:'清单名称','aria-label':'清单名称',autocomplete:'off',required:true}),h('button',{type:'submit',class:'text-button'},'新建')):null,
-  menuTask?taskMenu(menuTask):null]);
+  menuTask?taskMenu(menuTask):null]));
+ if(!keepRows(root,fresh,scroll))root.replaceChildren(fresh);
  art.place(root);fitList();root.querySelector<HTMLElement>('.cargo-manifest')!.scrollTop=scroll;d.cache.taskScrollReset=false;d.cache.taskScroll=scroll;if(oldDoc&&oldDoc===d.ui.taskDetail)root.querySelector<HTMLElement>('.cargo-detail-pane')!.scrollTop=rightScroll;if(d.cache.taskScrollRequest){root.querySelector('.cargo-row[data-id='+JSON.stringify(d.cache.taskScrollRequest)+']')?.scrollIntoView({block:'nearest'});d.cache.taskScrollRequest=null;}art.paint();updateReading();
  }
 
+ // 性能批：货单按条更新。整页仍照原样建一遍（新节点），然后只把“货单那条链”（.cargo-center > .cargo-left-pane > .cargo-manifest）留在原处，
+ // 货单里与新建结果逐字相同（outerHTML 相同、isEqualNode）的行沿用旧节点，其余（导航、工具条、详情、货舱……）照旧换成新的。
+ // 留下的节点在 DOM 上与新建的完全一样（链上元素被脚本加上的属性——tl-fit、max-height、data-r33-more、--r34-cut 等——先还原成新建时的样子，
+ // 之后 fitList、“还有 N 项”照原样再写一遍）；不改样式、不改顺序以外的任何东西。以下情况整页照旧换掉（返回 false，DOM 一点没动）：
+ //   没有旧货单；链上元素不对应、属性名先后不同；链上元素有焦点、有横向 / 纵向滚动偏移（货单除外，它的滚动位置之后照原样设回）、自己在播动画；
+ //   货单的滚动位置这次要变（原来新货单从 0 设到 scroll，不会多出一次滚动事件）；文档里有选区落在任务页上。
+ // 行（以及分组里的行）沿用的条件另加：焦点不在它里面、它里面没有正在播的动画或过渡（新建的行会从头播，沿用的不会；这类行照旧重建）
+ function keepRows(root: HTMLElement,fresh: DocumentFragment,scroll: number): boolean{
+  const doc=root.ownerDocument,active=doc.activeElement,sel=doc.getSelection();
+  if(sel&&sel.rangeCount&&sel.containsNode(root,true))return false;
+  const chain: [HTMLElement,HTMLElement][]=[];let op: ParentNode=root,np: ParentNode=fresh;
+  for(const c of ['cargo-center','cargo-left-pane','cargo-manifest']){const o=[...op.children].filter(x=>x.classList.contains(c)),n=[...np.children].filter(x=>x.classList.contains(c));if(o.length!==1||n.length!==1||o[0].tagName!==n[0].tagName)return false;chain.push([o[0] as HTMLElement,n[0] as HTMLElement]);op=o[0];np=n[0];}
+  const list=chain[2][0];
+  for(const [o] of chain)if(o===active||o.scrollLeft||(o!==list&&o.scrollTop)||o.getAnimations().length)return false;
+  if(list.scrollTop!==scroll)return false;
+  // 属性：去掉旧元素上新建时没有的，剩下的名字与先后必须和新建的一样（值不同的之后改成新建的值）
+  for(const [o,n] of chain){const want=n.getAttributeNames(),have=o.getAttributeNames().filter(k=>n.hasAttribute(k));if(want.length!==have.length||want.some((k,i)=>k!==have[i]))return false;}
+  // 不能沿用的：焦点所在与正在动的元素，连同它们的祖先
+  const busy=new Set<Element>(),mark=(e: Element|null)=>{for(;e&&e!==list;e=e.parentElement)busy.add(e);};
+  if(active&&list.contains(active))mark(active);
+  for(const a of list.getAnimations({subtree:true})){const t=(a.effect as KeyframeEffect|null)?.target;if(t)mark(t);}
+  // 先定好每一层要的子节点（只读），再动 DOM
+  const plans: [Element,Node[]][]=[];
+  const plan=(o: Element,n: Element)=>{const pool=new Map<string,Element[]>();for(const x of o.children)if(!busy.has(x)){const k=x.outerHTML,l=pool.get(k);if(l)l.push(x);else pool.set(k,[x]);}
+   const groups=new Map<string,Element>();for(const x of o.children)if(x.classList.contains('cargo-group-wrap')&&x.firstElementChild?.getAttribute('data-p2')==='task-group'){const id=x.firstElementChild.getAttribute('data-id')!;if(!groups.has(id))groups.set(id,x);}
+   const want: Node[]=[],used=new Set<Element>();
+   for(const c of [...n.childNodes]){if(c.nodeType!==1){want.push(c);continue;}const x=c as Element;
+    const hit=pool.get(x.outerHTML)?.find(y=>!used.has(y)&&y.isEqualNode(x));if(hit){used.add(hit);want.push(hit);continue;}
+    // 分组：同一组、外层属性相同时留下外层，组里的行再逐条比
+    const g=x.classList.contains('cargo-group-wrap')&&x.firstElementChild?.getAttribute('data-p2')==='task-group'?groups.get(x.firstElementChild.getAttribute('data-id')!):undefined;
+    if(g&&!used.has(g)&&g!==active&&!g.getAnimations().length&&sameAttrs(g,x)){used.add(g);plan(g,x);want.push(g);continue;}
+    want.push(x);}
+   plans.push([o,want]);};
+  plan(list,chain[2][1]);
+  // 动 DOM：链上元素的属性还原成新建的；滚动位置先回 0（新建的货单量版式时是 0，fitList 之后照原样设回）
+  for(const [o,n] of chain){for(const k of o.getAttributeNames())if(!n.hasAttribute(k))o.removeAttribute(k);for(const k of n.getAttributeNames()){const v=n.getAttribute(k)!;if(o.getAttribute(k)!==v)o.setAttribute(k,v);}}
+  if(list.scrollTop)list.scrollTop=0;
+  place(root,[...fresh.childNodes].map(x=>x===chain[0][1]?chain[0][0]:x));
+  place(chain[0][0],[...chain[0][1].childNodes].map(x=>x===chain[1][1]?chain[1][0]:x));
+  place(chain[1][0],[...chain[1][1].childNodes].map(x=>x===chain[2][1]?chain[2][0]:x));
+  for(const [el,want] of plans)place(el,want);
+  return true;
+ }
+ // 属性名、先后、值都相同
+ function sameAttrs(a: Element,b: Element){const x=a.getAttributeNames(),y=b.getAttributeNames();return x.length===y.length&&x.every((k,i)=>k===y[i]&&a.getAttribute(k)===b.getAttribute(k));}
+ // 让 el 的子节点变成 want：先拿掉不要的，再按顺序补位（原位留下的节点不拿下来再放回去）
+ function place(el: Element,want: Node[]){const keep=new Set(want);for(const c of [...el.childNodes])if(!keep.has(c))c.remove();let ref=el.firstChild;for(const n of want){if(n===ref){ref=ref.nextSibling;continue;}el.insertBefore(n,ref);}}
  function fitList(){const pane=$('#tasks .cargo-left-pane')!,list=$('#tasks .cargo-manifest');if(!list)return;const top=list.getBoundingClientRect().top,limit=pane.getBoundingClientRect().bottom-top;let fit=0;for(const row of list.children){const end=row.getBoundingClientRect().bottom-top;if(end<=limit+.2)fit=end;else break;}if(fit>0){list.style.setProperty('max-height',fit+'px','important');list.classList.add('tl-fit');}}
  function updateReading(){const pane=$('#tasks .cargo-detail-pane'),button=$('#tasks .cargo-read-next');if(!pane||!button)return;const hidden=pane.scrollHeight-pane.clientHeight-pane.scrollTop<5;button.hidden=hidden;if(hidden&&button.doc.activeElement===button)pane.focus({preventScroll:true});}
  HOST.addEventListener('keydown',e=>{const t=e.target as HTMLElement;if(t.id==='cargo-task-input'&&(e as KeyboardEvent).key==='Escape'){e.preventDefault();e.stopImmediatePropagation();ui.cargoComposer=false;a.update();$('#tasks .cargo-compose-toggle')?.focus();}},true);

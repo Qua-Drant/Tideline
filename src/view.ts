@@ -146,6 +146,8 @@ export class CompassView extends ItemView {
   declare sceneNodes?: Record<string, SceneNodes> | null;
   /** 设置 / 首次起航开着（它们画完框后要重新找滚动区） */
   declare moreModal: boolean;
+  /** frames() 末尾重放“还有 N 项”的次数（性能批：下方各页紧接着不必再放一遍） */
+  declare moreRuns?: number;
   /** 升级纸条关掉后焦点回到哪里 */
   declare upgradeReturn: (Element & {focus?(options?: FocusOptions): void}) | null;
 
@@ -370,9 +372,11 @@ export class CompassView extends ItemView {
     const reused = this.lower.render(this.page, this.navigating, width, height);
     const t1 = performance.now();
     // 和原型一样：先画风景与手绘框，版式定下来之后再放“还有 N 项”
+    // 性能批：手绘框（frames）的最后一步若刚放过一遍（页里有纸条、设置开着时），这里不再重复——两次之间没有改动，第二遍量到的、写的都与第一遍相同
+    const runs = this.moreRuns;
     this.drawScenery(reused);
     const t2 = performance.now();
-    this.more.update();
+    if (this.moreRuns === runs) this.more.update();
     const t3 = performance.now();
     this.perf.renders++; this.perf.last = {dom: +(t1 - t0).toFixed(2), scenery: +(t2 - t1).toFixed(2), layout: +(t3 - t2).toFixed(2), total: +(t3 - t0).toFixed(2), page: this.page};
   }
@@ -469,7 +473,7 @@ export class CompassView extends ItemView {
       setNodes(svg, () => btn ? buttonFrameEl(w, h) : el.classList.contains('hand-pill') ? pillFrameEl(w, h) : popupFrameEl(w, h));
     }
     // 设置、首次起航和纸条不经过页面渲染：它们画完框后重新找滚动区，好画手绘小三角
-    if (this.root.querySelector('.settings-view, .onboarding, .hand-popup, #search:not([hidden])') || this.moreModal) { this.moreModal = !!this.root.querySelector('.settings-view, .onboarding'); this.more?.update(); }
+    if (this.root.querySelector('.settings-view, .onboarding, .hand-popup, #search:not([hidden])') || this.moreModal) { this.moreModal = !!this.root.querySelector('.settings-view, .onboarding'); this.moreRuns = (this.moreRuns || 0) + 1; this.more?.update(); }
   }
 
   // 今日页完成 / 重新打开任务（P1-2）：和任务页走同一个 data/complete.js、同一套写回（lower.ts 的模型 + persist.ts），

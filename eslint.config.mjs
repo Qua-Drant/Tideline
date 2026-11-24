@@ -1,11 +1,12 @@
 // ESLint：按 eslint-plugin-obsidianmd 文档“Plugins written in JavaScript”的基础写法。
 // 源码都是 TypeScript，带类型的检查用 tsconfig.json；只剩两份素材数据还是 .js（src/draw/proto/assets.js 手工维护、asset-shapes.js 由 tools/make-asset-shapes.mjs 生成，
 // 生成脚本用 Node 直接读 assets.js），它们只跑推荐规则（不加 parserOptions）。
+// tools/ 与 test/ 是在 Node 里跑的构建脚本和纯 Node 检查，不进插件包，不适用 Obsidian 插件规则，同样忽略。
 import {defineConfig, globalIgnores} from 'eslint/config';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 
 export default defineConfig([
-  globalIgnores(['node_modules', 'dist', 'dev', 'sandbox-vault', 'tools', 'docs', 'src/draw/proto/vendor']),
+  globalIgnores(['node_modules', 'dist', 'dev', 'sandbox-vault', 'tools', 'test', 'docs', 'src/draw/proto/vendor']),
   ...obsidianmd.configs.recommended,
   {
     files: ['**/*.ts'],

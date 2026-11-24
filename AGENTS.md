@@ -17,7 +17,9 @@
 | `src/draw/` | 绘图：`ink.ts`（笔压线）、`dom.ts`（建节点）、`scene.ts`（风景描述） | |
 | `src/draw/proto/` | 从纸本原型移植的页面模块。文件名里的 `rNN` 是原型的设计轮次，不是版本号 | `vendor/` 不准手改；`asset-shapes.js` 由 `node tools/make-asset-shapes.mjs` 从 `assets.js` 生成，构建前会 `--check` 校验 |
 | `src/styles/` | 六个 CSS，按 `tools/build.mjs` 的 `STYLE_FILES` 顺序拼成 `dist/styles.css` | 见下方 CSS 规则 |
-| `tools/` | 构建、沙盒、生成脚本、`version-bump.mjs` | |
+| `tools/` | 构建、沙盒、生成脚本、`version-bump.mjs`、发版核对 `check-release-tag.mjs` | |
+| `test/` | `npm test` 的 8 个纯 Node 检查（`run.mjs` 依次跑）、内存仓库 `mem-vault.mjs`、夹具 `fixtures/` | 直接 import `src/` 的 `.ts`（Node 类型剥离）；夹具只放虚构数据；路径样例用虚构盘符 |
+| `.github/workflows/` | `ci.yml`（PR 与 main）、`release.yml`（推版本 tag 后建草稿 release） | |
 | `docs/` | 文档、`笔记格式.md`、宣传素材 | |
 | `dist/` `sandbox-vault/` `node_modules/` `dev/` | 构建产物 / 生成的沙盒仓库 / 依赖 / 私有测试工具 | 都被 git 忽略：不手改、不提交 |
 
@@ -28,14 +30,18 @@ npm ci                  # 新 worktree 先装依赖（不要用 npm install，�
 npm run watch           # 改动后自动重建 dist/
 npm run typecheck       # tsc --noEmit
 npm run lint            # eslint .，必须 0 错误 0 警告
-npm test                # 跑 dev/tools/test.mjs（8 个纯 Node 检查）
+npm test                # 跑 test/run.mjs（8 个纯 Node 检查）
 npm run build           # 先校验 asset-shapes.js，再构建 dist/main.js、styles.css、manifest.json
 npm run check           # typecheck + lint + test + build，提交前必须全过
 npm run sandbox         # 生成 sandbox-vault/（虚构数据）
 node tools/build.mjs --deploy <沙盒仓库路径>   # 构建并装进该仓库 .obsidian/plugins/tideline/；路径不含 sandbox 会拒绝
 ```
 
-**注意**：测试工具在 git 忽略的 `dev/` 里，公开仓库和新 worktree 都没有。没有 `dev/` 时 `npm test` 只打印“没有 dev/tools/test.mjs……跳过”并退出 0（`tools/test.mjs`）。**这不等于测试通过**，报告里必须写明“测试未运行”。
+`npm test` 跑 `test/` 的 8 项（escapes、frontmatter、persist、complete、model、ical、ai-policy、ai-markdown），新 worktree 里 `npm ci` 后就能跑，不会跳过；浏览器与真实 Obsidian 检查仍在私有 `dev/`。
+
+**CI**：PR 和推到 main 都跑 `.github/workflows/ci.yml`（`npm ci` → typecheck → lint → test → build → `git diff --exit-code`）。CI 红了不合并。
+
+**发布**：用户 `npm version x.y.z` → `git push --follow-tags` → Actions（`release.yml`）跑 `npm run check`、核对 tag 与 `manifest.json`/`package.json`/`versions.json`，建草稿 release（附 `main.js`、`manifest.json`、`styles.css`）→ 用户在 GitHub 写说明后发布。同名 release 已存在时失败，不覆盖。
 
 ## Obsidian 红线
 
@@ -59,10 +65,10 @@ node tools/build.mjs --deploy <沙盒仓库路径>   # 构建并装进该仓库 
 ## 多 Agent 纪律
 
 1. 开工先 `git status`、`git log -5 --oneline`，读 `docs/TASKS.md`，认领一张任务卡（先改 TASKS.md 并单独提交，见 TASKS.md 的流程）。
-2. 一个任务一个分支 `agent/<工具>/<任务>`、一个 worktree。新 worktree 没有 `node_modules/` 和 `dev/`：先 `npm ci`；要用私有测试工具得回到主目录。
+2. 一个任务一个分支 `agent/<工具>/<任务>`、一个 worktree。新 worktree 没有 `node_modules/` 和 `dev/`：先 `npm ci`（之后 `npm test` 可用）；要用私有浏览器/Obsidian 检查得回到主目录。
 3. 只改任务卡“范围文件”里的文件。不顺手重构、不改无关注释、不格式化无关代码、不重命名 `rNN` 文件。
 4. 高频冲突文件不碰，除非任务就是它：`package.json`、`package-lock.json`、`manifest.json`、`versions.json`，以及 `src/styles/prototype.css` 的大段改动。依赖升级单独成任务。
-5. 提交前 `npm run check` 全过，并写明 `npm test` 是真的跑了还是被跳过。
+5. 提交前 `npm run check` 全过；动到高风险区时另写明跑了哪些私有检查。
 6. 声称“行为不变”的改动，要在提交说明或任务卡里写清怎么证明不变（例如：`dist/main.js` 逐字节相同、哪些检查前后结果一致）。
 7. 提交信息用英文、祈使句（`Fix …`、`Add …`），正文用 `-` 列要点；不加 `Co-Authored-By` 等署名行。
 8. 不提交 `dist/`、`dev/`、`sandbox-vault/`、`node_modules/`；会进公开仓库的文件里不写本机路径、用户名、邮箱。

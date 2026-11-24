@@ -3,6 +3,8 @@
 - 版本 0.9.7（`package.json`、`manifest.json` 一致；`versions.json` 登记 0.9.6、0.9.7 → minAppVersion 1.15.0）；git 标签 `v0.9.6`、`v0.9.7`。
 - 快照基于 HEAD `e3fb7a5`（2026-11-22）。之后的变化看 `git log`，本文件随大批次更新。
 - 只在 Windows 的桌面 Obsidian 上验证过；macOS / Linux 未实测（README）。
+- 测试与 CI（2026-11-24，T-003）：8 个纯 Node 检查已公开在 `test/`，`npm test` 在任何 clone 里 `npm ci` 后都会真跑（`test/run.mjs`）；`.github/workflows/ci.yml` 在 PR 和 main 上跑 typecheck、lint、test、build 并确认构建不改跟踪文件（Ubuntu + Node 24）。浏览器与真实 Obsidian 检查仍在私有 `dev/`。
+- 发布：用户 `npm version x.y.z` → `git push --follow-tags` → `.github/workflows/release.yml` 跑 `npm run check`、用 `tools/check-release-tag.mjs` 核对 tag（`v` 前缀可有可无）与 `manifest.json`、`package.json`、`versions.json`，建**草稿** release 附三件产物 → 用户写说明后在 GitHub 上发布。同名 release 已存在时失败、不覆盖。
 
 ## 稳定功能（按 README 与代码核实）
 
@@ -21,7 +23,7 @@
 | `05be706` | lint 与弹出窗口 | eslint 129 错 / 185 警 → 0 / 0；剩余 `.js` 转 `.ts`；键盘、拖动、动画帧、过场跟随视图所在窗口；固定行内样式与注入的 `<style>` 改成 CSS 类 |
 | `e3fb7a5` | 性能 | 500 条任务（Obsidian 实测）：打开 517→370ms、勾选 412→277、点开一行 437→293、回到全部 431→319；勾选/点开/改名/拖动快 26–59%；滚动帧间隔 86.5→27.4ms（−68%） |
 
-各批都以“画面与行为不变”为验收：构建前后对比、私有测试工具的逐步 DOM/计算样式比较、真实 Obsidian 走查。这些工具在私有 `dev/`，公开仓库里没有。
+各批都以“画面与行为不变”为验收：构建前后对比、私有测试工具的逐步 DOM/计算样式比较、真实 Obsidian 走查。这些工具在私有 `dev/`，公开仓库里没有（公开的只有 `test/` 的 8 个纯 Node 检查）。
 
 ## 已知问题
 
@@ -33,14 +35,14 @@
 3. **Obsidian 里切到小清单慢约 11%**（185→205ms）：`keepRows` 的 `outerHTML` 比较约 12ms + 逐个摘行约 5ms，沿用的行少时抵不掉。测试工具里同一场景反而快 9–37%。已知未改（改了要重跑整套等价检查）。
 4. **季度复盘页可能不随季度笔记更新**：未核实。相关代码：`data/index.ts` 的 `quarter` 分支、`data/model.ts`、`pages/lower.ts` 的页签名（含 `index.version`）。
 5. **同等排序的项目启动后先后不定**：私有测试记录里观察到真实 Obsidian 每次读索引的先后不同。推断原因：`Index.loadAll` 用 `Promise.all` 并发 `load()`，需要 `await read` 的笔记写进 Map 的先后取决于读完的先后，排序键相同时保持插入顺序（未逐一核实各页的排序函数）。
-6. **测试不在公开仓库**：`npm test` 没有 `dev/` 时跳过并退出 0。待用户决定是否把纯 Node 检查（`dev/tools/test.mjs` 的 8 项：escapes、frontmatter、persist、complete、model、ical、ai-policy、ai-markdown）移到公开的 `test/`。
+6. ~~测试不在公开仓库~~：已解决（T-003）。8 项纯 Node 检查在 `test/`，CI 每次都跑。
 7. 文档小错：`docs/笔记格式.md` 仍写 `src/data/index.js`（现为 `index.ts`）。README 说 AI 助手“默认关闭”，而 `src/settings.ts` 的 `DEFAULT_AI.enabled` 是 `true`（各家 `providers[id].on` 只有 claude 默认开）；实际是否默认可用取决于首次起航，未核实。
 
 ## 技术债
 
 - 超大文件：`src/ui/task-plus.ts`（108 KB，1124 行）、`src/styles/prototype.css`（229 KB，2387 行）、`src/draw/proto/paper-review.ts`（52 KB，原型式长单行）、`src/view.ts`（40 KB）、`src/ai/controller.ts`（46 KB）。
 - `rNN` 命名来自原型轮次，与功能无关（`paper-cargo-r16/r18/r23` 同时在用）。
-- 没有公开测试、没有 CI（仓库无 `.github/`）。
+- 公开测试只覆盖纯 Node 的数据层与 AI 逻辑；界面、过场、弹出窗口的检查仍只在私有 `dev/`，CI 不跑。
 - 原型模块大量依赖全局 `HOST` 单例：同一时刻只能有一个潮线视图（`host.ts` 文件头）。
 
 ## 高风险区

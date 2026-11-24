@@ -116,7 +116,7 @@ npm run sandbox
 node tools/build.mjs --deploy sandbox-vault
 ```
 
-上面的命令生成带虚构数据的 `sandbox-vault/`，构建到 `dist/`，并安装到沙盒。用 Obsidian 将 `sandbox-vault/` 作为仓库打开，启用 Tideline，运行「打开潮线」。只需要生成发行文件时，运行 `npm run build`。
+上面的命令生成带虚构数据的 `sandbox-vault/`，构建到 `dist/`，并安装到沙盒。用 Obsidian 将 `sandbox-vault/` 作为仓库打开，启用 Tideline，运行「打开潮线」。只需要生成发行文件时，运行 `npm run build`。`npm test` 跑 `test/` 里的检查（直接加载 TypeScript 源码，需要 Node.js 22.18 以上）；`npm run check` 依次跑类型检查、lint、测试和构建。
 
 ## 🙏 致谢与许可
 

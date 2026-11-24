@@ -25,7 +25,8 @@
 - 认领时先在 main 上改本文件的任务卡（状态、负责 Agent、分支、worktree），**单独提交**，再开分支干活。
 - 高频冲突文件（`package.json`、`package-lock.json`、`manifest.json`、`versions.json`、`prototype.css` 大段）只由集成者改；依赖升级单独成任务。
 - `package-lock.json` 冲突时不手动合并：取一边（通常是 main 的），再 `npm install` 重新生成并提交。
-- 新 worktree 没有 `node_modules/` 和 `dev/`：先 `npm ci`；`npm test` 会跳过（不等于通过），要跑私有测试得回到主目录。
+- 新 worktree 没有 `node_modules/` 和 `dev/`：先 `npm ci`，之后 `npm test`（`test/` 的 8 项）照常跑；要跑私有浏览器/Obsidian 检查得回到主目录。
+- PR 和 main 都跑 CI（`.github/workflows/ci.yml`），CI 红了不合并。
 - 合并前 rebase 到最新 main，再跑一次 `npm run check`。
 - 提交和推送由用户手动；Agent 只准备好改动和提交说明。
 
@@ -69,8 +70,8 @@
 - 负责 Agent：
 - 分支：
 - worktree：
-- 范围文件：新增 `test/`；`tools/test.mjs`
-- 禁碰文件：`src/`；高频冲突文件（如需加 devDependency 另开任务）
-- 验收命令：没有 `dev/` 的新 worktree 里 `npm ci && npm test` 真的跑检查并通过
-- 状态：待认领（先等用户决定，见 HANDOFF 已知问题 6）
-- 备注：候选是 `dev/tools/test.mjs` 的 8 项纯 Node 检查；先确认它们不依赖 `dev/` 里的私有夹具与 `dev/node_modules`。
+- 范围文件：新增 `test/`、`.github/workflows/`、`tools/check-release-tag.mjs`；`tools/test.mjs`、`eslint.config.mjs`、`package.json`、`package-lock.json`（用户决定由本任务加 devDependency `yaml`）；文档同步
+- 禁碰文件：`src/`
+- 验收命令：没有 `dev/`、没有 `node_modules/` 的干净副本里 `npm ci && npm run check` 全过；`dist/main.js`、`styles.css` 与改前逐字节相同
+- 状态：已完成（2026-11-24，待用户提交）
+- 备注：8 项检查（escapes、frontmatter、persist、complete、model、ical、ai-policy、ai-markdown）与 `mem-vault.mjs` 移到 `test/`，入口 `test/run.mjs`；`tools/test.mjs` 不再“没有 dev/ 就跳过”。`test.ics` 夹具放 `test/fixtures/`（虚构课程日历）。`check-escapes` 现在扫 `src/`、`tools/`、`test/`（原来只扫 `src/`）。`check-ai-policy` 的路径样例换成虚构盘符 `X:`/`Y:`，判定不变。`check-ical` 期望值按 Asia/Shanghai，脚本在 TZ 未设时自己设（CI 的 UTC 机器上同样通过）。`yaml@2.6.1` 进根 devDependencies。新增 CI（`ci.yml`）与草稿发布（`release.yml` + `tools/check-release-tag.mjs`）。

@@ -1,0 +1,42 @@
+name: Release
+
+# 推送版本 tag（v0.9.8 或 0.9.8）后：全量检查、核对版本号，再建一个草稿 release（附 main.js、manifest.json、styles.css）。
+# 草稿由维护者在 GitHub 上写好说明后手动发布；同名 release 已存在时失败，不覆盖。
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - '[0-9]*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Check tag matches manifest.json, package.json and versions.json
+        run: node tools/check-release-tag.mjs "$TAG"
+      - name: Refuse to overwrite an existing release
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Delete it on GitHub first if you really want to rebuild it; this workflow never overwrites."
+            exit 1
+          fi
+      - name: Create draft release
+        run: gh release create "$TAG" dist/main.js dist/manifest.json dist/styles.css --draft --title "$TAG" --generate-notes

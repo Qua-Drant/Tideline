@@ -23,6 +23,7 @@
     "obsidian": "1.14.4",
     "perfect-freehand": "1.2.2",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.2"
+    "typescript-eslint": "8.72.2",
+    "yaml": "2.6.1"
   }
 }

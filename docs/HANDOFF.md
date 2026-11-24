@@ -27,7 +27,7 @@
 
 ## 已知问题
 
-1. **“?” 说明模块的生命周期挂在模块载入而不是视图上**（`src/draw/proto/paper-help-r39.ts`，代码阅读结论，未在 Obsidian 中复现）：
+1. ~~**“?” 说明模块的生命周期挂在模块载入而不是视图上**~~：已修复（T-001，见 ARCHITECTURE ADR 16；测试工具里复现并验证，真实 Obsidian 里也已验证）。原问题（`src/draw/proto/paper-help-r39.ts` 改前的行号）：
    - `:103` 模块载入时 `addEventListener('resize', …)` 挂在主窗口的全局上，永不移除；视图在弹出窗口里时收不到那个窗口的 resize。
    - `:102` `hook()` 只在载入时找一次 `#help` 并挂 `MutationObserver`。没找到时每帧 `HOST.requestFrame(hook)` 重试，直到第一个视图打开；视图关掉再开，新的 `#help` 没人观察（推断：重开后 “?” 说明不再按元素排布）。
    - `:99` 的 `setInterval`（400ms）只在 `#help` 变为隐藏时 `:100` 清掉。视图关闭时若说明正开着，没有路径清它，回调里 `HOST.root!.hasAttribute` 在 `HOST.detach()` 后为 null，会每 400ms 抛错。

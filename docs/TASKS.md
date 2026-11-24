@@ -47,14 +47,14 @@
 ## 任务
 
 ### T-001 “?” 说明模块的监听与计时器跟随视图
-- 负责 Agent：
-- 分支：
-- worktree：
+- 负责 Agent：Claude Code
+- 分支：main（按用户要求直接在主目录改）
+- worktree：主目录
 - 范围文件：`src/draw/proto/paper-help-r39.ts`；必要时 `src/view.ts`（只加调用，不改别处）
 - 禁碰文件：高频冲突文件；`src/host.ts` 的现有接口语义
 - 验收命令：`npm run check`；私有 `check-r39-ui`、`check-help-capture`；Obsidian 里关闭再打开视图后按 “?” 仍能排布说明；视图在弹出窗口时改窗口尺寸说明会重排；说明开着时关闭视图，控制台无报错
-- 状态：待认领
-- 备注：问题见 HANDOFF 已知问题 1（`:99`、`:102`、`:103`）。思路：resize 改经 `HOST.addEventListener` 或视图的 `registerDomEvent(root.win, …)`；`hook` 在每次 `HOST.attach` 后重新挂；视图关闭时清计时器。
+- 状态：已合并（2026-11-24；测试工具 12/12，真实 Obsidian 9/9：关闭再打开、说明开着时关闭、弹出窗口改尺寸重排都通过，弹出窗口回归 27/27）
+- 备注：问题见 HANDOFF 已知问题 1。做法：`paper-help-r39.ts` 去掉模块载入时的 `hook()` 每帧重试与全局 `addEventListener('resize')`，改为导出 `attachHelp(root)` / `detachHelp()`；`view.ts` 只加两处调用（`onOpen` 里 `buildFrame` 之后 `attachHelp`，`onClose` 里 `HOST.detach()` 之前 `detachHelp`）。`resize` 挂在 `root.win`，经 `root.onWindowMigrated` 跟着视图搬窗口；`detachHelp` 断开两个 observer、清计时器、取消挂起的帧。`host.ts` 未改（`HOST.addEventListener` 只把 pointer 三种挂到窗口，`resize` 会挂到根元素上收不到，所以没用它）。`HOST` 是单例：新视图 `attachHelp` 先摘掉旧的。说明的排布、箭头、过场期间不排布等逻辑未动。验证：`npm run check` 全过；私有浏览器检查 16 项全过，`check-help-capture` 24/24；测试工具补测（关闭再打开、说明开着时关闭、iframe 模拟弹出窗口的 resize）改前 4 项失败、改后 12/12 通过。真实 Obsidian 未跑：跑前核对真实配置指纹，哈希相同但修改时间与登记值不同，按本机规则停下。`dist/styles.css` 不变，`dist/main.js` 变。
 
 ### T-002 切到小清单的 keepRows 开销
 - 负责 Agent：

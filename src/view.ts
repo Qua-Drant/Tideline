@@ -38,7 +38,7 @@ import type {Index} from './data/index.ts';
 import {changesSince} from './changes.ts';
 import './draw/proto/paper-transition-r37.ts';
 import {wrapAmbient} from './ui/ambient.ts';
-import './draw/proto/paper-help-r39.ts'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37）：装上 HOST.transition
+import {attachHelp, detachHelp} from './draw/proto/paper-help-r39.ts'; // “?”说明：#help 显示时，每条说明绑到页面里的一个元素，手画箭头指过去（原型 R39） // 全站过场（原型 R37）：装上 HOST.transition
 import type CompassPlugin from './main.ts';
 import type {DayView} from './data/types.ts';
 import type {ChangeEntry} from './plugin-types.ts';
@@ -182,6 +182,7 @@ export class CompassView extends ItemView {
     this.hand = createHandFont();
     this.art = createR12Art({data: {clock: p.clock(), ui: {}, cache: {}}, ink, circle, icon});
     this.frame = buildFrame(this.root, this.hand);
+    attachHelp(this.root); // “?”说明盯这个视图的 #help（T-001：随视图挂上，onClose 里摘下）
     this.today = createToday({root: this.root, art: this.art, ui: this.ui});
     this.todayReward = createTodayReward();
     // 输入法组字（拼音、五笔……）期间：整页不重画，也不让各页的 input 监听器处理半成品（原型的搜索框每打一下就重画并重设光标，
@@ -263,6 +264,7 @@ export class CompassView extends ItemView {
       HOST.transition?.finish();
       HOST.onTransitionEnd = null;
       HOST.paper = null;
+      detachHelp();
       HOST.detach();
     }
     this.sceneNodes = null;

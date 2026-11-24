@@ -90,8 +90,8 @@ function build(){const help=$('#help');if(!help||help.hidden){sig='';return;}if(
   out.push({b,arrow:arrow(sx-b.x,sy-b.y,tx-b.x,ty-b.y,i),tip:[tx,ty],target:i});});
  setNodes(help,()=>out.map((o,i)=>h('div',{class:'help-note r39-note','data-help-target':String(i),style:`left:${o.b.x}px;top:${o.b.y}px`,'data-tip':o.tip.map(v=>v.toFixed(1)).join(',')},svg('svg',{class:'r39-arrow',width:'1',height:'1','aria-hidden':'true'},o.arrow),targets[i].t)));
  targets.forEach((x,i)=>{x.e.dataset.helpTarget=String(i);});building=false;}
-let queued=false;
-function settle(){if(queued||building)return;queued=true;HOST.requestFrame(()=>{queued=false;build();});}
+let queued=false,frame=0;
+function settle(){if(queued||building)return;queued=true;frame=HOST.requestFrame(()=>{frame=0;queued=false;build();});}
 // 只在说明显示时才盯整页（R39：说明收起时什么也不做，不给过场添负担）
 const page=new MutationObserver(ms=>{if(building)return;if(ms.every(m=>(m.target as Element).closest?.('#help')&&(m.target as Element).id!=='help'&&[...m.addedNodes].every(n=>(n as Element).classList?.contains('r39-note'))))return;settle();});
 let tick=0;
@@ -99,5 +99,10 @@ function watch(){const help=$('#help');if(!help)return;const on=!help.hidden;
  if(on&&!tick){page.observe(HOST.body!,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','aria-pressed','class']});tick=window.setInterval(()=>{if(!HOST.root!.hasAttribute('data-r35-run'))settle();},400);settle();}
  else if(!on&&tick){page.disconnect();window.clearInterval(tick);tick=0;sig='';}
  else if(on)settle();}
-(function hook(){const help=$('#help');if(!help){HOST.requestFrame(hook);return;}new MutationObserver(watch).observe(help,{attributes:true,attributeFilter:['hidden'],childList:true});watch();})();
-addEventListener('resize',()=>{sig='';if(tick)settle();});
+// T-001：跟着视图挂上 / 摘下（原来模块载入时找第一个 #help 挂一次、resize 挂在主窗口全局）。视图 onOpen 建好框后 attachHelp，onClose 里 detachHelp。
+// resize 挂在视图所在的窗口上，视图搬进弹出窗口（或搬回）时跟过去
+const helpObs=new MutationObserver(watch),onResize=()=>{sig='';if(tick)settle();};
+let resizeWin: Window|null=null,offMigrate: (()=>void)|null=null;
+function bindResize(w: Window|null){if(w===resizeWin)return;resizeWin?.removeEventListener('resize',onResize);resizeWin=w;w?.addEventListener('resize',onResize);}
+export function detachHelp(){helpObs.disconnect();page.disconnect();window.clearInterval(tick);tick=0;sig='';HOST.cancelFrame(frame);frame=0;queued=false;bindResize(null);offMigrate?.();offMigrate=null;}
+export function attachHelp(root: HTMLElement){detachHelp();const help=root.querySelector('#help');if(!help)return;helpObs.observe(help,{attributes:true,attributeFilter:['hidden'],childList:true});bindResize(root.win);offMigrate=root.onWindowMigrated(()=>bindResize(root.win));watch();}

@@ -90,7 +90,7 @@ writer（source-obsidian.ts obsidianWriter）→ processFrontMatter / vault.proc
 - `draw/ink.ts`：笔压线与小图形（`perfect-freehand`）。节点版 `inkEl/circleEl/iconEl/buttonFrameEl…`，描述版 `inkV/circleV`；只算图形，不读页面和数据。
 - `draw/dom.ts`：`h(tag, attrs, ...children)`、`svg`、`setNodes`、`insertNodes`。只用 DOM 方法，不解析字符串；文字一律成为文本节点。
 - `draw/scene.ts`：风景描述 `sh()`/`parts()`，`sameParts` 比较、`buildParts(list, doc)` 在指定 document 建节点（弹出窗口可重建）。
-- 页面：今日页 `pages/today.ts`（每块区域记上次输入，没变不动）；下方五页由 `draw/proto/phase2.ts` 的 `createPhase2` 汇总，风景 `scenery(box)` 输出描述。过场 `draw/proto/paper-transition-r37.ts` 装 `HOST.transition`；“?” 说明 `draw/proto/paper-help-r39.ts`（模块载入即运行）。
+- 页面：今日页 `pages/today.ts`（每块区域记上次输入，没变不动）；下方五页由 `draw/proto/phase2.ts` 的 `createPhase2` 汇总，风景 `scenery(box)` 输出描述。过场 `draw/proto/paper-transition-r37.ts` 装 `HOST.transition`；“?” 说明 `draw/proto/paper-help-r39.ts`（视图 `onOpen` 里 `attachHelp`、`onClose` 里 `detachHelp`，见 ADR 16）。
 
 ## 7. 样式拼接
 
@@ -110,7 +110,7 @@ writer（source-obsidian.ts obsidianWriter）→ processFrontMatter / vault.proc
    是什么：`CompassView.registerDocEvent` 把 document 监听挂在视图所在窗口，`onWindowMigrated` 时摘下重挂；`root.onWindowMigrated` 里调 `HOST.migrate()`（把 `pointermove/up/cancel` 搬到新窗口）和 `applyDevice()`（新窗口样式表上重设字号与主题）；`HOST.requestFrame` 在视图窗口排帧；过场用 `instanceOf` 与视图 document。
    为什么：原来全挂在主窗口：弹出窗口里快捷键、Esc、拖动收不到；主窗口最小化时动画帧停，过场卡住；`instanceof SVGElement` 认不出别的窗口的元素，思索页过场报错。
    删了会怎样：视图拖到弹出窗口后上述问题全部回来。
-   位置：`src/view.ts` `registerDocEvent`（:252）、`onOpen` 里 `onWindowMigrated`（:237）；`src/host.ts` `migrate`（:153）、`requestFrame`（:156）；`src/draw/proto/paper-transition-r37.ts` 文件头。
+   位置：`src/view.ts` `registerDocEvent`（:253）、`onOpen` 里 `onWindowMigrated`（:238）；`src/host.ts` `migrate`（:153）、`requestFrame`（:156）；`src/draw/proto/paper-transition-r37.ts` 文件头。
 
 3. **`@property --r34-cut` 注册为不继承**（e3fb7a5）
    是什么：`@property --r34-cut{syntax:'*';inherits:false}`。
@@ -122,7 +122,7 @@ writer（source-obsidian.ts obsidianWriter）→ processFrontMatter / vault.proc
    是什么：`frames()` 末尾放过一次 `more.update()` 就 `moreRuns++`；`renderLower` 比较前后计数，相同才再放一次。
    为什么：两次之间 DOM 没变，第二遍量到的、写的都与第一遍相同，却要约 29ms。
    删了会怎样：只是变慢；但若改成“永远不放第二次”，没有纸条/设置时“还有 N 项”就不画了。
-   位置：`src/view.ts` 字段 `moreRuns`（:150）、`renderLower`（:376–:379）、`frames`（:476）。
+   位置：`src/view.ts` 字段 `moreRuns`（:150）、`renderLower`（:377–:380）、`frames`（:477）。
 
 5. **任务货单按条更新 `keepRows`**（e3fb7a5）
    是什么：任务页仍整页新建，再把旧的 `.cargo-center > .cargo-left-pane > .cargo-manifest` 链留下，行按 `outerHTML` + `isEqualNode` 与新建结果逐字相同才沿用旧节点。整页重建（返回 false，DOM 不动）的条件：没有旧货单；链上元素不一一对应或属性名先后不同；链上元素有焦点、有横向滚动或（货单以外）纵向滚动、正在播动画；货单滚动位置这次要变；文档选区落在任务页上。行沿用另要求焦点不在行内、行内没有动画。
@@ -185,10 +185,16 @@ writer（source-obsidian.ts obsidianWriter）→ processFrontMatter / vault.proc
     是什么：`compositionstart` 到 `compositionend` 之间拦下 `input` 并挡住 `render()`，结束后补发 `input` 并补渲染；任务详情里打字时写回引起的重画由 `taskPlus.holdRender()` 推迟。
     为什么：原型的搜索框每打一下就重画并重设光标，会打断拼音组字，字母留在框里。
     删了会怎样：中文输入法在搜索框等处无法正常输入。
-    位置：`src/view.ts` `onOpen`（:190–:201）、`render`（:327–:330）；`src/ui/task-plus.ts` `holdRender`。
+    位置：`src/view.ts` `onOpen`（:191–:202）、`render`（:328–:331）；`src/ui/task-plus.ts` `holdRender`。
 
 15. **删除只认显式登记**
     是什么：`persist.commit` 只把 `d.trash` 里登记过的 id 移进回收站（`data/trash.ts`）；撤销期内的删除放在 `hold`，纸条消失后才真正删。
     为什么：模型重建或模块 bug 让某条目暂时不在 `d` 里时，不能据此删笔记。
     删了会怎样：可能误删用户笔记。
     位置：`src/data/persist.ts` `commit`（:114）；`src/data/trash.ts`；`src/pages/lower.ts` `hold`、`close()`。
+
+16. **“?” 说明模块随视图挂上 / 摘下**（T-001）
+    是什么：`paper-help-r39.ts` 不在模块载入时找 `#help`，而是导出 `attachHelp(root)` / `detachHelp()`。视图 `onOpen` 建好框（`buildFrame`）后 `attachHelp`：先 `detachHelp`，再观察这个视图的 `#help`、把 `resize` 挂在 `root.win` 上，并经 `root.onWindowMigrated` 在视图搬窗口时把 `resize` 搬过去。`onClose` 里（`HOST.root === this.root` 时，`HOST.detach()` 之前）`detachHelp`：断开 `#help` 与整页的两个 `MutationObserver`、清 400ms 计时器、取消挂起的 `HOST.requestFrame`（并复位 `queued`）、摘掉 `resize` 与搬窗口回调。`HOST` 是单例：新视图 `attachHelp` 会先摘掉旧视图的。
+    为什么：原来只观察第一次打开的那个 `#help`（之后关掉再开，说明不再排布）；说明开着时关闭视图，计时器每 400ms 读 `HOST.root!` 抛错；`resize` 挂在主窗口全局，视图在弹出窗口里改尺寸不重排；载入时没有视图就每帧重试。
+    删了会怎样：上述问题回来。`detachHelp` 里若不复位 `queued`，取消挂起的帧后 `settle()` 永远不再排帧，下一个视图的说明不排布。
+    位置：`src/draw/proto/paper-help-r39.ts` 末尾 `attachHelp` / `detachHelp`；`src/view.ts` `onOpen`（`buildFrame` 下一行）、`onClose`。

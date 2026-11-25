@@ -32,7 +32,7 @@
    - `:102` `hook()` 只在载入时找一次 `#help` 并挂 `MutationObserver`。没找到时每帧 `HOST.requestFrame(hook)` 重试，直到第一个视图打开；视图关掉再开，新的 `#help` 没人观察（推断：重开后 “?” 说明不再按元素排布）。
    - `:99` 的 `setInterval`（400ms）只在 `#help` 变为隐藏时 `:100` 清掉。视图关闭时若说明正开着，没有路径清它，回调里 `HOST.root!.hasAttribute` 在 `HOST.detach()` 后为 null，会每 400ms 抛错。
 2. **`src/pages/settings.ts:286` 的 `setInterval`**：在同一段 `try/finally` 的 `finally` 里 `clearInterval`（`:289`），刷新结束（成功、失败或 60 秒超时）一定清掉；视图中途关闭时最多多跑到超时，回调只是查不到元素。结论：没有泄漏，不需要改。
-3. **Obsidian 里切到小清单慢约 11%**（185→205ms）：`keepRows` 的 `outerHTML` 比较约 12ms + 逐个摘行约 5ms，沿用的行少时抵不掉。测试工具里同一场景反而快 9–37%。已知未改（改了要重跑整套等价检查）。
+3. ~~**Obsidian 里切到小清单慢约 11%**（185→205ms）~~：已解决（T-002，见 ARCHITECTURE ADR 5）。根因不止 `outerHTML` 比较：逐个摘 / 插节点时浏览器要过一遍文档里还没回收的 Range（风景与“还有 N 项”每次渲染按文字节点建），500 条时每个节点约 0.1–0.15ms。`keepRows` 现在估计能沿用的行比要摘、要插的行合计还少时直接整页重建。Obsidian 500 条（sync 中位）：切清单 137–148ms（整页重建时代 185，改前 180–203），切到小清单 94–112→50，切人物 85–118→55–59，回全部 330–340→298–308；勾选、点开、滚动不变。
 4. **季度复盘页可能不随季度笔记更新**：未核实。相关代码：`data/index.ts` 的 `quarter` 分支、`data/model.ts`、`pages/lower.ts` 的页签名（含 `index.version`）。
 5. **同等排序的项目启动后先后不定**：私有测试记录里观察到真实 Obsidian 每次读索引的先后不同。推断原因：`Index.loadAll` 用 `Promise.all` 并发 `load()`，需要 `await read` 的笔记写进 Map 的先后取决于读完的先后，排序键相同时保持插入顺序（未逐一核实各页的排序函数）。
 6. ~~测试不在公开仓库~~：已解决（T-003）。8 项纯 Node 检查在 `test/`，CI 每次都跑。

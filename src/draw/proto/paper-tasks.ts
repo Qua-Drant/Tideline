@@ -99,7 +99,9 @@ export function taskPage(a: ProtoApi){
  // 留下的节点在 DOM 上与新建的完全一样（链上元素被脚本加上的属性——tl-fit、max-height、data-r33-more、--r34-cut 等——先还原成新建时的样子，
  // 之后 fitList、“还有 N 项”照原样再写一遍）；不改样式、不改顺序以外的任何东西。以下情况整页照旧换掉（返回 false，DOM 一点没动）：
  //   没有旧货单；链上元素不对应、属性名先后不同；链上元素有焦点、有横向 / 纵向滚动偏移（货单除外，它的滚动位置之后照原样设回）、自己在播动画；
- //   货单的滚动位置这次要变（原来新货单从 0 设到 scroll，不会多出一次滚动事件）；文档里有选区落在任务页上。
+ //   货单的滚动位置这次要变（原来新货单从 0 设到 scroll，不会多出一次滚动事件）；文档里有选区落在任务页上；
+ //   能沿用的行太少（T-002）：按 data-id 估计，新旧货单都有的行比要摘掉、要插入的行合计还少（切到小清单、切人物等）。
+ //   逐个摘、插节点的开销随页面上未回收的 Range 增长（风景、“还有 N 项”每次渲染按文字节点建 Range），沿用的行少时抵不掉，整页换掉反而快。
  // 行（以及分组里的行）沿用的条件另加：焦点不在它里面、它里面没有正在播的动画或过渡（新建的行会从头播，沿用的不会；这类行照旧重建）
  function keepRows(root: HTMLElement,fresh: DocumentFragment,scroll: number): boolean{
   const doc=root.ownerDocument,active=doc.activeElement,sel=doc.getSelection();
@@ -111,6 +113,10 @@ export function taskPage(a: ProtoApi){
   if(list.scrollTop!==scroll)return false;
   // 属性：去掉旧元素上新建时没有的，剩下的名字与先后必须和新建的一样（值不同的之后改成新建的值）
   for(const [o,n] of chain){const want=n.getAttributeNames(),have=o.getAttributeNames().filter(k=>n.hasAttribute(k));if(want.length!==have.length||want.some((k,i)=>k!==have[i]))return false;}
+  // 重合度：货单子节点按首个子元素的 data-id（行、分组）计；同一 outerHTML 必有同一 data-id，所以这是能沿用行数的上限
+  const key=(x: Element)=>x.firstElementChild?.getAttribute('data-id')??'',oldKeys=new Set<string>();for(const x of list.children)oldKeys.add(key(x));
+  let same=0;for(const x of chain[2][1].children)if(oldKeys.has(key(x)))same++;
+  if(same*3<list.children.length+chain[2][1].children.length)return false;
   // 不能沿用的：焦点所在与正在动的元素，连同它们的祖先
   const busy=new Set<Element>(),mark=(e: Element|null)=>{for(;e&&e!==list;e=e.parentElement)busy.add(e);};
   if(active&&list.contains(active))mark(active);

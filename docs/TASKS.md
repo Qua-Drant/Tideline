@@ -57,14 +57,14 @@
 - 备注：问题见 HANDOFF 已知问题 1。做法：`paper-help-r39.ts` 去掉模块载入时的 `hook()` 每帧重试与全局 `addEventListener('resize')`，改为导出 `attachHelp(root)` / `detachHelp()`；`view.ts` 只加两处调用（`onOpen` 里 `buildFrame` 之后 `attachHelp`，`onClose` 里 `HOST.detach()` 之前 `detachHelp`）。`resize` 挂在 `root.win`，经 `root.onWindowMigrated` 跟着视图搬窗口；`detachHelp` 断开两个 observer、清计时器、取消挂起的帧。`host.ts` 未改（`HOST.addEventListener` 只把 pointer 三种挂到窗口，`resize` 会挂到根元素上收不到，所以没用它）。`HOST` 是单例：新视图 `attachHelp` 先摘掉旧的。说明的排布、箭头、过场期间不排布等逻辑未动。验证：`npm run check` 全过；私有浏览器检查 16 项全过，`check-help-capture` 24/24；测试工具补测（关闭再打开、说明开着时关闭、iframe 模拟弹出窗口的 resize）改前 4 项失败、改后 12/12 通过。真实 Obsidian 未跑：跑前核对真实配置指纹，哈希相同但修改时间与登记值不同，按本机规则停下。`dist/styles.css` 不变，`dist/main.js` 变。
 
 ### T-002 切到小清单的 keepRows 开销
-- 负责 Agent：
-- 分支：
-- worktree：
+- 负责 Agent：Claude Code
+- 分支：main（按用户要求直接在主目录改）
+- worktree：主目录
 - 范围文件：`src/draw/proto/paper-tasks.ts`
 - 禁碰文件：高频冲突文件；`src/styles/`
 - 验收命令：`npm run check`；私有 `check-task-plus`、`check-task-ui`、`check-race` 全过；500 条任务下 Obsidian 测速：切清单不慢于整页重建，其余场景不退步
-- 状态：待认领
-- 备注：HANDOFF 已知问题 3。例如新旧行数相差很大时直接整页重建，跳过 `outerHTML` 比较。属于高风险区，必须说明怎么证明 DOM 与改前一致。
+- 状态：已完成（2026-11-25，待用户提交）
+- 备注：HANDOFF 已知问题 3。瓶颈：拆开计时（500 条，测试工具）后，`outerHTML` 建池约 10–12ms，真正大头是逐个摘 / 插节点：页面用过一阵后每个节点约 0.1–0.15ms（切到 2 条的小清单时摘 450 行约 70ms，从小清单回全部时插 450 行约 40ms）。原因：风景（`phase2.ts` `rawObstacles`）与“还有 N 项”（`ui/more.ts`）每次渲染按文字节点 `createRange`，这些 Range 在回收前都挂在文档上，每摘 / 插一个节点浏览器都要过一遍；强制回收后同样的摘除从约 65ms 降到约 9ms，Range 改成复用一个时约 6ms（实验，未改那两个文件）。整页重建只在根上换 6 个子节点，不受影响。做法：`keepRows` 在现有整页重建条件之后加一条重合度条件——货单子节点按首个子元素的 `data-id` 计，新旧都有的个数 × 3 小于新旧子节点总数（能沿用的行比要摘、要插的行合计还少）就整页重建；原有条件（选区、焦点、滚动偏移、动画、属性先后）一条未动，行比较方式未动。阈值依据：门槛 0 / 0.25 / 1/3 / 总是重建四档 × 500/200/50 条扫描，比例约 0.25 的大清单切换两路持平，更低时重建明显快，勾选 / 点开（约 0.49）沿用明显快。证明 DOM 一致：两条路本来就产生相同的 DOM（`keepRows` 的设计前提），只差节点是否沿用；等价检查 tasks、tasksMany（假任务 120 条）、people、pages 四种走法 × 日夜 × 1440×900 / 760×1000，冻结计时器的计算样式轮 DOM 与计算样式全 0；不冻结的 DOM 轮仅 4 处 `#feedback` 5 秒提示条落在不同步骤（已知计时竞争类别，冻结轮为 0）；无页面报错。沿用语义：真鼠标 / 键盘 22 步 × 50/120/500 条，焦点、选区、输入框光标、滚动位置、正在播的动画逐步与改前相同（120 条一次动画取样差异重跑消失），唯一稳定差异是 50 条时“搜索清除”一步：改后整页重建，不可见的折叠光标（非可编辑区域里的 Caret）落点从左栏变成 `#tasks`，与整页重建时一贯的行为相同。测速（sync 中位，改前 → 改后）：Obsidian 500 条，两对先后相反的测量：切清单 180→148 / 203→137ms（性能批前整页重建为 185ms），切到小清单 112→50 / 94→50，切人物 118→55 / 85→59，回全部 330→308 / 340→298，其余场景在先后漂移范围内（反序一对全部持平或更快）；测试工具交替 10 轮 500 条：小清单 103→51、人物 122→60、回全部 258→231，勾选 / 点开持平。私有检查：浏览器 16 项全过（`check-task-plus` 89、`check-task-ui` 31、`check-race` 10），Obsidian `--task-plus` 89 项全过，前后真实配置指纹不变。`dist/styles.css` 不变，`dist/main.js` 变。
 
 ### T-003 公开的纯 Node 测试
 - 负责 Agent：
